@@ -3,6 +3,9 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Browsingway.Common", "Browsingway.Common\Browsingway.Common.csproj", "{2AB8F791-02DC-4D49-8B0C-CCF1F7860EA8}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Browsingway", "Browsingway\Browsingway.csproj", "{F3DE2B20-4AA6-42B7-9E81-0883D0927C5D}"
+	ProjectSection(ProjectDependencies) = postProject
+		{0CB35073-17D4-44ED-8442-64E7B8B428A5} = {0CB35073-17D4-44ED-8442-64E7B8B428A5}
+	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Browsingway.Renderer", "Browsingway.Renderer\Browsingway.Renderer.csproj", "{0CB35073-17D4-44ED-8442-64E7B8B428A5}"
 EndProject
