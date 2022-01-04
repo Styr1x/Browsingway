@@ -1,0 +1,28 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Browsingway.Common", "Browsingway.Common\Browsingway.Common.csproj", "{2AB8F791-02DC-4D49-8B0C-CCF1F7860EA8}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Browsingway", "Browsingway\Browsingway.csproj", "{F3DE2B20-4AA6-42B7-9E81-0883D0927C5D}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Browsingway.Renderer", "Browsingway.Renderer\Browsingway.Renderer.csproj", "{0CB35073-17D4-44ED-8442-64E7B8B428A5}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Release|x64 = Release|x64
+		Debug|x64 = Debug|x64
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{2AB8F791-02DC-4D49-8B0C-CCF1F7860EA8}.Release|x64.ActiveCfg = Release|x64
+		{2AB8F791-02DC-4D49-8B0C-CCF1F7860EA8}.Release|x64.Build.0 = Release|x64
+		{2AB8F791-02DC-4D49-8B0C-CCF1F7860EA8}.Debug|x64.ActiveCfg = Debug|x64
+		{2AB8F791-02DC-4D49-8B0C-CCF1F7860EA8}.Debug|x64.Build.0 = Debug|x64
+		{F3DE2B20-4AA6-42B7-9E81-0883D0927C5D}.Release|x64.ActiveCfg = Release|x64
+		{F3DE2B20-4AA6-42B7-9E81-0883D0927C5D}.Release|x64.Build.0 = Release|x64
+		{F3DE2B20-4AA6-42B7-9E81-0883D0927C5D}.Debug|x64.ActiveCfg = Debug|x64
+		{F3DE2B20-4AA6-42B7-9E81-0883D0927C5D}.Debug|x64.Build.0 = Debug|x64
+		{0CB35073-17D4-44ED-8442-64E7B8B428A5}.Release|x64.ActiveCfg = Release|x64
+		{0CB35073-17D4-44ED-8442-64E7B8B428A5}.Release|x64.Build.0 = Release|x64
+		{0CB35073-17D4-44ED-8442-64E7B8B428A5}.Debug|x64.ActiveCfg = Debug|x64
+		{0CB35073-17D4-44ED-8442-64E7B8B428A5}.Debug|x64.Build.0 = Debug|x64
+	EndGlobalSection
+EndGlobal
