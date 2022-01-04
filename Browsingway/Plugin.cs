@@ -41,13 +41,16 @@ public class Plugin : IDalamudPlugin
 	}
 
 	[PluginService]
-	private static DalamudPluginInterface PluginInterface { get; } = null!;
+	// ReSharper disable once AutoPropertyCanBeMadeGetOnly.Local
+	private static DalamudPluginInterface PluginInterface { get; set; } = null!;
 
 	[PluginService]
-	private static CommandManager CommandManager { get; } = null!;
+	// ReSharper disable once AutoPropertyCanBeMadeGetOnly.Local
+	private static CommandManager CommandManager { get; set; } = null!;
 
 	[PluginService]
-	private static ChatGui Chat { get; } = null!;
+	// ReSharper disable once AutoPropertyCanBeMadeGetOnly.Local
+	private static ChatGui Chat { get; set; } = null!;
 
 	// Required for LivePluginLoader support
 	public string AssemblyLocation { get; } = Assembly.GetExecutingAssembly().Location;

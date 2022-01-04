@@ -22,10 +22,12 @@ internal class Settings : IDisposable
 	public readonly Configuration Config;
 
 	[PluginService]
-	private static DalamudPluginInterface PluginInterface { get; } = null!;
+	// ReSharper disable once AutoPropertyCanBeMadeGetOnly.Local
+	private static DalamudPluginInterface PluginInterface { get; set; } = null!;
 
 	[PluginService]
-	private static ChatGui Chat { get; } = null!;
+	// ReSharper disable once AutoPropertyCanBeMadeGetOnly.Local
+	private static ChatGui Chat { get; set; } = null!;
 
 #if DEBUG
 	private bool _open = true;
