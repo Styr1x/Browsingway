@@ -11,6 +11,8 @@ This project is a fork off ackwell's BrowserHost plugin (https://github.com/ackw
     * The displayed browser overlays are scaled correctly in regards to your display's dpi. This essentially means you get the same sized output as you get from your browser.
 * Zoom support
     * Overlays can be zoomed in and out to make them smaller and bigger, same way your browser's zoom works.
+* Opacity support
+    * Make your overlays as transparent as you like.
 * Framerate configurable
     * The rendering framerate for each individual overlay can now be set.
 * Updated Chromium version
