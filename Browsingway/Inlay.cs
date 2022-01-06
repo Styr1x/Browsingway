@@ -160,7 +160,9 @@ internal class Inlay : IDisposable
 		{
 			HandleMouseEvent();
 
+			ImGui.PushStyleVar(ImGuiStyleVar.Alpha, _inlayConfig.Opacity / 100f);
 			_textureHandler.Render();
+			ImGui.PopStyleVar();
 		}
 		else if (_textureRenderException != null)
 		{

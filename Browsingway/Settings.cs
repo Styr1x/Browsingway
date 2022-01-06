@@ -32,7 +32,7 @@ internal class Settings : IDisposable
 #if DEBUG
 	private bool _open = true;
 #else
-		private bool _open = false;
+	private bool _open;
 #endif
 
 	private List<FrameTransportMode> _availableTransports = new();
@@ -402,6 +402,21 @@ internal class Settings : IDisposable
 
 			// notify of zoom change
 			UpdateZoomInlay(inlayConfig);
+		}
+
+		if (ImGui.InputFloat("Opacity", ref inlayConfig.Opacity, 1f, 10f, "%.0f%%"))
+		{
+			// clamp to allowed range 
+			if (inlayConfig.Opacity < 10f)
+			{
+				inlayConfig.Opacity = 10f;
+			}
+			else if (inlayConfig.Opacity > 100f)
+			{
+				inlayConfig.Opacity = 100f;
+			}
+
+			dirty = true;
 		}
 
 		if (ImGui.InputInt("Framerate", ref inlayConfig.Framerate, 1, 10))

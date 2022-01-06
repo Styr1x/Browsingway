@@ -20,6 +20,7 @@ internal class InlayConfiguration
 	public bool Hidden;
 	public bool Locked;
 	public string Name = null!;
+	public float Opacity = 100f;
 	public bool TypeThrough;
 	public string Url = null!;
 	public float Zoom = 100f;
