@@ -10,6 +10,7 @@
 		<AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
 		<OutputPath>$(AppData)\XIVLauncher\devPlugins\Browsingway\</OutputPath>
 		<LangVersion>latestmajor</LangVersion>
+		<Version>1.0.0.1</Version>
 	</PropertyGroup>
 
 	<ItemGroup>

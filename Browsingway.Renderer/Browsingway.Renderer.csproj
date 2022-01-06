@@ -12,6 +12,7 @@
 		<OutputPath>$(AppData)\XIVLauncher\devPlugins\Browsingway\renderer\</OutputPath>
 		<LangVersion>latestmajor</LangVersion>
 		<ApplicationManifest>app.manifest</ApplicationManifest>
+		<Version>1.0.0.1</Version>
 	</PropertyGroup>
 
 	<ItemGroup>

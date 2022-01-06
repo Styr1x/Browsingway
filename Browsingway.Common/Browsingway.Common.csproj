@@ -8,6 +8,7 @@
 		<Platforms>x64</Platforms>
 		<AssemblyName>Browsingway.Common</AssemblyName>
 		<RootNamespace>Browsingway.Common</RootNamespace>
+		<Version>1.0.0.1</Version>
 	</PropertyGroup>
 
 </Project>
