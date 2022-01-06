@@ -11,7 +11,7 @@ internal static class Program
 {
 	private static string _cefAssemblyDir = null!;
 	private static string _dalamudAssemblyDir = null!;
-	private static int ParentProcessID;
+	private static int _parentProcessID;
 
 	private static Thread? _parentWatchThread;
 	private static EventWaitHandle? _waitHandle;
@@ -32,7 +32,7 @@ internal static class Program
 		_cefAssemblyDir = args.CefAssemblyDir;
 		_dalamudAssemblyDir = args.DalamudAssemblyDir;
 
-		ParentProcessID = args.ParentPid;
+		_parentProcessID = args.ParentPid;
 		AppDomain.CurrentDomain.AssemblyResolve += CustomAssemblyResolver;
 
 		Run(args);
