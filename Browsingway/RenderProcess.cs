@@ -126,7 +126,7 @@ internal class RenderProcess : IDisposable
 			IpcChannelName = _ipcChannelName
 		};
 
-		Process process = new Process();
+		Process process = new();
 		process.StartInfo = new ProcessStartInfo
 		{
 			FileName = Path.Combine(_pluginDir, "renderer", "Browsingway.Renderer.exe"),
@@ -136,6 +136,8 @@ internal class RenderProcess : IDisposable
 			RedirectStandardOutput = true,
 			RedirectStandardError = true
 		};
+		string runtimePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "XIVLauncher", "runtime");
+		process.StartInfo.EnvironmentVariables.Add("DOTNET_ROOT", runtimePath);
 
 		process.OutputDataReceived += (_, args) => PluginLog.Log($"[Render]: {args.Data}");
 		process.ErrorDataReceived += (_, args) => PluginLog.LogError($"[Render]: {args.Data}");
