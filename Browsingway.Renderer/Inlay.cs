@@ -10,9 +10,9 @@ namespace Browsingway.Renderer;
 
 internal class Inlay : IDisposable
 {
+	private readonly int _framerate;
 	public readonly BaseRenderHandler RenderHandler;
 	private ChromiumWebBrowser? _browser;
-	private readonly int _framerate;
 	private string _url;
 	private float _zoom;
 

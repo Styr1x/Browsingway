@@ -51,7 +51,7 @@ internal static class Program
 #endif
 
 		bool dxRunning = DxHandler.Initialise(args.DxgiAdapterLuid);
-		CefHandler.Initialise(_cefAssemblyDir, args.CefCacheDir);
+		CefHandler.Initialise(_cefAssemblyDir, args.CefCacheDir, args.ParentPid);
 
 		_ipcBuffer = new IpcBuffer<DownstreamIpcRequest, UpstreamIpcRequest?>(args.IpcChannelName, HandleIpcRequest);
 
