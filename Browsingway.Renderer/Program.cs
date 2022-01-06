@@ -11,6 +11,7 @@ internal static class Program
 {
 	private static string _cefAssemblyDir = null!;
 	private static string _dalamudAssemblyDir = null!;
+	private static int ParentProcessID;
 
 	private static Thread? _parentWatchThread;
 	private static EventWaitHandle? _waitHandle;
@@ -31,6 +32,7 @@ internal static class Program
 		_cefAssemblyDir = args.CefAssemblyDir;
 		_dalamudAssemblyDir = args.DalamudAssemblyDir;
 
+		ParentProcessID = args.ParentPid;
 		AppDomain.CurrentDomain.AssemblyResolve += CustomAssemblyResolver;
 
 		Run(args);
@@ -51,7 +53,7 @@ internal static class Program
 #endif
 
 		bool dxRunning = DxHandler.Initialise(args.DxgiAdapterLuid);
-		CefHandler.Initialise(_cefAssemblyDir, args.CefCacheDir);
+		CefHandler.Initialise(_cefAssemblyDir, args.CefCacheDir, ParentProcessID);
 
 		_ipcBuffer = new IpcBuffer<DownstreamIpcRequest, UpstreamIpcRequest?>(args.IpcChannelName, HandleIpcRequest);
 
