@@ -201,6 +201,10 @@ internal class Inlay : IDisposable
 			flags |= ImGuiWindowFlags.NoMouseInputs | ImGuiWindowFlags.NoNav;
 		}
 
+		// don't think user wants a background when they decrease opacity
+		if (_inlayConfig.Opacity < 100f)
+			flags |= ImGuiWindowFlags.NoBackground;
+
 		return flags;
 	}
 
