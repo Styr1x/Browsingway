@@ -32,12 +32,12 @@ public class Plugin : IDalamudPlugin
 
 		_pluginConfigDir = PluginInterface.GetPluginConfigDirectory();
 
-		// Hook up render hook
-		PluginInterface.UiBuilder.Draw += Render;
-
 		_dependencyManager = new DependencyManager(_pluginDir, _pluginConfigDir);
 		_dependencyManager.DependenciesReady += (_, _) => DependenciesReady();
 		_dependencyManager.Initialise();
+
+		// Hook up render hook
+		PluginInterface.UiBuilder.Draw += Render;
 	}
 
 	[PluginService]
