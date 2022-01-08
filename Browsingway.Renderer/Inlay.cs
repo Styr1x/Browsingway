@@ -39,6 +39,7 @@ internal class Inlay : IDisposable
 	{
 		_browser = new ChromiumWebBrowser(_url, automaticallyCreateBrowser: false);
 		_browser.RenderHandler = RenderHandler;
+		_browser.MenuHandler = new CefMenuHandler();
 		Rect size = RenderHandler.GetViewRect();
 
 		// General _browser config
@@ -98,13 +99,12 @@ internal class Inlay : IDisposable
 		// If the _browser isn't ready yet, noop
 		if (_browser == null || !_browser.IsBrowserInitialized) { return; }
 
-		int cursorX = (int)request.X;
-		int cursorY = (int)request.Y;
+		var cursor = DpiScaling.ScaleViewPoint(request.X, request.Y);
 
 		// Update the renderer's concept of the mouse cursor
-		RenderHandler.SetMousePosition(cursorX, cursorY);
+		RenderHandler.SetMousePosition(cursor.X, cursor.Y);
 
-		MouseEvent evt = new(cursorX, cursorY, DecodeInputModifier(request.Modifier));
+		MouseEvent evt = new(cursor.X, cursor.Y, DecodeInputModifier(request.Modifier));
 
 		IBrowserHost? host = _browser.GetBrowserHost();
 
