@@ -10,8 +10,7 @@ internal static class CefHandler
 	{
 		CefSettings settings = new()
 		{
-			BrowserSubprocessPath = Path.Combine(cefAssemblyPath, "CefSharp.BrowserSubprocess.exe"),
-			CachePath = cefCacheDir,
+			BrowserSubprocessPath = Path.Combine(cefAssemblyPath, "CefSharp.BrowserSubprocess.exe"), CachePath = cefCacheDir,
 #if !DEBUG
 			LogSeverity = LogSeverity.Fatal,
 #endif

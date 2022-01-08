@@ -30,4 +30,19 @@ public class DpiScaling
 	{
 		return new Rect(rect.X, rect.Y, (int)Math.Ceiling(rect.Width * (1 / GetDeviceScale())), (int)Math.Ceiling(rect.Height * (1 / GetDeviceScale())));
 	}
+
+	public static Rect ScaleScreenRect(Rect rect)
+	{
+		return new Rect(rect.X, rect.Y, (int)Math.Ceiling(rect.Width * (GetDeviceScale())), (int)Math.Ceiling(rect.Height * (GetDeviceScale())));
+	}
+
+	public static Point ScaleViewPoint(float x, float y)
+	{
+		return new Point((int)Math.Ceiling(x * (1 / GetDeviceScale())), (int)Math.Ceiling(y * (1 / GetDeviceScale())));
+	}
+
+	public static Point ScaleScreenPoint(float x, float y)
+	{
+		return new Point((int)Math.Ceiling(x * (GetDeviceScale())), (int)Math.Ceiling(y * (GetDeviceScale())));
+	}
 }
