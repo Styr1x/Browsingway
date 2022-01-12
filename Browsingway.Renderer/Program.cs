@@ -164,6 +164,13 @@ internal static class Program
 						return null;
 					}
 
+				case InjectUserCssRequest injectUserCssRequest:
+					{
+						Inlay inlay = _inlays[injectUserCssRequest.Guid];
+						inlay.InjectUserCss(injectUserCssRequest.Css);
+						return null;
+					}
+
 				default:
 					throw new Exception($"Unknown IPC request type {request?.GetType().Name} received.");
 			}
@@ -186,7 +193,7 @@ internal static class Program
 			_inlays.Remove(request.Guid);
 		}
 
-		Inlay inlay = new(request.Url, request.Zoom, request.Framerate, renderHandler);
+		Inlay inlay = new(request.Url, request.Zoom, request.Framerate, request.CustomCss, renderHandler);
 		inlay.Initialise();
 		_inlays.Add(request.Guid, inlay);
 
@@ -202,8 +209,15 @@ internal static class Program
 	{
 		return renderHandler switch
 		{
-			TextureRenderHandler textureRenderHandler => new TextureHandleResponse { TextureHandle = textureRenderHandler.SharedTextureHandle },
-			BitmapBufferRenderHandler bitmapBufferRenderHandler => new BitmapBufferResponse { BitmapBufferName = bitmapBufferRenderHandler.BitmapBufferName!, FrameInfoBufferName = bitmapBufferRenderHandler.FrameInfoBufferName },
+			TextureRenderHandler textureRenderHandler => new TextureHandleResponse
+			{
+				TextureHandle = textureRenderHandler.SharedTextureHandle
+			},
+			BitmapBufferRenderHandler bitmapBufferRenderHandler => new BitmapBufferResponse
+			{
+				BitmapBufferName = bitmapBufferRenderHandler.BitmapBufferName!,
+				FrameInfoBufferName = bitmapBufferRenderHandler.FrameInfoBufferName
+			},
 			_ => throw new Exception($"Unhandled render handler type {renderHandler.GetType().Name}")
 		};
 	}

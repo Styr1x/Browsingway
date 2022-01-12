@@ -102,6 +102,7 @@ public class Plugin : IDalamudPlugin
 			_settings.InlayRemoved += OnInlayRemoved;
 			_settings.InlayZoomed += OnInlayZoomed;
 			_settings.TransportChanged += OnTransportChanged;
+			_settings.InlayUserCssChanged += OnUserCssChanged;
 		}
 
 		// Hook up the main BW command
@@ -159,6 +160,12 @@ public class Plugin : IDalamudPlugin
 		{
 			inlay.InvalidateTransport();
 		}
+	}
+
+	private void OnUserCssChanged(object? sender, InlayConfiguration config)
+	{
+		Inlay inlay = _inlays[config.Guid];
+		inlay.InjectUserCss(config.CustomCss);
 	}
 
 	private object? HandleIpcRequest(object? sender, UpstreamIpcRequest request)

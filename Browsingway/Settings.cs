@@ -17,6 +17,8 @@ internal class Settings : IDisposable
 	public event EventHandler<InlayConfiguration>? InlayDebugged;
 	public event EventHandler<InlayConfiguration>? InlayRemoved;
 	public event EventHandler<InlayConfiguration>? InlayZoomed;
+
+	public event EventHandler<InlayConfiguration>? InlayUserCssChanged;
 	public event EventHandler? TransportChanged;
 
 	public readonly Configuration Config;
@@ -173,6 +175,11 @@ internal class Settings : IDisposable
 	private void UpdateZoomInlay(InlayConfiguration inlayConfig)
 	{
 		InlayZoomed?.Invoke(this, inlayConfig);
+	}
+
+	private void UpdateUserCss(InlayConfiguration inlayConfig)
+	{
+		InlayUserCssChanged?.Invoke(this, inlayConfig);
 	}
 
 	private void ReloadInlay(InlayConfiguration inlayConfig) { NavigateInlay(inlayConfig); }
@@ -473,6 +480,14 @@ internal class Settings : IDisposable
 		ImGui.NextColumn();
 
 		ImGui.Columns(1);
+
+		ImGui.Text("Custom CSS code:");
+		if (ImGui.InputTextMultiline("Custom CSS code", ref inlayConfig.CustomCss, 1000000,
+			    new Vector2(-1, ImGui.GetTextLineHeight() * 10)))
+		{
+			dirty = true;
+		}
+		if (ImGui.IsItemDeactivatedAfterEdit()) { UpdateUserCss(inlayConfig); }
 
 		if (ImGui.Button("Reload")) { ReloadInlay(inlayConfig); }
 
