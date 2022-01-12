@@ -3,7 +3,6 @@ using Browsingway.Renderer.RenderHandlers;
 using CefSharp;
 using CefSharp.OffScreen;
 using CefSharp.Structs;
-using System.Text.RegularExpressions;
 using KeyEventType = CefSharp.KeyEventType;
 using Size = System.Drawing.Size;
 
