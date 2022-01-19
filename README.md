@@ -29,3 +29,8 @@ This project is a fork off ackwell's BrowserHost plugin (https://github.com/ackw
 The initial release focused on making the overlays work again, the focus now rests on rewriting core parts to make the plugin more robust and easier to maintain.
 
 You can also open an issue for new feature requests.
+
+## ACT support ##
+For ACT overlays to work correctly the overlay WSServer has to be enabled. ACT also provides an URL generator that will create the correct URLs to use within Browsingway:
+
+![image](https://user-images.githubusercontent.com/569324/148692825-f29e41ae-cec5-4144-974f-394e14ec108a.png)
