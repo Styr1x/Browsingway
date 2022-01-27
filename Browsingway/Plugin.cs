@@ -24,7 +24,7 @@ public class Plugin : IDalamudPlugin
 
 	public Plugin()
 	{
-		_pluginDir = Path.GetDirectoryName(AssemblyLocation) ?? "";
+		_pluginDir = PluginInterface.AssemblyLocation.DirectoryName ?? "";
 		if (String.IsNullOrEmpty(_pluginDir))
 		{
 			throw new Exception("Could not determine plugin directory");
@@ -70,8 +70,6 @@ public class Plugin : IDalamudPlugin
 
 		WndProcHandler.Shutdown();
 		DxHandler.Shutdown();
-
-		PluginInterface.Dispose();
 
 		_dependencyManager.Dispose();
 	}
