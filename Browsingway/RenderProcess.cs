@@ -137,7 +137,8 @@ internal class RenderProcess : IDisposable
 			RedirectStandardError = true
 		};
 		string runtimePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "XIVLauncher", "runtime");
-		process.StartInfo.EnvironmentVariables.Add("DOTNET_ROOT", runtimePath);
+		if (!process.StartInfo.EnvironmentVariables.ContainsKey("DOTNET_ROOT"))
+			process.StartInfo.EnvironmentVariables.Add("DOTNET_ROOT", runtimePath);
 
 		process.OutputDataReceived += (_, args) => PluginLog.Log($"[Render]: {args.Data}");
 		process.ErrorDataReceived += (_, args) => PluginLog.LogError($"[Render]: {args.Data}");
