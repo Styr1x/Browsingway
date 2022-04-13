@@ -36,8 +36,8 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<PackageReference Include="CefSharp.Common.NETCore" Version="96.0.180"/>
-		<PackageReference Include="CefSharp.OffScreen.NETCore" Version="96.0.180"/>
+		<PackageReference Include="CefSharp.Common.NETCore" Version="100.0.140"/>
+		<PackageReference Include="CefSharp.OffScreen.NETCore" Version="100.0.140"/>
 		<PackageReference Include="SharedMemory" Version="2.2.3"/>
 	</ItemGroup>
 
