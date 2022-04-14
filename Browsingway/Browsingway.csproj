@@ -10,7 +10,7 @@
 		<AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
 		<OutputPath>$(AppData)\XIVLauncher\devPlugins\Browsingway\</OutputPath>
 		<LangVersion>latestmajor</LangVersion>
-		<Version>1.0.0.3</Version>
+		<Version>1.0.0.4</Version>
 	</PropertyGroup>
 
 	<ItemGroup>
@@ -55,7 +55,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<PackageReference Include="DalamudPackager" Version="2.1.5"/>
+		<PackageReference Include="DalamudPackager" Version="2.1.6"/>
 		<PackageReference Include="SharedMemory" Version="2.2.3"/>
 
 	</ItemGroup>
