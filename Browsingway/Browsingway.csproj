@@ -10,7 +10,7 @@
 		<AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
 		<OutputPath>$(AppData)\XIVLauncher\devPlugins\Browsingway\</OutputPath>
 		<LangVersion>latestmajor</LangVersion>
-		<Version>1.0.0.4</Version>
+		<Version>1.0.0.5</Version>
 	</PropertyGroup>
 
 	<ItemGroup>
@@ -24,7 +24,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<ProjectReference Include="..\Browsingway.Common\Browsingway.Common.csproj"/>
+		<ProjectReference Include="..\Browsingway.Common\Browsingway.Common.csproj" />
 	</ItemGroup>
 
 	<ItemGroup>
@@ -55,8 +55,8 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<PackageReference Include="DalamudPackager" Version="2.1.6"/>
-		<PackageReference Include="SharedMemory" Version="2.2.3"/>
+		<PackageReference Include="DalamudPackager" Version="2.1.7" />
+		<PackageReference Include="SharedMemory" Version="2.3.2" />
 
 	</ItemGroup>
 

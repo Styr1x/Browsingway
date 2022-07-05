@@ -12,12 +12,12 @@
 		<OutputPath>$(AppData)\XIVLauncher\devPlugins\Browsingway\renderer\</OutputPath>
 		<LangVersion>latestmajor</LangVersion>
 		<ApplicationManifest>app.manifest</ApplicationManifest>
-		<Version>1.0.0.4</Version>
+		<Version>1.0.0.5</Version>
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 	</PropertyGroup>
 
 	<ItemGroup>
-		<ProjectReference Include="..\Browsingway.Common\Browsingway.Common.csproj"/>
+		<ProjectReference Include="..\Browsingway.Common\Browsingway.Common.csproj" />
 	</ItemGroup>
 
 	<ItemGroup>
@@ -36,9 +36,9 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<PackageReference Include="CefSharp.Common.NETCore" Version="100.0.140"/>
-		<PackageReference Include="CefSharp.OffScreen.NETCore" Version="100.0.140"/>
-		<PackageReference Include="SharedMemory" Version="2.2.3"/>
+		<PackageReference Include="CefSharp.Common.NETCore" Version="103.0.80" />
+		<PackageReference Include="CefSharp.OffScreen.NETCore" Version="103.0.80" />
+		<PackageReference Include="SharedMemory" Version="2.3.2" />
 	</ItemGroup>
 
 </Project>
