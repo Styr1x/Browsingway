@@ -24,4 +24,5 @@ internal class InlayConfiguration
 	public bool TypeThrough;
 	public string Url = null!;
 	public float Zoom = 100f;
+	public string CustomCss = "";
 }

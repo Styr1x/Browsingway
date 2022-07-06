@@ -61,6 +61,7 @@ public class NewInlayRequest : DownstreamIpcRequest
 	public string Url = null!;
 	public int Width;
 	public float Zoom;
+	public string CustomCss = null!;
 }
 
 [Serializable]
@@ -94,6 +95,13 @@ public class NavigateInlayRequest : DownstreamIpcRequest
 {
 	public Guid Guid;
 	public string Url = null!;
+}
+
+[Serializable]
+public class InjectUserCssRequest : DownstreamIpcRequest
+{
+	public Guid Guid;
+	public string Css = null!;
 }
 
 [Serializable]
