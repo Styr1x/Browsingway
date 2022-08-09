@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
-		<TargetFramework>net6.0</TargetFramework>
+		<TargetFramework>net6.0-windows</TargetFramework>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
 		<Configurations>Release;Debug</Configurations>
@@ -10,7 +10,7 @@
 		<AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
 		<LangVersion>latestmajor</LangVersion>
 		<Version>1.0.0.6</Version>
-		<OutputPath>..\out\</OutputPath>
+		<OutputPath>..\out</OutputPath>
 		<RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
 	</PropertyGroup>
 
@@ -19,13 +19,13 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<PackageReference Include="DalamudPackager" Version="2.1.7"/>
-		<PackageReference Include="SharedMemory" Version="2.3.2"/>
+		<PackageReference Include="DalamudPackager" Version="2.1.7" />
+		<PackageReference Include="SharedMemory" Version="2.3.2" />
 	</ItemGroup>
 
 	<ItemGroup>
-		<ProjectReference Include="..\Browsingway.Common\Browsingway.Common.csproj"/>
-		<ProjectReference Include="..\Browsingway.Renderer\Browsingway.Renderer.csproj" ReferenceOutputAssembly="false"/>
+		<ProjectReference Include="..\Browsingway.Common\Browsingway.Common.csproj" />
+		<ProjectReference Include="..\Browsingway.Renderer\Browsingway.Renderer.csproj" ReferenceOutputAssembly="false" />
 	</ItemGroup>
 
 	<ItemGroup>

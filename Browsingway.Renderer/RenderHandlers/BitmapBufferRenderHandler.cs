@@ -169,10 +169,6 @@ internal class BitmapBufferRenderHandler : BaseRenderHandler
 		if (oldBitmapBuffer != null) { _obsoleteBuffers.Add(oldBitmapBuffer); }
 	}
 
-	// There's a race condition wherein a resize from the plugin causes the browser to resize it's output buffer
-	// during writing it out to the IPC, which causes an access violation. Rather than trying to prevent the race like
-	// a sane developer, I'm just catching the error and nooping it - a dropped frame isn't a big issue.
-	[HandleProcessCorruptedStateExceptions]
 	private void WriteToBuffers(BitmapFrame frame, IntPtr buffer, bool offsetFromSource)
 	{
 		// Not using read/write locks because I'm a cowboy (and there seems to be a race cond in the locking mechanism)

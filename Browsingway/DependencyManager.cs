@@ -117,7 +117,9 @@ internal class DependencyManager : IDisposable
 		File.Delete(filePath);
 
 		// Set up the download and kick it off
+#pragma warning disable SYSLIB0014
 		using WebClient client = new();
+#pragma warning restore SYSLIB0014
 		client.DownloadProgressChanged += (sender, args) => _installProgress.AddOrUpdate(
 			dependency.Directory,
 			args.ProgressPercentage,

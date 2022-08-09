@@ -2,7 +2,7 @@
 
 	<PropertyGroup>
 		<OutputType>Exe</OutputType>
-		<TargetFramework>net6.0</TargetFramework>
+		<TargetFramework>net6.0-windows</TargetFramework>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
 		<Configurations>Release;Debug</Configurations>
@@ -13,14 +13,14 @@
 		<ApplicationManifest>app.manifest</ApplicationManifest>
 		<Version>1.0.0.6</Version>
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-		<OutputPath>..\out\renderer</OutputPath>
+		<OutputPath>..\out</OutputPath>
 		<RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
 	</PropertyGroup>
 
 	<PropertyGroup>
 		<DalamudLibPath>$(appdata)\XIVLauncher\addon\Hooks\dev\</DalamudLibPath>
 	</PropertyGroup>
-
+	
 	<ItemGroup>
 		<ProjectReference Include="..\Browsingway.Common\Browsingway.Common.csproj" />
 	</ItemGroup>

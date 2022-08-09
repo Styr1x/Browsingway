@@ -1,7 +1,7 @@
 {
   "version": 1,
   "dependencies": {
-    "net6.0": {
+    "net6.0-windows7.0": {
       "CefSharp.Common.NETCore": {
         "type": "Direct",
         "requested": "[103.0.80, )",
@@ -20,24 +20,6 @@
           "CefSharp.Common.NETCore": "[103.0.80]",
           "System.Drawing.Common": "4.7.0"
         }
-      },
-      "chromiumembeddedframework.runtime.win-arm64": {
-        "type": "Direct",
-        "requested": "[103.0.8, )",
-        "resolved": "103.0.8",
-        "contentHash": "jYLRLklLhFT5NDyLwYE6rGLEF3loJY6314yfmRrCFX7RrBIYz8I4KttJCJzreRhecsuOBO9zkx7FZ09Ghcpb7Q=="
-      },
-      "chromiumembeddedframework.runtime.win-x64": {
-        "type": "Direct",
-        "requested": "[103.0.8, )",
-        "resolved": "103.0.8",
-        "contentHash": "rFQPZfkOnLyLBMSpfJ+JmGYXWgW/EgWJXFr2YhPsBDbGCN/xDaJUVPOxvrgnI+G7wu61HxtJpzmXtS+T5YeK1A=="
-      },
-      "chromiumembeddedframework.runtime.win-x86": {
-        "type": "Direct",
-        "requested": "[103.0.8, )",
-        "resolved": "103.0.8",
-        "contentHash": "OZfIk7J3feE1N1MJqKf5SgTegTBQPtoaEWRQEZpjF1v42RvFNOpJQXGYQFhKehIe86yPeVRMc9D1WeClm1P+Sw=="
       },
       "SharedMemory": {
         "type": "Direct",

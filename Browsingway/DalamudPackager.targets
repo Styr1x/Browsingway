@@ -1,13 +1,18 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project>
 	<Target Name="PackagePlugin" AfterTargets="Build" Condition="'$(Configuration)' == 'Release'">
-		<Copy SourceFiles="$(OutputPath)\renderer\SharedMemory.dll" DestinationFolder="$(OutputPath)"/>
 		<RemoveDir Directories="$(OutputPath)\runtimes"/>
-		<RemoveDir Directories="$(OutputPath)\renderer\runtimes"/>
-		<Delete Files="$(OutputPath)\Browsingway.Renderer.deps.json;
-		$(OutputPath)\Browsingway.Renderer.exe;
-		$(OutputPath)\Browsingway.Renderer.runtimeconfig.json;
-		$(OutputPath)\renderer\Browsingway.Renderer.deps.json;"/>
+		<Copy SourceFiles="$(OutputPath)\Browsingway.Common.dll" DestinationFolder="$(OutputPath)\renderer"/>
+		<Copy SourceFiles="$(OutputPath)\Browsingway.Common.pdb" DestinationFolder="$(OutputPath)\renderer"/>
+		<Copy SourceFiles="$(OutputPath)\SharedMemory.dll" DestinationFolder="$(OutputPath)\renderer"/>
+		<Move SourceFiles="$(OutputPath)\Browsingway.Renderer.dll" DestinationFolder="$(OutputPath)\renderer"/>
+		<Move SourceFiles="$(OutputPath)\Browsingway.Renderer.exe" DestinationFolder="$(OutputPath)\renderer"/>
+		<Move SourceFiles="$(OutputPath)\Browsingway.Renderer.pdb" DestinationFolder="$(OutputPath)\renderer"/>
+		<Move SourceFiles="$(OutputPath)\Browsingway.Renderer.runtimeconfig.json" DestinationFolder="$(OutputPath)\renderer"/>
+		<Move SourceFiles="$(OutputPath)\CefSharp.OffScreen.dll" DestinationFolder="$(OutputPath)\renderer"/>
+		<Move SourceFiles="$(OutputPath)\Microsoft.Win32.SystemEvents.dll" DestinationFolder="$(OutputPath)\renderer"/>
+		<Move SourceFiles="$(OutputPath)\System.Drawing.Common.dll" DestinationFolder="$(OutputPath)\renderer"/>
+		<Delete Files="$(OutputPath)\Browsingway.Renderer.deps.json"/>
 		<DalamudPackager
 				ProjectDir="$(ProjectDir)"
 				OutputPath="$(OutputPath)"
