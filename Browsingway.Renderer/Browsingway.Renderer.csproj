@@ -2,18 +2,23 @@
 
 	<PropertyGroup>
 		<OutputType>Exe</OutputType>
-		<TargetFramework>net5.0-windows</TargetFramework>
+		<TargetFramework>net6.0</TargetFramework>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
 		<Configurations>Release;Debug</Configurations>
 		<Platforms>x64</Platforms>
 		<ProduceReferenceAssembly>false</ProduceReferenceAssembly>
 		<AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
-		<OutputPath>$(AppData)\XIVLauncher\devPlugins\Browsingway\renderer\</OutputPath>
 		<LangVersion>latestmajor</LangVersion>
 		<ApplicationManifest>app.manifest</ApplicationManifest>
-		<Version>1.0.0.5</Version>
+		<Version>1.0.0.6</Version>
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+		<OutputPath>..\out\renderer</OutputPath>
+		<RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
+	</PropertyGroup>
+
+	<PropertyGroup>
+		<DalamudLibPath>$(appdata)\XIVLauncher\addon\Hooks\dev\</DalamudLibPath>
 	</PropertyGroup>
 
 	<ItemGroup>
@@ -22,15 +27,15 @@
 
 	<ItemGroup>
 		<Reference Include="SharpDX">
-			<HintPath>$(AppData)\XIVLauncher\addon\Hooks\dev\SharpDX.dll</HintPath>
+			<HintPath>$(DalamudLibPath)SharpDX.dll</HintPath>
 			<Private>false</Private>
 		</Reference>
 		<Reference Include="SharpDX.Direct3D11">
-			<HintPath>$(AppData)\XIVLauncher\addon\Hooks\dev\SharpDX.Direct3D11.dll</HintPath>
+			<HintPath>$(DalamudLibPath)SharpDX.Direct3D11.dll</HintPath>
 			<Private>false</Private>
 		</Reference>
 		<Reference Include="SharpDX.DXGI">
-			<HintPath>$(AppData)\XIVLauncher\addon\Hooks\dev\SharpDX.DXGI.dll</HintPath>
+			<HintPath>$(DalamudLibPath)SharpDX.DXGI.dll</HintPath>
 			<Private>false</Private>
 		</Reference>
 	</ItemGroup>

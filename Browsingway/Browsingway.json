@@ -12,5 +12,5 @@
         "chromium",
         "act"
     ],
-    "Changelog": "- Updated Chromium to 103.0.5060.66"
+    "Changelog": "- Retarget to net6.0 framework"
 }

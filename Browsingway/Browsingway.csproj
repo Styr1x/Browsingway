@@ -1,17 +1,59 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
-		<TargetFramework>net5.0-windows</TargetFramework>
+		<TargetFramework>net6.0</TargetFramework>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
 		<Configurations>Release;Debug</Configurations>
 		<Platforms>x64</Platforms>
 		<ProduceReferenceAssembly>false</ProduceReferenceAssembly>
 		<AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
-		<OutputPath>$(AppData)\XIVLauncher\devPlugins\Browsingway\</OutputPath>
 		<LangVersion>latestmajor</LangVersion>
-		<Version>1.0.0.5</Version>
+		<Version>1.0.0.6</Version>
+		<OutputPath>..\out\</OutputPath>
+		<RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
 	</PropertyGroup>
+
+	<PropertyGroup>
+		<DalamudLibPath>$(appdata)\XIVLauncher\addon\Hooks\dev\</DalamudLibPath>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="DalamudPackager" Version="2.1.7"/>
+		<PackageReference Include="SharedMemory" Version="2.3.2"/>
+	</ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\Browsingway.Common\Browsingway.Common.csproj"/>
+		<ProjectReference Include="..\Browsingway.Renderer\Browsingway.Renderer.csproj" ReferenceOutputAssembly="false"/>
+	</ItemGroup>
+
+	<ItemGroup>
+		<Reference Include="Dalamud">
+			<HintPath>$(DalamudLibPath)Dalamud.dll</HintPath>
+			<Private>false</Private>
+		</Reference>
+		<Reference Include="ImGui.NET">
+			<HintPath>$(DalamudLibPath)ImGui.NET.dll</HintPath>
+			<Private>false</Private>
+		</Reference>
+		<Reference Include="ImGuiScene">
+			<HintPath>$(DalamudLibPath)ImGuiScene.dll</HintPath>
+			<Private>false</Private>
+		</Reference>
+		<Reference Include="SharpDX">
+			<HintPath>$(DalamudLibPath)SharpDX.dll</HintPath>
+			<Private>false</Private>
+		</Reference>
+		<Reference Include="SharpDX.Direct3D11">
+			<HintPath>$(DalamudLibPath)SharpDX.Direct3D11.dll</HintPath>
+			<Private>false</Private>
+		</Reference>
+		<Reference Include="SharpDX.DXGI">
+			<HintPath>$(DalamudLibPath)SharpDX.DXGI.dll</HintPath>
+			<Private>false</Private>
+		</Reference>
+	</ItemGroup>
 
 	<ItemGroup>
 		<Content Include="Browsingway.json">
@@ -22,42 +64,5 @@
 			<Visible>false</Visible>
 		</Content>
 	</ItemGroup>
-
-	<ItemGroup>
-		<ProjectReference Include="..\Browsingway.Common\Browsingway.Common.csproj" />
-	</ItemGroup>
-
-	<ItemGroup>
-		<Reference Include="Dalamud">
-			<HintPath>$(AppData)\XIVLauncher\addon\Hooks\dev\Dalamud.dll</HintPath>
-			<Private>false</Private>
-		</Reference>
-		<Reference Include="ImGui.NET">
-			<HintPath>$(AppData)\XIVLauncher\addon\Hooks\dev\ImGui.NET.dll</HintPath>
-			<Private>false</Private>
-		</Reference>
-		<Reference Include="ImGuiScene">
-			<HintPath>$(AppData)\XIVLauncher\addon\Hooks\dev\ImGuiScene.dll</HintPath>
-			<Private>false</Private>
-		</Reference>
-		<Reference Include="SharpDX">
-			<HintPath>$(AppData)\XIVLauncher\addon\Hooks\dev\SharpDX.dll</HintPath>
-			<Private>false</Private>
-		</Reference>
-		<Reference Include="SharpDX.Direct3D11">
-			<HintPath>$(AppData)\XIVLauncher\addon\Hooks\dev\SharpDX.Direct3D11.dll</HintPath>
-			<Private>false</Private>
-		</Reference>
-		<Reference Include="SharpDX.DXGI">
-			<HintPath>$(AppData)\XIVLauncher\addon\Hooks\dev\SharpDX.DXGI.dll</HintPath>
-			<Private>false</Private>
-		</Reference>
-	</ItemGroup>
-
-	<ItemGroup>
-		<PackageReference Include="DalamudPackager" Version="2.1.7" />
-		<PackageReference Include="SharedMemory" Version="2.3.2" />
-
-	</ItemGroup>
-
+	
 </Project>
