@@ -1,13 +1,13 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project>
 	<Target Name="PackagePlugin" AfterTargets="Build" Condition="'$(Configuration)' == 'Release'">
-		<Copy SourceFiles="$(OutputPath)renderer\SharedMemory.dll" DestinationFolder="$(OutputPath)"/>
-		<RemoveDir Directories="$(OutputPath)runtimes"/>
-		<RemoveDir Directories="$(OutputPath)renderer\runtimes"/>
-		<Delete Files="$(OutputPath)Browsingway.Renderer.deps.json;
-		$(OutputPath)Browsingway.Renderer.exe;
-		$(OutputPath)Browsingway.Renderer.runtimeconfig.json;
-		$(OutputPath)renderer\Browsingway.Renderer.deps.json;"/>
+		<Copy SourceFiles="$(OutputPath)\renderer\SharedMemory.dll" DestinationFolder="$(OutputPath)"/>
+		<RemoveDir Directories="$(OutputPath)\runtimes"/>
+		<RemoveDir Directories="$(OutputPath)\renderer\runtimes"/>
+		<Delete Files="$(OutputPath)\Browsingway.Renderer.deps.json;
+		$(OutputPath)\Browsingway.Renderer.exe;
+		$(OutputPath)\Browsingway.Renderer.runtimeconfig.json;
+		$(OutputPath)\renderer\Browsingway.Renderer.deps.json;"/>
 		<DalamudPackager
 				ProjectDir="$(ProjectDir)"
 				OutputPath="$(OutputPath)"
