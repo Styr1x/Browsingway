@@ -9,12 +9,15 @@
 		<Platforms>x64</Platforms>
 		<ProduceReferenceAssembly>false</ProduceReferenceAssembly>
 		<AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+		<AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
 		<LangVersion>latestmajor</LangVersion>
 		<ApplicationManifest>app.manifest</ApplicationManifest>
 		<Version>1.0.0.6</Version>
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 		<OutputPath>..\out</OutputPath>
 		<RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
+		<RuntimeIdentifier>win-x64</RuntimeIdentifier>
+		<SelfContained>false</SelfContained>
 	</PropertyGroup>
 
 	<PropertyGroup>
@@ -41,8 +44,12 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<PackageReference Include="CefSharp.Common.NETCore" Version="103.0.80" />
-		<PackageReference Include="CefSharp.OffScreen.NETCore" Version="103.0.80" />
+		<PackageReference Include="CefSharp.Common.NETCore" Version="103.0.80">
+			<ExcludeAssets>runtime;contentFiles;native</ExcludeAssets>
+		</PackageReference>
+		<PackageReference Include="CefSharp.OffScreen.NETCore" Version="103.0.80" PrivateAssets="true">
+			<ExcludeAssets>contentFiles;native</ExcludeAssets>
+		</PackageReference>
 		<PackageReference Include="SharedMemory" Version="2.3.2" />
 	</ItemGroup>
 
