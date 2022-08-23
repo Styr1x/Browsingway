@@ -19,7 +19,7 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<PackageReference Include="DalamudPackager" Version="2.1.7" />
+		<PackageReference Include="DalamudPackager" Version="2.1.8" />
 		<PackageReference Include="SharedMemory" Version="2.3.2" />
 	</ItemGroup>
 
