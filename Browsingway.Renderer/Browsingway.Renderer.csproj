@@ -12,7 +12,7 @@
 		<AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
 		<LangVersion>latestmajor</LangVersion>
 		<ApplicationManifest>app.manifest</ApplicationManifest>
-		<Version>1.0.0.6</Version>
+		<Version>1.0.0.7</Version>
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 		<OutputPath>..\out</OutputPath>
 		<RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
@@ -51,6 +51,11 @@
 			<ExcludeAssets>contentFiles;native</ExcludeAssets>
 		</PackageReference>
 		<PackageReference Include="SharedMemory" Version="2.3.2" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <None Remove="app.manifest" />
+	  <EmbeddedResource Include="app.manifest" />
 	</ItemGroup>
 
 </Project>

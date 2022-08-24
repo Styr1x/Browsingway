@@ -12,5 +12,5 @@
         "chromium",
         "act"
     ],
-    "Changelog": "- Retarget to net6.0 framework"
+    "Changelog": "Fix DPI scaling"
 }
