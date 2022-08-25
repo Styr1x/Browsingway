@@ -55,7 +55,7 @@
 
 	<Target Name="WinRes" AfterTargets="PostBuildEvent">
 		<Exec Command="winres\go-winres.exe patch --in winres\Browsingway.json $(OutputPath)\Browsingway.Renderer.exe" Condition=" '$(OS)' == 'Windows_NT' " />
-		<Exec Command="chmod +x winres\go-winres.elf" Condition=" '$(OS)' != 'Windows_NT' " />
-		<Exec Command="winres\go-winres.elf patch --in winres\Browsingway.json $(OutputPath)\Browsingway.Renderer.exe" Condition=" '$(OS)' != 'Windows_NT' " />
+		<Exec Command="chmod +x winres/go-winres.elf" Condition=" '$(OS)' != 'Windows_NT' " />
+		<Exec Command="winres/go-winres.elf patch --in winres/Browsingway.json $(OutputPath)/Browsingway.Renderer.exe" Condition=" '$(OS)' != 'Windows_NT' " />
 	</Target>
 </Project>
