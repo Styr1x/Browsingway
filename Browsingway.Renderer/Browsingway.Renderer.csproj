@@ -11,13 +11,13 @@
 		<AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
 		<AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
 		<LangVersion>latestmajor</LangVersion>
-		<ApplicationManifest>app.manifest</ApplicationManifest>
-		<Version>1.0.0.7</Version>
+		<Version>1.0.0.8</Version>
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 		<OutputPath>..\out</OutputPath>
 		<RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
 		<RuntimeIdentifier>win-x64</RuntimeIdentifier>
 		<SelfContained>false</SelfContained>
+		<NoWin32Manifest>true</NoWin32Manifest>
 	</PropertyGroup>
 
 	<PropertyGroup>
@@ -53,9 +53,8 @@
 		<PackageReference Include="SharedMemory" Version="2.3.2" />
 	</ItemGroup>
 
-	<ItemGroup>
-	  <None Remove="app.manifest" />
-	  <EmbeddedResource Include="app.manifest" />
-	</ItemGroup>
-
+	<Target Name="WinRes" AfterTargets="PostBuildEvent">
+		<Exec Command="winres\go-winres.exe patch --in winres\Browsingway.json $(OutputPath)\Browsingway.Renderer.exe" Condition=" '$(OS)' == 'Windows_NT' " />
+		<Exec Command="winres\go-winres.elf patch --in winres\Browsingway.json $(OutputPath)\Browsingway.Renderer.exe" Condition=" '$(OS)' != 'Windows_NT' " />
+	</Target>
 </Project>
