@@ -67,7 +67,7 @@ internal class RenderProcess : IDisposable
 
 	public void EnsureRenderProcessIsAlive()
 	{
-		if (!_running || !_process.HasExited)
+		if (!_running || !HasProcessExited())
 		{
 			return;
 		}
@@ -109,6 +109,26 @@ internal class RenderProcess : IDisposable
 		_process.WaitForExit(1000);
 		try { _process.Kill(); }
 		catch (InvalidOperationException) { }
+	}
+
+	private bool _hasExited = false;
+	private int _checkingExited = 0; // This needs to be a numeric type for Interlocked.Exchange
+
+	private bool HasProcessExited()
+	{
+		if (_checkingExited == 0)
+		{
+			_checkingExited = 1;
+			Task.Run(CheckProcessExited);
+		}
+
+		return _hasExited;
+	}
+
+	private void CheckProcessExited()
+	{
+		_hasExited = _process.HasExited;
+		Interlocked.Exchange(ref _checkingExited, 0);
 	}
 
 	private Process SetupProcess()
