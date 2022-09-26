@@ -65,25 +65,43 @@ internal class RenderProcess : IDisposable
 		_running = true;
 	}
 
+	private int _restarting = 0; // This needs to be a numeric type for Interlocked.Exchange
 	public void EnsureRenderProcessIsAlive()
 	{
-		if (!_running || !_process.HasExited)
+		if (!_running || !HasProcessExited())
 		{
 			return;
 		}
 
+		Task.Run(() =>
+		{
+			if (_hasExited && 0 == Interlocked.Exchange(ref _restarting, 1))
+			{
+				try
+				{
+					// process crashed, restart
+					PluginLog.LogError("Render process crashed - will restart asap");
+					_process = SetupProcess();
+					_process.Start();
+					_process.BeginOutputReadLine();
+					_process.BeginErrorReadLine();
 
-		// TODO: this should really be async
+					// notify everyone that we have to reinit
+					OnProcessCrashed();
 
-		// process crashed, restart
-		PluginLog.LogError("Render process crashed - will restart asap");
-		_process = SetupProcess();
-		_process.Start();
-		_process.BeginOutputReadLine();
-		_process.BeginErrorReadLine();
-
-		// notify everyone that we have to reinit
-		OnProcessCrashed();
+					// reset the process exit flag
+					_hasExited = false;
+				}
+				catch (Exception e)
+				{
+					PluginLog.LogError(e, "Failed to restart render process");
+				}
+				finally
+				{
+					Interlocked.Exchange(ref _restarting, 0);
+				}
+			}
+		});
 	}
 
 	public void Send(DownstreamIpcRequest request) { Send<object>(request); }
@@ -109,6 +127,36 @@ internal class RenderProcess : IDisposable
 		_process.WaitForExit(1000);
 		try { _process.Kill(); }
 		catch (InvalidOperationException) { }
+	}
+
+	private bool _hasExited = false;
+	private int _checkingExited = 0; // This needs to be a numeric type for Interlocked.Exchange
+	private bool HasProcessExited()
+	{
+		// Process.HasExited can be an expensive call (on some systems?), so it's
+		// offloaded to a Task, here. This could be related to Riot's Vanguard
+		// kernel anti-cheat. The performance bottleneck occurs in ntdll, so this
+		// is difficult to isolate and debug.
+		Task.Run(() =>
+		{
+			if (!_hasExited && 0 == Interlocked.Exchange(ref _checkingExited, 1))
+			{
+				try
+				{
+					_hasExited = _process.HasExited;
+				}
+				catch (Exception e)
+				{
+					PluginLog.LogError(e, "Failed to get process exit status");
+				}
+				finally
+				{
+					Interlocked.Exchange(ref _checkingExited, 0);
+				}
+			}
+		});
+
+		return _hasExited;
 	}
 
 	private Process SetupProcess()
