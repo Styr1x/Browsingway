@@ -12,5 +12,5 @@
         "chromium",
         "act"
     ],
-    "Changelog": "Fix DPI scaling"
+    "Changelog": "Fix performance regression on certain system configurations (by karashiiro)"
 }

@@ -11,7 +11,7 @@
 		<AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
 		<AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
 		<LangVersion>latestmajor</LangVersion>
-		<Version>1.0.0.8</Version>
+		<Version>1.0.0.9</Version>
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 		<OutputPath>..\out</OutputPath>
 		<RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
