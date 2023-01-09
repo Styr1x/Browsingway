@@ -14,9 +14,7 @@ internal class Inlay : IDisposable
 	private readonly RenderProcess _renderProcess;
 	private bool _captureCursor;
 	private ImGuiMouseCursor _cursor;
-
-	private InputModifier _modifier;
-
+	
 	private bool _mouseInWindow;
 
 	private bool _resizing;
@@ -24,7 +22,7 @@ internal class Inlay : IDisposable
 	private ITextureHandler? _textureHandler;
 	private Exception? _textureRenderException;
 	private bool _windowFocused;
-
+	
 	public Inlay(RenderProcess renderProcess, Configuration? config, InlayConfiguration inlayConfig)
 	{
 		_renderProcess = renderProcess;
@@ -54,6 +52,11 @@ internal class Inlay : IDisposable
 	public void Zoom(float zoom)
 	{
 		_renderProcess.Send(new ZoomInlayRequest { Guid = RenderGuid, Zoom = zoom });
+	}
+
+	public void Mute(bool mute)
+	{
+		_renderProcess.Send(new MuteInlayRequest() { Guid = RenderGuid, Mute = mute });
 	}
 
 	public void Debug()
@@ -87,11 +90,12 @@ internal class Inlay : IDisposable
 
 	public (bool, long) WndProcMessage(WindowsMessage msg, ulong wParam, long lParam)
 	{
-		// Check if there was a click, and use it to set the window focused state
-		// We're avoiding ImGui for this, as we want to check for clicks entirely outside
-		// ImGui's pervue to defocus inlays
-		if (msg == WindowsMessage.WM_LBUTTONDOWN) { _windowFocused = _mouseInWindow && _captureCursor; }
-
+		if (msg == WindowsMessage.WM_LBUTTONDOWN)
+		{
+			// this message is only generated when someone clicked on an non ImGui window, meaning we want to loose focus here
+			_windowFocused = false;
+		}
+		
 		// Bail if we're not focused or we're typethrough
 		// TODO: Revisit the focus check for UI stuff, might not hold
 		if (!_windowFocused || _inlayConfig.TypeThrough) { return (false, 0); }
@@ -109,33 +113,13 @@ internal class Inlay : IDisposable
 
 		// If the event isn't something we're tracking, bail early with no capture
 		if (eventType == null) { return (false, 0); }
-
-		bool isSystemKey = false
-		                   || msg == WindowsMessage.WM_SYSKEYDOWN
-		                   || msg == WindowsMessage.WM_SYSKEYUP
-		                   || msg == WindowsMessage.WM_SYSCHAR;
-
-		// TODO: Technically this is only firing once, because we're checking focused before this point,
-		// but having this logic essentially duped per-inlay is a bit eh. Dedupe at higher point?
-		InputModifier modifierAdjust = InputModifier.None;
-		if (wParam == (int)VirtualKey.Shift) { modifierAdjust |= InputModifier.Shift; }
-
-		if (wParam == (int)VirtualKey.Control) { modifierAdjust |= InputModifier.Control; }
-
-		// SYS* messages signal alt is held (really?)
-		if (isSystemKey) { modifierAdjust |= InputModifier.Alt; }
-
-		if (eventType == KeyEventType.KeyDown) { _modifier |= modifierAdjust; }
-		else if (eventType == KeyEventType.KeyUp) { _modifier &= ~modifierAdjust; }
-
+		
 		_renderProcess.Send(new KeyEventRequest
 		{
 			Guid = RenderGuid,
-			Type = eventType.Value,
-			SystemKey = isSystemKey,
-			UserKeyCode = (int)wParam,
-			NativeKeyCode = (int)lParam,
-			Modifier = _modifier
+			Msg = (int)msg,
+			WParam = (int)wParam,
+			LParam = (int)lParam
 		});
 
 		// We've handled the input, signal. For these message types, `0` signals a capture.
@@ -144,7 +128,7 @@ internal class Inlay : IDisposable
 
 	public void Render()
 	{
-		if (_inlayConfig.Hidden)
+		if (_inlayConfig.Hidden || _inlayConfig.Disabled)
 		{
 			_mouseInWindow = false;
 			return;
@@ -226,6 +210,17 @@ internal class Inlay : IDisposable
 		bool hovered = _captureCursor
 			? ImGui.IsWindowHovered()
 			: ImGui.IsMouseHoveringRect(windowPos, windowPos + ImGui.GetWindowSize());
+		
+		// manage focus
+		MouseButton down = EncodeMouseButtons(io.MouseClicked);
+		MouseButton double_ = EncodeMouseButtons(io.MouseDoubleClicked);
+		MouseButton up = EncodeMouseButtons(io.MouseReleased);
+		float wheelX = io.MouseWheelH;
+		float wheelY = io.MouseWheel;
+		if (down.HasFlag(MouseButton.Primary) || down.HasFlag(MouseButton.Secondary) || down.HasFlag(MouseButton.Tertiary))
+		{
+			_windowFocused = _mouseInWindow;
+		}
 
 		// If the cursor is outside the window, send a final mouse leave then noop
 		if (!hovered)
@@ -242,13 +237,7 @@ internal class Inlay : IDisposable
 		_mouseInWindow = true;
 
 		ImGui.SetMouseCursor(_cursor);
-
-		MouseButton down = EncodeMouseButtons(io.MouseClicked);
-		MouseButton double_ = EncodeMouseButtons(io.MouseDoubleClicked);
-		MouseButton up = EncodeMouseButtons(io.MouseReleased);
-		float wheelX = io.MouseWheelH;
-		float wheelY = io.MouseWheel;
-
+		
 		// If the event boils down to no change, bail before sending
 		if (io.MouseDelta == Vector2.Zero && down == MouseButton.None && double_ == MouseButton.None && up == MouseButton.None && wheelX == 0 && wheelY == 0)
 		{
@@ -294,7 +283,8 @@ internal class Inlay : IDisposable
 				Width = (int)currentSize.X,
 				Height = (int)currentSize.Y,
 				Zoom = _inlayConfig.Zoom,
-				Framerate = _inlayConfig.Framerate
+				Framerate = _inlayConfig.Framerate,
+				Muted = _inlayConfig.Muted
 			}
 			: new ResizeInlayRequest { Guid = RenderGuid, Width = (int)currentSize.X, Height = (int)currentSize.Y };
 

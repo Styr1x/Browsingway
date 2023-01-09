@@ -163,6 +163,12 @@ internal static class Program
 						inlay.HandleKeyEvent(keyEventRequest);
 						return null;
 					}
+				case MuteInlayRequest muteRequest:
+					{
+						Inlay inlay = _inlays[muteRequest.Guid];
+						inlay.Mute(muteRequest.Mute);
+						return null;
+					}
 
 				default:
 					throw new Exception($"Unknown IPC request type {request?.GetType().Name} received.");
@@ -186,7 +192,7 @@ internal static class Program
 			_inlays.Remove(request.Guid);
 		}
 
-		Inlay inlay = new(request.Url, request.Zoom, request.Framerate, renderHandler);
+		Inlay inlay = new(request.Url, request.Zoom, request.Muted, request.Framerate, renderHandler);
 		inlay.Initialise();
 		_inlays.Add(request.Guid, inlay);
 

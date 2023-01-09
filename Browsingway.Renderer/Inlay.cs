@@ -15,12 +15,14 @@ internal class Inlay : IDisposable
 	private ChromiumWebBrowser? _browser;
 	private string _url;
 	private float _zoom;
+	private bool _muted;
 
-	public Inlay(string url, float zoom, int framerate, BaseRenderHandler renderHandler)
+	public Inlay(string url, float zoom, bool muted, int framerate, BaseRenderHandler renderHandler)
 	{
 		_url = url;
 		_zoom = zoom;
 		_framerate = framerate;
+		_muted = muted;
 		RenderHandler = renderHandler;
 	}
 
@@ -50,6 +52,7 @@ internal class Inlay : IDisposable
 		_browser.BrowserInitialized += (_, _) =>
 		{
 			_browser.Size = new Size(size.Width, size.Height);
+			Mute(_muted);
 		};
 
 		_browser.LoadingStateChanged += (_, args) =>
@@ -89,6 +92,12 @@ internal class Inlay : IDisposable
 		_browser?.SetZoomLevel(ScaleZoomLevel(zoom));
 	}
 
+	public void Mute(bool mute)
+	{
+		_muted = mute;
+		_browser?.GetBrowserHost().SetAudioMuted(mute);
+	}
+
 	public void Debug()
 	{
 		_browser.ShowDevTools();
@@ -124,22 +133,7 @@ internal class Inlay : IDisposable
 
 	public void HandleKeyEvent(KeyEventRequest request)
 	{
-		KeyEventType type = request.Type switch
-		{
-			Common.KeyEventType.KeyDown => KeyEventType.RawKeyDown,
-			Common.KeyEventType.KeyUp => KeyEventType.KeyUp,
-			Common.KeyEventType.Character => KeyEventType.Char,
-			_ => throw new ArgumentException($"Invalid KeyEventType {request.Type}")
-		};
-
-		_browser.GetBrowserHost().SendKeyEvent(new KeyEvent
-		{
-			Type = type,
-			Modifiers = DecodeInputModifier(request.Modifier),
-			WindowsKeyCode = request.UserKeyCode,
-			NativeKeyCode = request.NativeKeyCode,
-			IsSystemKey = request.SystemKey
-		});
+		_browser.GetBrowserHost().SendKeyEvent(request.Msg, request.WParam, request.LParam);
 	}
 
 	public void Resize(Size size)

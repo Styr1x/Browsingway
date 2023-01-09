@@ -4,20 +4,20 @@
     "net6.0-windows7.0": {
       "CefSharp.Common.NETCore": {
         "type": "Direct",
-        "requested": "[103.0.80, )",
-        "resolved": "103.0.80",
-        "contentHash": "/f4uZW0tAa50lIMSmv74XHctT9Z3sqbHbDOLMuBb68NDrY57vRco8I05Xzyaz/4qfLr2bhcYe4GO0pfLuoP+tw==",
+        "requested": "[108.4.130, )",
+        "resolved": "108.4.130",
+        "contentHash": "fOvbk8up8Vk1/eZsyy7l3QTzuipbOlLkjQuJbwwPLb+SGZSL+2mQWdmHtr7vHN4rGGZpLO2pQ6jT/RcwWuTw5w==",
         "dependencies": {
-          "chromiumembeddedframework.runtime": "[103.0.8]"
+          "chromiumembeddedframework.runtime": "[108.4.13]"
         }
       },
       "CefSharp.OffScreen.NETCore": {
         "type": "Direct",
-        "requested": "[103.0.80, )",
-        "resolved": "103.0.80",
-        "contentHash": "YbHz0DMj10pHBNMZ+jwaQ7LefB3YWOS4RAiTbEEwg8w1l3MjH5YqED2Mw1rXZdXU/Uxkocffejt2GzWUX/zWJw==",
+        "requested": "[108.4.130, )",
+        "resolved": "108.4.130",
+        "contentHash": "QzoO+XGt0rABqvsUAoRM7OlSNpxyjW4ISe4GAshHbPGXrf09BHjhkrBOVrY8MwCCOmSyk9tBgi0kAeEBrPOhDw==",
         "dependencies": {
-          "CefSharp.Common.NETCore": "[103.0.80]",
+          "CefSharp.Common.NETCore": "[108.4.130]",
           "System.Drawing.Common": "4.7.0"
         }
       },
@@ -32,8 +32,8 @@
       },
       "chromiumembeddedframework.runtime": {
         "type": "Transitive",
-        "resolved": "103.0.8",
-        "contentHash": "vi3d948jgyNOg7x3toB54hYkZXgS+U4oGVHSx3lPMjsSG9N3YSYHMzwmlAJsdR4l3GStiM/CoHpXj31WJhUxQg=="
+        "resolved": "108.4.13",
+        "contentHash": "D8jEztf+sDADzgmyeAk5+R39fprsCJZWm1XTz6CYGYFNnXsvB7SX+sKoJ0T23EDJv1N1nsI7ebNeH8W0UCfLIQ=="
       },
       "Microsoft.NETCore.Platforms": {
         "type": "Transitive",
@@ -69,25 +69,25 @@
     "net6.0-windows7.0/win-x64": {
       "CefSharp.Common.NETCore": {
         "type": "Direct",
-        "requested": "[103.0.80, )",
-        "resolved": "103.0.80",
-        "contentHash": "/f4uZW0tAa50lIMSmv74XHctT9Z3sqbHbDOLMuBb68NDrY57vRco8I05Xzyaz/4qfLr2bhcYe4GO0pfLuoP+tw==",
+        "requested": "[108.4.130, )",
+        "resolved": "108.4.130",
+        "contentHash": "fOvbk8up8Vk1/eZsyy7l3QTzuipbOlLkjQuJbwwPLb+SGZSL+2mQWdmHtr7vHN4rGGZpLO2pQ6jT/RcwWuTw5w==",
         "dependencies": {
-          "chromiumembeddedframework.runtime": "[103.0.8]"
+          "chromiumembeddedframework.runtime": "[108.4.13]"
         }
       },
       "chromiumembeddedframework.runtime": {
         "type": "Transitive",
-        "resolved": "103.0.8",
-        "contentHash": "vi3d948jgyNOg7x3toB54hYkZXgS+U4oGVHSx3lPMjsSG9N3YSYHMzwmlAJsdR4l3GStiM/CoHpXj31WJhUxQg==",
+        "resolved": "108.4.13",
+        "contentHash": "D8jEztf+sDADzgmyeAk5+R39fprsCJZWm1XTz6CYGYFNnXsvB7SX+sKoJ0T23EDJv1N1nsI7ebNeH8W0UCfLIQ==",
         "dependencies": {
-          "chromiumembeddedframework.runtime.win-x64": "103.0.8"
+          "chromiumembeddedframework.runtime.win-x64": "108.4.13"
         }
       },
       "chromiumembeddedframework.runtime.win-x64": {
         "type": "Transitive",
-        "resolved": "103.0.8",
-        "contentHash": "rFQPZfkOnLyLBMSpfJ+JmGYXWgW/EgWJXFr2YhPsBDbGCN/xDaJUVPOxvrgnI+G7wu61HxtJpzmXtS+T5YeK1A=="
+        "resolved": "108.4.13",
+        "contentHash": "/exKsG1y/sL78UtqqCLCvGBXnC7wgVf2Kdnt0mMym/DbvRgY4/dCmYk8CoXwzLVJZZgGwPj0mGvumDsyZWqUWQ=="
       },
       "Microsoft.Win32.SystemEvents": {
         "type": "Transitive",

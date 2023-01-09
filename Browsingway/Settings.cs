@@ -17,6 +17,7 @@ internal class Settings : IDisposable
 	public event EventHandler<InlayConfiguration>? InlayDebugged;
 	public event EventHandler<InlayConfiguration>? InlayRemoved;
 	public event EventHandler<InlayConfiguration>? InlayZoomed;
+	public event EventHandler<InlayConfiguration>? InlayMuted;
 	public event EventHandler? TransportChanged;
 
 	public readonly Configuration Config;
@@ -28,6 +29,8 @@ internal class Settings : IDisposable
 	[PluginService]
 	// ReSharper disable once AutoPropertyCanBeMadeGetOnly.Local
 	private static ChatGui Chat { get; set; } = null!;
+
+	private bool _actAvailable = false;
 
 #if DEBUG
 	private bool _open = true;
@@ -48,6 +51,21 @@ internal class Settings : IDisposable
 
 	public void Dispose() { }
 
+	public void OnActAvailabilityChanged(bool available)
+	{
+		_actAvailable = available;
+		foreach (InlayConfiguration? inlayConfig in Config.Inlays)
+		{
+			if (inlayConfig is { ActOptimizations: true, Disabled: false })
+			{
+				if (_actAvailable)
+					InlayAdded?.Invoke(this, inlayConfig);
+				else
+					InlayRemoved?.Invoke(this, inlayConfig);
+			}
+		}
+	}
+
 	public void HandleConfigCommand(string rawArgs)
 	{
 		_open = true;
@@ -60,7 +78,7 @@ internal class Settings : IDisposable
 		string[] args = rawArgs.Split(null as char[], 3, StringSplitOptions.RemoveEmptyEntries);
 
 		// Ensure there's enough arguments
-		if (args.Length < 3)
+		if (args.Length < 2 || (args[1] != "reload" && args.Length < 3))
 		{
 			Chat.PrintError("Invalid inlay command. Supported syntax: '[inlayCommandName] [setting] [value]'");
 			return;
@@ -94,9 +112,22 @@ internal class Settings : IDisposable
 			case "clickthrough":
 				CommandSettingBoolean(args[2], ref targetConfig.ClickThrough);
 				break;
+			case "muted":
+				CommandSettingBoolean(args[2], ref targetConfig.Muted);
+				break;
+			case "disabled":
+				CommandSettingBoolean(args[2], ref targetConfig.Disabled);
+				break;
+			case "act":
+				CommandSettingBoolean(args[2], ref targetConfig.ActOptimizations);
+				break;
+			case "reload":
+				ReloadInlay(targetConfig);
+				break;
+
 			default:
 				Chat.PrintError(
-					$"Unknown setting '{args[1]}. Valid settings are: url,hidden,locked,clickthrough.");
+					$"Unknown setting '{args[1]}. Valid settings are: url,hidden,locked,clickthrough,typethrough,muted,disabled,act.");
 				return;
 		}
 
@@ -149,7 +180,10 @@ internal class Settings : IDisposable
 		// Hydrate any inlays in the config
 		foreach (InlayConfiguration? inlayConfig in Config.Inlays)
 		{
-			InlayAdded?.Invoke(this, inlayConfig);
+			if (!inlayConfig.Disabled && (!inlayConfig.ActOptimizations || _actAvailable))
+			{
+				InlayAdded?.Invoke(this, inlayConfig);
+			}
 		}
 	}
 
@@ -173,6 +207,11 @@ internal class Settings : IDisposable
 	private void UpdateZoomInlay(InlayConfiguration inlayConfig)
 	{
 		InlayZoomed?.Invoke(this, inlayConfig);
+	}
+
+	private void UpdateMuteInlay(InlayConfiguration inlayConfig)
+	{
+		InlayMuted?.Invoke(this, inlayConfig);
 	}
 
 	private void ReloadInlay(InlayConfiguration inlayConfig) { NavigateInlay(inlayConfig); }
@@ -328,10 +367,14 @@ internal class Settings : IDisposable
 				"\tinlayCommandName: The inlay to edit. Use the 'Command Name' shown in its config.\n" +
 				"\tsetting: Value to change. Accepted settings are:\n" +
 				"\t\turl: string\n" +
+				"\t\tdisabled: boolean\n" +
+				"\t\tmuted: boolean\n" +
+				"\t\tact: boolean\n" +
 				"\t\tlocked: boolean\n" +
 				"\t\thidden: boolean\n" +
 				"\t\ttypethrough: boolean\n" +
 				"\t\tclickthrough: boolean\n" +
+				"\t\treload: -\n" +
 				"\tvalue: Value to set for the setting. Accepted values are:\n" +
 				"\t\tstring: any string value\n\t\tboolean: on, off, toggle");
 		}
@@ -442,9 +485,60 @@ internal class Settings : IDisposable
 		ImGui.SetNextItemWidth(100);
 		ImGui.Columns(2, "boolInlayOptions", false);
 
-		bool true_ = true;
+		if (ImGui.Checkbox("Disabled", ref inlayConfig.Disabled))
+		{
+			if (inlayConfig.Disabled)
+				InlayRemoved?.Invoke(this, inlayConfig);
+			else
+				InlayAdded?.Invoke(this, inlayConfig);
+			dirty = true;
+		}
+
+		if (ImGui.IsItemHovered()) { ImGui.SetTooltip("Disables the inlay. Contrary to just hiding it this setting will stop it from ever being created."); }
+
+		ImGui.NextColumn();
+		ImGui.NextColumn();
+
+
+		if (ImGui.Checkbox("Muted", ref inlayConfig.Muted))
+		{
+			UpdateMuteInlay(inlayConfig);
+			dirty = true;
+		}
+
+		if (ImGui.IsItemHovered()) { ImGui.SetTooltip("Enables or disables audio playback."); }
+
+		ImGui.NextColumn();
+		ImGui.NextColumn();
+
+		if (ImGui.Checkbox("ACT optimizations", ref inlayConfig.ActOptimizations))
+		{
+			if (!inlayConfig.Disabled)
+			{
+				if (inlayConfig.ActOptimizations)
+				{
+					if (!_actAvailable)
+						InlayRemoved?.Invoke(this, inlayConfig);
+					else
+						InlayAdded?.Invoke(this, inlayConfig);
+				}
+				else
+				{
+					InlayAdded?.Invoke(this, inlayConfig);
+				}
+			}
+
+			dirty = true;
+		}
+
+		if (ImGui.IsItemHovered()) { ImGui.SetTooltip("Enables ACT specific optimizations. This will automatically disable the overlay if ACT is not running."); }
+
+		ImGui.NextColumn();
+		ImGui.NextColumn();
+
 		if (inlayConfig.ClickThrough) { ImGui.PushStyleVar(ImGuiStyleVar.Alpha, 0.5f); }
 
+		bool true_ = true;
 		dirty |= ImGui.Checkbox("Locked", ref inlayConfig.ClickThrough ? ref true_ : ref inlayConfig.Locked);
 		if (inlayConfig.ClickThrough) { ImGui.PopStyleVar(); }
 
@@ -456,7 +550,6 @@ internal class Settings : IDisposable
 		if (ImGui.IsItemHovered()) { ImGui.SetTooltip("Hide the inlay. This does not stop the inlay from executing, only from being displayed."); }
 
 		ImGui.NextColumn();
-
 
 		if (inlayConfig.ClickThrough) { ImGui.PushStyleVar(ImGuiStyleVar.Alpha, 0.5f); }
 

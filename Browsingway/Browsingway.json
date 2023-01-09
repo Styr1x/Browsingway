@@ -10,7 +10,10 @@
         "inlay",
         "overlay",
         "chromium",
-        "act"
+        "act",
+        "youtube",
+        "website",
+        "video"
     ],
-    "Changelog": "Fix render error when .net 6 runtime is not installed (by Jessidhia)"
+    "Changelog": "-Add 'Disabled' option\n-Add 'Mute' option\nAdd 'ACT optimizations' option (disables overlay when ACT is not running)\n- Fix keyboard input and focus handling\n- Update Chromium to 108.0.5359.125\n- API 8 support"
 }
