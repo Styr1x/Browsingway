@@ -15,10 +15,16 @@ This project is a fork off ackwell's BrowserHost plugin (https://github.com/ackw
     * Make your overlays as transparent as you like.
 * Framerate configurable
     * The rendering framerate for each individual overlay can now be set.
+* Disable support
+    * Completly disable an overlay without deleting it.
+* Mute support
+   * Can mute specific overlays.
+* ACT optimizations
+   * Optimizes the overlay handling for ACT overlays. Also enables and disables them depending on if ACT itself is running.
 * Updated Chromium version
-    * 96.0.4664.110
+    * 108.0.5359.125
 * Project cleanup
-    * Everything now uses .net 5
+    * Everything now uses .net 7
     * Nullable enabled
     * DalamudPackager for easier deployment
     * Some source cleanups
@@ -34,3 +40,5 @@ You can also open an issue for new feature requests.
 For ACT overlays to work correctly the overlay WSServer has to be enabled. ACT also provides an URL generator that will create the correct URLs to use within Browsingway:
 
 ![image](https://user-images.githubusercontent.com/569324/148692825-f29e41ae-cec5-4144-974f-394e14ec108a.png)
+
+You might also want to enable 'ACT optimizations' inside Browsingway for the specifc overlays, this will also enable and disable them automatically if ACT is running or not running.
