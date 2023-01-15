@@ -46,9 +46,7 @@ internal static class Program
 		_parentWatchThread = new Thread(WatchParentStatus);
 		_parentWatchThread.Start(args.ParentPid);
 
-#if DEBUG
 		AppDomain.CurrentDomain.FirstChanceException += (_, e) => Console.Error.WriteLine(e.Exception.ToString());
-#endif
 
 		bool dxRunning = DxHandler.Initialise(args.DxgiAdapterLuid);
 		CefHandler.Initialise(_cefAssemblyDir, args.CefCacheDir, args.ParentPid);
