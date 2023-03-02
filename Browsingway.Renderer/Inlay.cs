@@ -3,13 +3,18 @@ using Browsingway.Renderer.RenderHandlers;
 using CefSharp;
 using CefSharp.OffScreen;
 using CefSharp.Structs;
-using KeyEventType = CefSharp.KeyEventType;
+using BrowserSettings = CefSharp.BrowserSettings;
+using Cef = CefSharp.Cef;
+using RequestContext = CefSharp.RequestContext;
+using RequestContextSettings = CefSharp.RequestContextSettings;
 using Size = System.Drawing.Size;
+using WindowInfo = CefSharp.WindowInfo;
 
 namespace Browsingway.Renderer;
 
 internal class Inlay : IDisposable
 {
+	private readonly string _id;
 	private readonly int _framerate;
 	public readonly BaseRenderHandler RenderHandler;
 	private ChromiumWebBrowser? _browser;
@@ -17,8 +22,9 @@ internal class Inlay : IDisposable
 	private float _zoom;
 	private bool _muted;
 
-	public Inlay(string url, float zoom, bool muted, int framerate, BaseRenderHandler renderHandler)
+	public Inlay(string id, string url, float zoom, bool muted, int framerate, BaseRenderHandler renderHandler)
 	{
+		_id = id;
 		_url = url;
 		_zoom = zoom;
 		_framerate = framerate;
@@ -39,7 +45,10 @@ internal class Inlay : IDisposable
 
 	public void Initialise()
 	{
-		_browser = new ChromiumWebBrowser(_url, automaticallyCreateBrowser: false);
+		var requestContextSettings = new RequestContextSettings { CachePath = Path.Combine(Cef.GetGlobalRequestContext().CachePath, _id), PersistUserPreferences = true, PersistSessionCookies = true };
+		var rc = new RequestContext(requestContextSettings);
+
+		_browser = new ChromiumWebBrowser(_url, automaticallyCreateBrowser: false, requestContext: rc);
 		_browser.RenderHandler = RenderHandler;
 		_browser.MenuHandler = new CefMenuHandler();
 		Rect size = RenderHandler.GetViewRect();

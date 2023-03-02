@@ -15,7 +15,7 @@ public class ActHandler
 			OnAvailabilityChanged(true);
 		else if (Interlocked.CompareExchange(ref _notify, -1, 0) == 0)
 			OnAvailabilityChanged(false);
-		
+
 		if (_ticksSinceCheck < 500)
 		{
 			_ticksSinceCheck++;
@@ -29,7 +29,22 @@ public class ActHandler
 			if (proc is not null)
 			{
 				// check if the main window is up and we aren't loading
-				if (proc.MainWindowTitle.Contains("Advanced Combat Tracker"))
+				if (proc.MainWindowTitle.Contains("Advanced Combat Tracker") || (DateTime.Now - proc.StartTime).TotalSeconds >= 5)
+				{
+					if (!IsRunning)
+					{
+						IsRunning = true;
+						Interlocked.Exchange(ref _notify, 1);
+					}
+
+					return;
+				}
+			}
+			else
+			{
+				// check for IINACT
+				proc = Process.GetProcessesByName("IINACT").FirstOrDefault();
+				if (proc is not null && (DateTime.Now - proc.StartTime).TotalSeconds >= 5)
 				{
 					if (!IsRunning)
 					{

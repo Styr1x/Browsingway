@@ -511,7 +511,7 @@ internal class Settings : IDisposable
 		ImGui.NextColumn();
 		ImGui.NextColumn();
 
-		if (ImGui.Checkbox("ACT optimizations", ref inlayConfig.ActOptimizations))
+		if (ImGui.Checkbox("ACT/IINACT optimizations", ref inlayConfig.ActOptimizations))
 		{
 			if (!inlayConfig.Disabled)
 			{
@@ -531,7 +531,7 @@ internal class Settings : IDisposable
 			dirty = true;
 		}
 
-		if (ImGui.IsItemHovered()) { ImGui.SetTooltip("Enables ACT specific optimizations. This will automatically disable the overlay if ACT is not running."); }
+		if (ImGui.IsItemHovered()) { ImGui.SetTooltip("Enables ACT/IINACT specific optimizations. This will automatically disable the overlay if ACT/IINACT is not running."); }
 
 		ImGui.NextColumn();
 		ImGui.NextColumn();

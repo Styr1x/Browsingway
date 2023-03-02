@@ -278,6 +278,7 @@ internal class Inlay : IDisposable
 			? new NewInlayRequest
 			{
 				Guid = RenderGuid,
+				Id = _inlayConfig.Name,
 				FrameTransportMode = _config?.FrameTransportMode ?? FrameTransportMode.None,
 				Url = _inlayConfig.Url,
 				Width = (int)currentSize.X,

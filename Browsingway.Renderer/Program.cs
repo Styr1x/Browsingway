@@ -189,8 +189,8 @@ internal static class Program
 			_inlays[request.Guid].Dispose();
 			_inlays.Remove(request.Guid);
 		}
-
-		Inlay inlay = new(request.Url, request.Zoom, request.Muted, request.Framerate, renderHandler);
+		
+		Inlay inlay = new( request.Id, request.Url, request.Zoom, request.Muted, request.Framerate, renderHandler);
 		inlay.Initialise();
 		_inlays.Add(request.Guid, inlay);
 

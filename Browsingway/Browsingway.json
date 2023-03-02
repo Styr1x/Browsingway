@@ -15,5 +15,5 @@
         "website",
         "video"
     ],
-    "Changelog": "-Add 'Disabled' option\n-Add 'Mute' option\nAdd 'ACT optimizations' option (disables overlay when ACT is not running)\n- Fix keyboard input and focus handling\n- Update Chromium to 108.0.5359.125\n- API 8 support"
+    "Changelog": "- Add IINACT support.\n- Fix ACT not detected when running as tray icon.\n- Fix overlays using global context."
 }

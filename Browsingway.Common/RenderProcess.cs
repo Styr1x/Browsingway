@@ -57,6 +57,7 @@ public class NewInlayRequest : DownstreamIpcRequest
 	public int Framerate;
 	public FrameTransportMode FrameTransportMode;
 	public Guid Guid;
+	public string Id;
 	public int Height;
 	public string Url = null!;
 	public int Width;
