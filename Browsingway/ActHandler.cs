@@ -1,13 +1,26 @@
-﻿using System.Diagnostics;
+﻿using Dalamud.IoC;
+using Dalamud.Plugin;
+using Dalamud.Plugin.Ipc;
+using System.Diagnostics;
 
 namespace Browsingway;
 
 public class ActHandler
 {
+	[PluginService]
+	// ReSharper disable once AutoPropertyCanBeMadeGetOnly.Local
+	private static DalamudPluginInterface PluginInterface { get; set; } = null!;
+
 	public bool IsRunning { get; private set; }
 	public event EventHandler<bool>? AvailabilityChanged;
-	private int _ticksSinceCheck = 500;
+	private int _ticksSinceCheck = 2000;
 	private int _notify = -1;
+	private ICallGateSubscriber<bool> _iinactIpc;
+
+	public ActHandler()
+	{
+		_iinactIpc = PluginInterface.GetIpcSubscriber<bool>("IINACT.Server.Listening");
+	}
 
 	public void Check()
 	{
@@ -16,13 +29,39 @@ public class ActHandler
 		else if (Interlocked.CompareExchange(ref _notify, -1, 0) == 0)
 			OnAvailabilityChanged(false);
 
-		if (_ticksSinceCheck < 500)
+		if (_ticksSinceCheck < 2000)
 		{
 			_ticksSinceCheck++;
 			return;
 		}
-
 		_ticksSinceCheck = 0;
+
+		try
+		{
+			if (_iinactIpc.InvokeFunc())
+			{
+				if (!IsRunning)
+				{
+					IsRunning = true;
+					Interlocked.Exchange(ref _notify, 1);
+				}
+
+				return;
+			}
+			
+			if (IsRunning)
+			{
+				IsRunning = false;
+				Interlocked.Exchange(ref _notify, 0);
+			}
+
+			return;
+		}
+		catch
+		{
+			// ignored
+		}
+		
 		Task.Run(() =>
 		{
 			var proc = Process.GetProcessesByName("Advanced Combat Tracker").FirstOrDefault();

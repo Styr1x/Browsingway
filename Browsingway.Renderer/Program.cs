@@ -112,59 +112,65 @@ internal static class Program
 
 				case ResizeInlayRequest resizeInlayRequest:
 					{
-						Inlay inlay = _inlays[resizeInlayRequest.Guid];
+						if (_inlays.TryGetValue(resizeInlayRequest.Guid, out var inlay))
+						{
+							inlay.Resize(new Size(resizeInlayRequest.Width, resizeInlayRequest.Height));
 
-						inlay.Resize(new Size(resizeInlayRequest.Width, resizeInlayRequest.Height));
+							return BuildRenderHandlerResponse(inlay.RenderHandler);
+						}
 
-						return BuildRenderHandlerResponse(inlay.RenderHandler);
+						return new TextureHandleResponse { TextureHandle = 0 };
 					}
 
 				case NavigateInlayRequest navigateInlayRequest:
 					{
-						Inlay inlay = _inlays[navigateInlayRequest.Guid];
-						inlay.Navigate(navigateInlayRequest.Url);
+						if (_inlays.TryGetValue(navigateInlayRequest.Guid, out var inlay))
+							inlay.Navigate(navigateInlayRequest.Url);
 						return null;
 					}
 
 				case ZoomInlayRequest zoomInlayRequest:
 					{
-						Inlay inlay = _inlays[zoomInlayRequest.Guid];
-						inlay.Zoom(zoomInlayRequest.Zoom);
+						if (_inlays.TryGetValue(zoomInlayRequest.Guid, out var inlay))
+							inlay.Zoom(zoomInlayRequest.Zoom);
 						return null;
 					}
 
 				case DebugInlayRequest debugInlayRequest:
 					{
-						Inlay inlay = _inlays[debugInlayRequest.Guid];
-						inlay.Debug();
+						if (_inlays.TryGetValue(debugInlayRequest.Guid, out var inlay))
+							inlay.Debug();
 						return null;
 					}
 
 				case RemoveInlayRequest removeInlayRequest:
 					{
-						Inlay inlay = _inlays[removeInlayRequest.Guid];
-						_inlays.Remove(removeInlayRequest.Guid);
-						inlay.Dispose();
+						if (_inlays.TryGetValue(removeInlayRequest.Guid, out var inlay))
+						{
+							_inlays.Remove(removeInlayRequest.Guid);
+							inlay.Dispose();
+						}
+
 						return null;
 					}
 
 				case MouseEventRequest mouseMoveRequest:
 					{
-						Inlay inlay = _inlays[mouseMoveRequest.Guid];
-						inlay.HandleMouseEvent(mouseMoveRequest);
+						if (_inlays.TryGetValue(mouseMoveRequest.Guid, out var inlay))
+							inlay.HandleMouseEvent(mouseMoveRequest);
 						return null;
 					}
 
 				case KeyEventRequest keyEventRequest:
 					{
-						Inlay inlay = _inlays[keyEventRequest.Guid];
-						inlay.HandleKeyEvent(keyEventRequest);
+						if (_inlays.TryGetValue(keyEventRequest.Guid, out var inlay))
+							inlay.HandleKeyEvent(keyEventRequest);
 						return null;
 					}
 				case MuteInlayRequest muteRequest:
 					{
-						Inlay inlay = _inlays[muteRequest.Guid];
-						inlay.Mute(muteRequest.Mute);
+						if (_inlays.TryGetValue(muteRequest.Guid, out var inlay))
+							inlay.Mute(muteRequest.Mute);
 						return null;
 					}
 
@@ -189,8 +195,8 @@ internal static class Program
 			_inlays[request.Guid].Dispose();
 			_inlays.Remove(request.Guid);
 		}
-		
-		Inlay inlay = new( request.Id, request.Url, request.Zoom, request.Muted, request.Framerate, renderHandler);
+
+		Inlay inlay = new(request.Id, request.Url, request.Zoom, request.Muted, request.Framerate, renderHandler);
 		inlay.Initialise();
 		_inlays.Add(request.Guid, inlay);
 

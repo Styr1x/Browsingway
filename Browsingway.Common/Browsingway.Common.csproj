@@ -8,7 +8,7 @@
 		<Platforms>x64</Platforms>
 		<AssemblyName>Browsingway.Common</AssemblyName>
 		<RootNamespace>Browsingway.Common</RootNamespace>
-		<Version>1.5.2.0</Version>
+		<Version>1.5.3.0</Version>
 	</PropertyGroup>
 
 </Project>

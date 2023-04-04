@@ -2,7 +2,6 @@
 using Dalamud.Game.Command;
 using Dalamud.Game.Gui;
 using Dalamud.IoC;
-using Dalamud.Logging;
 using Dalamud.Plugin;
 using ImGuiNET;
 using System.Diagnostics;
@@ -34,12 +33,12 @@ public class Plugin : IDalamudPlugin
 
 		_pluginConfigDir = PluginInterface.GetPluginConfigDirectory();
 
-		_actHandler = new ActHandler();
-		
+		_actHandler = PluginInterface.Create<ActHandler>()!;
+
 		_dependencyManager = new DependencyManager(_pluginDir, _pluginConfigDir);
 		_dependencyManager.DependenciesReady += (_, _) => DependenciesReady();
 		_dependencyManager.Initialise();
-		
+
 		// Hook up render hook
 		PluginInterface.UiBuilder.Draw += Render;
 	}
@@ -93,7 +92,7 @@ public class Plugin : IDalamudPlugin
 		_renderProcess = new RenderProcess(pid, _pluginDir, _pluginConfigDir, _dependencyManager);
 		_renderProcess.Receive += HandleIpcRequest;
 		_renderProcess.Start();
-		
+
 		// Prep settings
 		_settings = PluginInterface.Create<Settings>();
 		if (_settings is not null)
@@ -107,11 +106,11 @@ public class Plugin : IDalamudPlugin
 			_settings.TransportChanged += OnTransportChanged;
 			_actHandler.AvailabilityChanged += OnActAvailabilityChanged;
 		}
-		
+
 		// Hook up the main BW command
 		CommandManager.AddHandler(_command, new CommandInfo(HandleCommand) { HelpMessage = "Control Browsingway from the chat line! Type '/bw config' or open the settings for more info.", ShowInHelp = true });
 	}
-	
+
 	private (bool, long) OnWndProc(WindowsMessage msg, ulong wParam, long lParam)
 	{
 		// Notify all the inlays of the wndproc, respond with the first capturing response (if any)
@@ -119,7 +118,7 @@ public class Plugin : IDalamudPlugin
 		IEnumerable<(bool, long)> responses = _inlays.Select(pair => pair.Value.WndProcMessage(msg, wParam, lParam));
 		return responses.FirstOrDefault(pair => pair.Item1);
 	}
-	
+
 	private void OnActAvailabilityChanged(object? sender, bool e)
 	{
 		_settings?.OnActAvailabilityChanged(e);
@@ -138,33 +137,35 @@ public class Plugin : IDalamudPlugin
 
 	private void OnInlayNavigated(object? sender, InlayConfiguration config)
 	{
-		Inlay inlay = _inlays[config.Guid];
-		inlay.Navigate(config.Url);
+		if (_inlays.TryGetValue(config.Guid, out var inlay))
+			inlay.Navigate(config.Url);
 	}
 
 	private void OnInlayDebugged(object? sender, InlayConfiguration config)
 	{
-		Inlay inlay = _inlays[config.Guid];
-		inlay.Debug();
+		if (_inlays.TryGetValue(config.Guid, out var inlay))
+			inlay.Debug();
 	}
 
 	private void OnInlayRemoved(object? sender, InlayConfiguration config)
 	{
-		Inlay inlay = _inlays[config.Guid];
-		_inlays.Remove(config.Guid);
-		inlay.Dispose();
+		if (_inlays.TryGetValue(config.Guid, out var inlay))
+		{
+			_inlays.Remove(config.Guid);
+			inlay.Dispose();
+		}
 	}
 
 	private void OnInlayZoomed(object? sender, InlayConfiguration config)
 	{
-		Inlay inlay = _inlays[config.Guid];
-		inlay.Zoom(config.Zoom);
+		if (_inlays.TryGetValue(config.Guid, out var inlay))
+			inlay.Zoom(config.Zoom);
 	}
 
 	private void OnInlayMuted(object? sender, InlayConfiguration config)
 	{
-		Inlay inlay = _inlays[config.Guid];
-		inlay.Mute(config.Muted);
+		if (_inlays.TryGetValue(config.Guid, out var inlay))
+			inlay.Mute(config.Muted);
 	}
 
 	private void OnTransportChanged(object? sender, EventArgs unused)
