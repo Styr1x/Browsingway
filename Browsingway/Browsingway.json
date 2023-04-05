@@ -15,5 +15,5 @@
         "website",
         "video"
     ],
-    "Changelog": "- Add IINACT support.\n- Fix ACT not detected when running as tray icon.\n- Fix overlays using global context."
+    "Changelog": "- Update Chromium to 111.0.5563.148"
 }
