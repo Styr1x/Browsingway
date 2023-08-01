@@ -49,6 +49,11 @@ internal class Inlay : IDisposable
 		_renderProcess.Send(new NavigateInlayRequest { Guid = RenderGuid, Url = newUrl });
 	}
 
+	public void InjectUserCss(string css)
+	{
+		_renderProcess.Send(new InjectUserCssRequest { Guid = RenderGuid, Css = css });
+	}
+
 	public void Zoom(float zoom)
 	{
 		_renderProcess.Send(new ZoomInlayRequest { Guid = RenderGuid, Zoom = zoom });
@@ -285,7 +290,8 @@ internal class Inlay : IDisposable
 				Height = (int)currentSize.Y,
 				Zoom = _inlayConfig.Zoom,
 				Framerate = _inlayConfig.Framerate,
-				Muted = _inlayConfig.Muted
+				Muted = _inlayConfig.Muted,
+				CustomCss = _inlayConfig.CustomCss
 			}
 			: new ResizeInlayRequest { Guid = RenderGuid, Width = (int)currentSize.X, Height = (int)currentSize.Y };
 

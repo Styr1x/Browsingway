@@ -25,6 +25,7 @@ internal class InlayConfiguration
 	public string Url = null!;
 	public float Zoom = 100f;
 	public bool Disabled;
+	public string CustomCss = "";
 	public bool Muted;
 	public bool ActOptimizations;
 }
