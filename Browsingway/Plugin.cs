@@ -1,8 +1,8 @@
 ﻿using Browsingway.Common;
 using Dalamud.Game.Command;
-using Dalamud.Game.Gui;
 using Dalamud.IoC;
 using Dalamud.Plugin;
+using Dalamud.Plugin.Services;
 using ImGuiNET;
 using System.Diagnostics;
 using System.Numerics;
@@ -35,7 +35,7 @@ public class Plugin : IDalamudPlugin
 
 		_actHandler = PluginInterface.Create<ActHandler>()!;
 
-		_dependencyManager = new DependencyManager(_pluginDir, _pluginConfigDir);
+		_dependencyManager = new DependencyManager(_pluginDir, _pluginConfigDir, PluginLog);
 		_dependencyManager.DependenciesReady += (_, _) => DependenciesReady();
 		_dependencyManager.Initialise();
 
@@ -49,11 +49,15 @@ public class Plugin : IDalamudPlugin
 
 	[PluginService]
 	// ReSharper disable once AutoPropertyCanBeMadeGetOnly.Local
-	private static CommandManager CommandManager { get; set; } = null!;
+	private static ICommandManager CommandManager { get; set; } = null!;
 
 	[PluginService]
 	// ReSharper disable once AutoPropertyCanBeMadeGetOnly.Local
-	private static ChatGui Chat { get; set; } = null!;
+	private static IChatGui Chat { get; set; } = null!;
+	
+	[PluginService]
+	// ReSharper disable once AutoPropertyCanBeMadeGetOnly.Local
+	private static IPluginLog PluginLog { get; set; } = null!;
 
 	// Required for LivePluginLoader support
 	public string AssemblyLocation { get; } = Assembly.GetExecutingAssembly().Location;
@@ -89,7 +93,7 @@ public class Plugin : IDalamudPlugin
 		// Boot the render process. This has to be done before initialising settings to prevent a
 		// race condition inlays receiving a null reference.
 		int pid = Process.GetCurrentProcess().Id;
-		_renderProcess = new RenderProcess(pid, _pluginDir, _pluginConfigDir, _dependencyManager);
+		_renderProcess = new RenderProcess(pid, _pluginDir, _pluginConfigDir, _dependencyManager, PluginLog);
 		_renderProcess.Receive += HandleIpcRequest;
 		_renderProcess.Start();
 
@@ -131,7 +135,7 @@ public class Plugin : IDalamudPlugin
 			return;
 		}
 
-		Inlay inlay = new(_renderProcess, _settings.Config, inlayConfig);
+		Inlay inlay = new(_renderProcess, _settings.Config, inlayConfig, PluginLog);
 		_inlays.Add(inlayConfig.Guid, inlay);
 	}
 

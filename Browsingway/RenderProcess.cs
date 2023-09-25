@@ -1,5 +1,5 @@
-﻿using Browsingway.Common;
-using Dalamud.Logging;
+using Browsingway.Common;
+using Dalamud.Plugin.Services;
 using System.Diagnostics;
 
 namespace Browsingway;
@@ -20,11 +20,13 @@ internal class RenderProcess : IDisposable
 
 	private Process _process;
 	private bool _running;
+	private readonly IPluginLog _pluginLog;
 
 	public RenderProcess(int pid,
 		string pluginDir,
 		string configDir,
-		DependencyManager dependencyManager
+		DependencyManager dependencyManager,
+		IPluginLog pluginLog
 	)
 	{
 		_keepAliveHandleName = $"BrowsingwayRendererKeepAlive{pid}";
@@ -33,6 +35,7 @@ internal class RenderProcess : IDisposable
 		_pluginDir = pluginDir;
 		_configDir = configDir;
 		_parentPid = pid;
+		_pluginLog = pluginLog;
 
 		_ipc = new IpcBuffer<UpstreamIpcRequest, DownstreamIpcRequest>(_ipcChannelName, request => Receive?.Invoke(this, request));
 
@@ -66,6 +69,7 @@ internal class RenderProcess : IDisposable
 	}
 
 	private int _restarting = 0; // This needs to be a numeric type for Interlocked.Exchange
+
 	public void EnsureRenderProcessIsAlive()
 	{
 		if (!_running || !HasProcessExited())
@@ -80,7 +84,7 @@ internal class RenderProcess : IDisposable
 				try
 				{
 					// process crashed, restart
-					PluginLog.LogError("Render process crashed - will restart asap");
+					_pluginLog.Error("Render process crashed - will restart asap");
 					_process = SetupProcess();
 					_process.Start();
 					_process.BeginOutputReadLine();
@@ -94,7 +98,7 @@ internal class RenderProcess : IDisposable
 				}
 				catch (Exception e)
 				{
-					PluginLog.LogError(e, "Failed to restart render process");
+					_pluginLog.Error(e, "Failed to restart render process");
 				}
 				finally
 				{
@@ -131,6 +135,7 @@ internal class RenderProcess : IDisposable
 
 	private bool _hasExited = false;
 	private int _checkingExited = 0; // This needs to be a numeric type for Interlocked.Exchange
+
 	private bool HasProcessExited()
 	{
 		// Process.HasExited can be an expensive call (on some systems?), so it's
@@ -147,7 +152,7 @@ internal class RenderProcess : IDisposable
 				}
 				catch (Exception e)
 				{
-					PluginLog.LogError(e, "Failed to get process exit status");
+					_pluginLog.Error(e, "Failed to get process exit status");
 				}
 				finally
 				{
@@ -166,7 +171,7 @@ internal class RenderProcess : IDisposable
 		RenderProcessArguments processArgs = new()
 		{
 			ParentPid = _parentPid,
-			DalamudAssemblyDir = Path.GetDirectoryName(typeof(PluginLog).Assembly.Location)!,
+			DalamudAssemblyDir = Path.GetDirectoryName(typeof(IPluginLog).Assembly.Location)!,
 			CefAssemblyDir = cefAssemblyDir,
 			CefCacheDir = Path.Combine(_configDir, "cef-cache"),
 			DxgiAdapterLuid = DxHandler.AdapterLuid,
@@ -189,8 +194,8 @@ internal class RenderProcess : IDisposable
 		process.StartInfo.EnvironmentVariables.Remove("DOTNET_ROOT");
 		process.StartInfo.EnvironmentVariables.Add("DOTNET_ROOT", runtimePath);
 
-		process.OutputDataReceived += (_, args) => PluginLog.Log($"[Render]: {args.Data}");
-		process.ErrorDataReceived += (_, args) => PluginLog.LogError($"[Render]: {args.Data}");
+		process.OutputDataReceived += (_, args) => _pluginLog.Info($"[Render]: {args.Data}");
+		process.ErrorDataReceived += (_, args) => _pluginLog.Error($"[Render]: {args.Data}");
 
 		return process;
 	}

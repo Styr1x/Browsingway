@@ -1,4 +1,4 @@
-﻿using Dalamud.Logging;
+using Dalamud.Plugin.Services;
 using ImGuiNET;
 using System.Collections.Concurrent;
 using System.IO.Compression;
@@ -41,11 +41,13 @@ internal class DependencyManager : IDisposable
 	private readonly ConcurrentDictionary<string, float> _installProgress = new();
 	private Dependency[]? _missingDependencies;
 	private ViewMode _viewMode = ViewMode.Hidden;
+	private IPluginLog _pluginLog;
 
-	public DependencyManager(string pluginDir, string pluginConfigDir)
+	public DependencyManager(string pluginDir, string pluginConfigDir, IPluginLog pluginLog)
 	{
 		_dependencyDir = Path.Join(pluginConfigDir, "dependencies");
 		_debugCheckDir = Path.GetDirectoryName(pluginDir) ?? pluginDir;
+		_pluginLog = pluginLog;
 	}
 
 	public void Dispose() { }
@@ -90,14 +92,14 @@ internal class DependencyManager : IDisposable
 		}
 
 		_viewMode = ViewMode.Installing;
-		PluginLog.Log("Installing dependencies...");
+		_pluginLog.Info("Installing dependencies...");
 
 		IEnumerable<Task> installTasks = _missingDependencies.Select(InstallDependency);
 		Task.WhenAll(installTasks).ContinueWith(task =>
 		{
 			bool failed = _installProgress.Any(pair => pair.Value == _depFailed);
 			_viewMode = failed ? ViewMode.Failed : ViewMode.Complete;
-			PluginLog.Log($"Dependency install {_viewMode}.");
+			_pluginLog.Info($"Dependency install {_viewMode}.");
 
 			try { Directory.Delete(Path.Combine(_dependencyDir, _downloadDir), true); }
 			catch { }
@@ -106,7 +108,7 @@ internal class DependencyManager : IDisposable
 
 	private async Task InstallDependency(Dependency dependency)
 	{
-		PluginLog.Log($"Downloading {dependency.Directory} {dependency.Version}");
+		_pluginLog.Info($"Downloading {dependency.Directory} {dependency.Version}");
 
 		// Ensure the downloads dir exists
 		string downloadDir = Path.Combine(_dependencyDir, _downloadDir);
@@ -148,14 +150,14 @@ internal class DependencyManager : IDisposable
 		}
 		catch
 		{
-			PluginLog.LogError($"Failed to calculate checksum for {filePath}");
+			_pluginLog.Error($"Failed to calculate checksum for {filePath}");
 			downloadedChecksum = "FAILED";
 		}
 
 		// Make sure the checksum matches
 		if (downloadedChecksum != dependency.Checksum)
 		{
-			PluginLog.LogError($"Mismatched checksum for {filePath}: Got {downloadedChecksum} but expected {dependency.Checksum}");
+			_pluginLog.Error($"Mismatched checksum for {filePath}: Got {downloadedChecksum} but expected {dependency.Checksum}");
 			_installProgress.AddOrUpdate(dependency.Directory, _depFailed, (key, oldValue) => _depFailed);
 			File.Delete(filePath);
 			return;

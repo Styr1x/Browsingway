@@ -1,8 +1,8 @@
 ﻿using Browsingway.Common;
-using Dalamud.Game.Gui;
 using Dalamud.Interface;
 using Dalamud.IoC;
 using Dalamud.Plugin;
+using Dalamud.Plugin.Services;
 using ImGuiNET;
 using System.Numerics;
 using System.Text.RegularExpressions;
@@ -28,7 +28,7 @@ internal class Settings : IDisposable
 
 	[PluginService]
 	// ReSharper disable once AutoPropertyCanBeMadeGetOnly.Local
-	private static ChatGui Chat { get; set; } = null!;
+	private static IChatGui Chat { get; set; } = null!;
 
 	private bool _actAvailable = false;
 

@@ -15,5 +15,5 @@
         "website",
         "video"
     ],
-    "Changelog": "- Update Chromium to 111.0.5563.148"
+    "Changelog": "- API9 compatibility"
 }

@@ -1,6 +1,6 @@
-﻿using Browsingway.Common;
+using Browsingway.Common;
 using Browsingway.TextureHandlers;
-using Dalamud.Logging;
+using Dalamud.Plugin.Services;
 using ImGuiNET;
 using System.Numerics;
 
@@ -22,8 +22,9 @@ internal class Inlay : IDisposable
 	private ITextureHandler? _textureHandler;
 	private Exception? _textureRenderException;
 	private bool _windowFocused;
+	private IPluginLog _pluginLog;
 	
-	public Inlay(RenderProcess renderProcess, Configuration? config, InlayConfiguration inlayConfig)
+	public Inlay(RenderProcess renderProcess, Configuration? config, InlayConfiguration inlayConfig, IPluginLog pluginLog)
 	{
 		_renderProcess = renderProcess;
 		// TODO: handle that the correct way
@@ -34,6 +35,7 @@ internal class Inlay : IDisposable
 
 		_config = config;
 		_inlayConfig = inlayConfig;
+		_pluginLog = pluginLog;
 	}
 
 	public Guid RenderGuid { get; private set; } = Guid.NewGuid();
@@ -294,7 +296,7 @@ internal class Inlay : IDisposable
 		IpcResponse<FrameTransportResponse> response = await _renderProcess.Send<FrameTransportResponse>(request);
 		if (!response.Success)
 		{
-			PluginLog.LogError("Texture build failure, retrying...");
+			_pluginLog.Error("Texture build failure, retrying...");
 			_resizing = false;
 			return;
 		}
