@@ -21,14 +21,16 @@ internal class Inlay : IDisposable
 	private string _url;
 	private float _zoom;
 	private bool _muted;
+	private string _customCss;
 
-	public Inlay(string id, string url, float zoom, bool muted, int framerate, BaseRenderHandler renderHandler)
+	public Inlay(string id, string url, float zoom, bool muted, int framerate, string customCss, BaseRenderHandler renderHandler)
 	{
 		_id = id;
 		_url = url;
 		_zoom = zoom;
 		_framerate = framerate;
 		_muted = muted;
+		_customCss = customCss;
 		RenderHandler = renderHandler;
 	}
 
@@ -69,6 +71,7 @@ internal class Inlay : IDisposable
 			if (!args.IsLoading)
 			{
 				_browser.SetZoomLevel(ScaleZoomLevel(_zoom));
+				InjectUserCss(_customCss);
 			}
 		};
 
@@ -79,6 +82,24 @@ internal class Inlay : IDisposable
 
 		browserSettings.Dispose();
 		windowInfo.Dispose();
+	}
+
+	public void InjectUserCss(string css)
+	{
+		_customCss = css; // to reapply correctly on load
+
+		// escape rules
+		// ` -> \` to prevent end of string
+		// ${ -> \${ to prevent variable injection
+		// Using a template string (``) instead of a quoted string ('') to not have to deal with javascript
+		// newline weirdness (plus it behaves a bit like a verbatim string)
+		css = css.Replace("`", @"\'");
+		css = css.Replace("${", @"\${");
+
+		// (()=>{...})() self executable function to prevent scope issues
+		_browser.GetMainFrame().ExecuteJavaScriptAsync(
+			"(()=>{const style = document.getElementById('user-css') ?? document.createElement('style');"
+			+ "style.id = 'user-css'; style.textContent =`" + css + " `;document.head.append(style);})()");
 	}
 
 	public void Navigate(string newUrl)

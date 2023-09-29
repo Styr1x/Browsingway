@@ -109,6 +109,7 @@ public class Plugin : IDalamudPlugin
 			_settings.InlayMuted += OnInlayMuted;
 			_settings.TransportChanged += OnTransportChanged;
 			_actHandler.AvailabilityChanged += OnActAvailabilityChanged;
+			_settings.InlayUserCssChanged += OnUserCssChanged;
 		}
 
 		// Hook up the main BW command
@@ -179,6 +180,12 @@ public class Plugin : IDalamudPlugin
 		{
 			inlay.InvalidateTransport();
 		}
+	}
+
+	private void OnUserCssChanged(object? sender, InlayConfiguration config)
+	{
+		Inlay inlay = _inlays[config.Guid];
+		inlay.InjectUserCss(config.CustomCss);
 	}
 
 	private object? HandleIpcRequest(object? sender, UpstreamIpcRequest request)
