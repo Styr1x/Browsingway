@@ -573,15 +573,21 @@ internal class Settings : IDisposable
 		ImGui.NextColumn();
 
 		ImGui.Columns(1);
-
-		ImGui.Text("Custom CSS code:");
-		if (ImGui.InputTextMultiline("Custom CSS code", ref inlayConfig.CustomCss, 1000000,
-			    new Vector2(-1, ImGui.GetTextLineHeight() * 10)))
+		
+		ImGui.NewLine();
+		if (ImGui.CollapsingHeader("Experimental / Unsupported"))
 		{
-			dirty = true;
-		}
-		if (ImGui.IsItemDeactivatedAfterEdit()) { UpdateUserCss(inlayConfig); }
+			ImGui.Text("Custom CSS code:");
+			if (ImGui.InputTextMultiline("Custom CSS code", ref inlayConfig.CustomCss, 1000000,
+				    new Vector2(-1, ImGui.GetTextLineHeight() * 10)))
+			{
+				dirty = true;
+			}
 
+			if (ImGui.IsItemDeactivatedAfterEdit()) { UpdateUserCss(inlayConfig); }
+		}
+
+		ImGui.NewLine();
 		if (ImGui.Button("Reload")) { ReloadInlay(inlayConfig); }
 
 		ImGui.SameLine();

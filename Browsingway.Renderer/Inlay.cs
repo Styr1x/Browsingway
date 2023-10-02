@@ -86,6 +86,9 @@ internal class Inlay : IDisposable
 
 	public void InjectUserCss(string css)
 	{
+		if ( css.Length == 0 && _customCss.Length == 0 ) 
+			return; // nothing to do
+		
 		_customCss = css; // to reapply correctly on load
 
 		// escape rules

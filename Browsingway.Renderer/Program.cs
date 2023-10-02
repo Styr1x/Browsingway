@@ -176,8 +176,8 @@ internal static class Program
 
 				case InjectUserCssRequest injectUserCssRequest:
 					{
-						Inlay inlay = _inlays[injectUserCssRequest.Guid];
-						inlay.InjectUserCss(injectUserCssRequest.Css);
+						if (_inlays.TryGetValue(injectUserCssRequest.Guid, out var inlay))
+							inlay.InjectUserCss(injectUserCssRequest.Css);
 						return null;
 					}
 
@@ -219,15 +219,8 @@ internal static class Program
 	{
 		return renderHandler switch
 		{
-			TextureRenderHandler textureRenderHandler => new TextureHandleResponse
-			{
-				TextureHandle = textureRenderHandler.SharedTextureHandle
-			},
-			BitmapBufferRenderHandler bitmapBufferRenderHandler => new BitmapBufferResponse
-			{
-				BitmapBufferName = bitmapBufferRenderHandler.BitmapBufferName!,
-				FrameInfoBufferName = bitmapBufferRenderHandler.FrameInfoBufferName
-			},
+			TextureRenderHandler textureRenderHandler => new TextureHandleResponse { TextureHandle = textureRenderHandler.SharedTextureHandle },
+			BitmapBufferRenderHandler bitmapBufferRenderHandler => new BitmapBufferResponse { BitmapBufferName = bitmapBufferRenderHandler.BitmapBufferName!, FrameInfoBufferName = bitmapBufferRenderHandler.FrameInfoBufferName },
 			_ => throw new Exception($"Unhandled render handler type {renderHandler.GetType().Name}")
 		};
 	}
