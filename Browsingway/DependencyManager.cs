@@ -34,7 +34,7 @@ internal class DependencyManager : IDisposable
 	private const short _depComplete = -2;
 	private const short _depFailed = -3;
 
-	private static readonly Dependency[] _dependencies = { new("https://github.com/Styr1x/Browsingway/releases/download/cef-binaries/cefsharp-{VERSION}.zip", "cef", "111.2.7+gebf5d6a+chromium-111.0.5563.148", "86874DE5DC5F4AC12DEDAFF85B02FD00E4DC54A5E7DF28C7B4B104ABB9A40324") };
+	private static readonly Dependency[] _dependencies = { new("https://github.com/Styr1x/Browsingway/releases/download/cef-binaries/cefsharp-{VERSION}.zip", "cef", "116.0.23+g375735a+chromium-116.0.5845.189", "6F9D7D8AD17CBB125F494AA71D184EF0CB6FEC8726A2CD480144B794A315D72F") };
 	private readonly string _debugCheckDir;
 
 	private readonly string _dependencyDir;
