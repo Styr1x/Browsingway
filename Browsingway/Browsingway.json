@@ -15,5 +15,5 @@
         "website",
         "video"
     ],
-    "Changelog": "- Chromium 116.0.5845.189 (fix for CVE-2023-4863)\n- API9 compatibility\n- Custom CSS feature by xorus/olee (experimental, unsupported)"
+    "Changelog": "- Chromium 117.0.5938.132 (fix for CVE-2023-4863 and CVE-2023-5217)\n- API9 compatibility\n- Custom CSS feature by xorus/olee (experimental, unsupported)"
 }
