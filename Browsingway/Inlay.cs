@@ -144,6 +144,22 @@ internal class Inlay : IDisposable
 		ImGui.SetNextWindowSize(new Vector2(640, 480), ImGuiCond.FirstUseEver);
 		ImGui.Begin($"{_inlayConfig.Name}###{_inlayConfig.Guid}", GetWindowFlags());
 
+		if (_inlayConfig.Fullscreen) {
+			var screen = ImGui.GetMainViewport();
+
+			// ImGui always leaves a 1px transparent border around the window, so we need to account for that.
+			var fsPos  = new Vector2(screen.WorkPos.X - 1, screen.WorkPos.Y - 1);
+			var fsSize = new Vector2(screen.Size.X + 2 - fsPos.X, screen.Size.Y + 2 - fsPos.Y);
+
+			if (ImGui.GetWindowPos() != fsPos) {
+				ImGui.SetWindowPos(fsPos, ImGuiCond.Always);
+			}
+
+			if (_size.X != fsSize.X || _size.Y != fsSize.Y) {
+				ImGui.SetWindowSize(fsSize, ImGuiCond.Always);
+			}
+		}
+
 		HandleWindowSize();
 
 		// TODO: Browsingway.Renderer can take some time to spin up properly, should add a loading state.
@@ -176,8 +192,8 @@ internal class Inlay : IDisposable
 		                         | ImGuiWindowFlags.NoBringToFrontOnFocus
 		                         | ImGuiWindowFlags.NoFocusOnAppearing;
 
-		// ClickThrough is implicitly locked
-		bool locked = _inlayConfig.Locked || _inlayConfig.ClickThrough;
+		// ClickThrough / fullscreen is implicitly locked
+		bool locked = _inlayConfig.Locked || _inlayConfig.ClickThrough || _inlayConfig.Fullscreen;
 
 		if (locked)
 		{
