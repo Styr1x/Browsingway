@@ -1,3 +1,4 @@
+using Dalamud.Interface.Internal;
 using Dalamud.Plugin.Services;
 using ImGuiNET;
 using System.Collections.Concurrent;
@@ -29,25 +30,31 @@ internal class DependencyManager : IDisposable
 {
 	private const string _downloadDir = "downloads";
 
+	private const uint _colorProgress = 0xAAD76B39;
+	private const uint _colorError = 0xAA0000FF;
+	private const uint _colorDone = 0xAA355506;
+
 	// Per-dependency special-cased progress values
 	private const short _depExtracting = -1;
 	private const short _depComplete = -2;
 	private const short _depFailed = -3;
 
-	private static readonly Dependency[] _dependencies = { new("https://github.com/Styr1x/Browsingway/releases/download/cef-binaries/cefsharp-{VERSION}.zip", "cef", "117.2.2+ge80c977+chromium-117.0.5938.132", "27AB4B7D614C9689DADA8744F9124495F33563AF4831C3AB0D01723F7706F4EC") };
+	private static readonly Dependency[] _dependencies = { new("https://github.com/Styr1x/Browsingway/releases/download/cef-binaries/cefsharp-{VERSION}.zip", "cef", "121.3.13+g5c4a81b+chromium-121.0.6167.184", "352C738CC7603D4ABCFCFDE82BADC9113737B62C04CACFECB9658E4879841704") };
 	private readonly string _debugCheckDir;
 
 	private readonly string _dependencyDir;
 	private readonly ConcurrentDictionary<string, float> _installProgress = new();
 	private Dependency[]? _missingDependencies;
 	private ViewMode _viewMode = ViewMode.Hidden;
-	private IPluginLog _pluginLog;
+	private readonly IPluginLog _pluginLog;
+	private readonly IDalamudTextureWrap? _texIcon;
 
-	public DependencyManager(string pluginDir, string pluginConfigDir, IPluginLog pluginLog)
+	public DependencyManager(string pluginDir, string pluginConfigDir, IPluginLog pluginLog, ITextureProvider textureProvider)
 	{
 		_dependencyDir = Path.Join(pluginConfigDir, "dependencies");
 		_debugCheckDir = Path.GetDirectoryName(pluginDir) ?? pluginDir;
 		_pluginLog = pluginLog;
+		_texIcon = textureProvider.GetTextureFromFile(new(Path.Combine(pluginDir, "icon.png")));
 	}
 
 	public void Dispose() { }
@@ -196,8 +203,22 @@ internal class DependencyManager : IDisposable
 	{
 		if (_viewMode == ViewMode.Hidden) { return; }
 
-		ImGuiWindowFlags windowFlags = ImGuiWindowFlags.AlwaysAutoResize;
+		ImGui.SetNextWindowSize(new Vector2(1300, 350), ImGuiCond.Always);
+		ImGuiWindowFlags windowFlags = ImGuiWindowFlags.NoCollapse | ImGuiWindowFlags.NoResize;
 		ImGui.Begin("Browsingway dependencies", windowFlags);
+		if (_texIcon is not null)
+			ImGui.Image(_texIcon.ImGuiHandle, new Vector2(256, 256));
+		ImGui.SameLine();
+
+		string version = _missingDependencies?.First()?.Version ?? "???";
+		string checksum = _missingDependencies?.First()?.Checksum ?? "???";
+		ImGui.Text("Browsingway requires additional dependencies to function.\n" +
+		           "These are not shipped with the plugin due to their size.\n\n" +
+		           "The files are hosted on GitHub and are verified with SHA256 checksums:\n" +
+		           "https://github.com/Styr1x/Browsingway/releases/tag/cef-binaries\n\n" +
+		           "CefSharp: " + version + "\n" +
+		           "SHA256: " + checksum
+		);
 		//ImGui.SetWindowFocus();
 
 		switch (_viewMode)
@@ -221,78 +242,67 @@ internal class DependencyManager : IDisposable
 
 	private void RenderConfirm()
 	{
-		ImGui.Text("The following dependencies are currently missing:");
-
 		if (_missingDependencies == null) { return; }
 
-		ImGui.Indent();
-		foreach (Dependency dependency in _missingDependencies)
-		{
-			ImGui.Text($"{dependency.Directory} ({dependency.Version})");
-		}
-
-		ImGui.Unindent();
-
 		ImGui.Separator();
-
 		if (ImGui.Button("Install missing dependencies")) { InstallDependencies(); }
 	}
 
 	private void RenderInstalling()
 	{
-		ImGui.Text("Installing dependencies...");
-
-		ImGui.Separator();
-
+		ImGui.Text("Installing dependencies: ");
+		ImGui.SameLine();
 		RenderDownloadProgress();
 	}
 
 	private void RenderComplete()
 	{
-		ImGui.Text("Dependency installation complete!");
-
-		ImGui.Separator();
-
+		ImGui.Text("Installing dependencies: ");
+		ImGui.SameLine();
 		RenderDownloadProgress();
-
-		ImGui.Separator();
-
-		if (ImGui.Button("OK", new Vector2(100, 0))) { CheckDependencies(); }
+		ImGui.SameLine();
+		if (ImGui.Button("Close", new Vector2(100, 0))) { CheckDependencies(); }
 	}
 
 	private void RenderFailed()
 	{
-		ImGui.Text("One or more dependencies failed to install successfully.");
-		ImGui.Text("This is usually caused by network interruptions. Please retry.");
-		ImGui.Text("If this keeps happening, let us know on discord.");
-
-		ImGui.Separator();
-
+		ImGui.Text("Installing dependencies: ");
+		ImGui.SameLine();
 		RenderDownloadProgress();
-
-		ImGui.Separator();
-
+		ImGui.SameLine();
 		if (ImGui.Button("Retry", new Vector2(100, 0))) { CheckDependencies(); }
 	}
 
 	private void RenderDownloadProgress()
 	{
-		Vector2 progressSize = new(200, 0);
+		Vector2 progressSize = new(875, 0);
 
 		foreach (KeyValuePair<string, float> progress in _installProgress)
 		{
-			if (progress.Value == _depExtracting) { ImGui.ProgressBar(1, progressSize, "Extracting"); }
-			else if (progress.Value == _depComplete) { ImGui.ProgressBar(1, progressSize, "Complete"); }
+			if (progress.Value == _depExtracting)
+			{
+				ImGui.PushStyleColor(ImGuiCol.PlotHistogram, _colorProgress);
+				ImGui.ProgressBar(1, progressSize, "Extracting");
+				ImGui.PopStyleColor();
+			}
+			else if (progress.Value == _depComplete)
+			{
+				ImGui.PushStyleColor(ImGuiCol.PlotHistogram, _colorDone);
+				ImGui.ProgressBar(1, progressSize, "Complete");
+				ImGui.PopStyleColor();
+			}
 			else if (progress.Value == _depFailed)
 			{
-				ImGui.PushStyleColor(ImGuiCol.PlotHistogram, 0xAA0000FF);
+				ImGui.PushStyleColor(ImGuiCol.PlotHistogram, _colorError);
 				ImGui.ProgressBar(1, progressSize, "Error");
 				ImGui.PopStyleColor();
 			}
-			else { ImGui.ProgressBar(progress.Value / 100, progressSize); }
-
-			ImGui.SameLine();
-			ImGui.Text(progress.Key);
+			else
+			{
+				ImGui.PushStyleColor(ImGuiCol.PlotHistogram, _colorProgress);
+				ImGui.ProgressBar(progress.Value / 100, progressSize);
+				ImGui.PopStyleColor();
+			}
 		}
 	}
 

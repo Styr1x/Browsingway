@@ -5,6 +5,7 @@
 		<Copy SourceFiles="$(OutputPath)\Browsingway.Common.dll" DestinationFolder="$(OutputPath)\renderer"/>
 		<Copy SourceFiles="$(OutputPath)\Browsingway.Common.pdb" DestinationFolder="$(OutputPath)\renderer"/>
 		<Copy SourceFiles="$(OutputPath)\SharedMemory.dll" DestinationFolder="$(OutputPath)\renderer"/>
+		<Copy SourceFiles="$(OutputPath)\images\icon.png" DestinationFolder="$(OutputPath)"/>
 		<Move SourceFiles="$(OutputPath)\Browsingway.Renderer.dll" DestinationFolder="$(OutputPath)\renderer"/>
 		<Move SourceFiles="$(OutputPath)\Browsingway.Renderer.exe" DestinationFolder="$(OutputPath)\renderer"/>
 		<Move SourceFiles="$(OutputPath)\Browsingway.Renderer.pdb" DestinationFolder="$(OutputPath)\renderer"/>
@@ -13,6 +14,7 @@
 		<Move SourceFiles="$(OutputPath)\Microsoft.Win32.SystemEvents.dll" DestinationFolder="$(OutputPath)\renderer"/>
 		<Move SourceFiles="$(OutputPath)\System.Drawing.Common.dll" DestinationFolder="$(OutputPath)\renderer"/>
 		<Delete Files="$(OutputPath)\Browsingway.Renderer.deps.json"/>
+		<Delete Files="$(OutputPath)\Browsingway.Renderer.exe.bak"/>
 	</Target>
 	<Target Name="PackagePlugin" AfterTargets="PrepareOutput" Condition="'$(Configuration)' == 'Release'">
 		<DalamudPackager

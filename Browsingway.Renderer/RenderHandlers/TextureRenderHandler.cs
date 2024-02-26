@@ -89,10 +89,11 @@ internal class TextureRenderHandler : BaseRenderHandler
 			                        + (Math.Min(Math.Max(x, 0), _alphaLookupBufferWidth - 1) * _bytesPerPixel)
 			                        + (Math.Min(Math.Max(y, 0), _alphaLookupBufferHeight - 1) * rowPitch)
 			                        + 3;
+			cursorAlphaOffset = cursorAlphaOffset < 0 ? 0 : cursorAlphaOffset;
 
-			if (_alphaLookupBuffer.Length > 0 && cursorAlphaOffset < _alphaLookupBuffer.Length)
+			if (cursorAlphaOffset < _alphaLookupBuffer.Length)
 				return _alphaLookupBuffer[cursorAlphaOffset];
-			
+
 			Console.WriteLine("Could not determine alpha value");
 			return 255;
 		}

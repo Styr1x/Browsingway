@@ -546,13 +546,7 @@ internal class Settings : IDisposable
 
 		ImGui.NextColumn();
 		ImGui.NextColumn();
-
-		dirty |= ImGui.Checkbox("Fullscreen", ref inlayConfig.Fullscreen);
-		if (ImGui.IsItemHovered()) { ImGui.SetTooltip("Automatically makes this inlay cover the entire screen when enabled."); }
-
-		ImGui.NextColumn();
-		ImGui.NextColumn();
-
+		
 		if (inlayConfig.ClickThrough || inlayConfig.Fullscreen) { ImGui.PushStyleVar(ImGuiStyleVar.Alpha, 0.5f); }
 
 		bool true_ = true;
@@ -588,6 +582,11 @@ internal class Settings : IDisposable
 		ImGui.NewLine();
 		if (ImGui.CollapsingHeader("Experimental / Unsupported"))
 		{
+			ImGui.NewLine();
+			dirty |= ImGui.Checkbox("Fullscreen", ref inlayConfig.Fullscreen);
+			ImGui.NewLine();
+			if (ImGui.IsItemHovered()) { ImGui.SetTooltip("Automatically makes this inlay cover the entire screen when enabled."); }
+			
 			ImGui.Text("Custom CSS code:");
 			if (ImGui.InputTextMultiline("Custom CSS code", ref inlayConfig.CustomCss, 1000000,
 				    new Vector2(-1, ImGui.GetTextLineHeight() * 10)))

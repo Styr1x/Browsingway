@@ -11,7 +11,7 @@
 		<AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
 		<AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
 		<LangVersion>latestmajor</LangVersion>
-		<Version>1.5.5.0</Version>
+		<Version>1.5.6.0</Version>
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 		<OutputPath>..\out</OutputPath>
 		<RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
@@ -44,10 +44,10 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<PackageReference Include="CefSharp.Common.NETCore" Version="117.2.20">
+		<PackageReference Include="CefSharp.Common.NETCore" Version="121.3.130">
 			<ExcludeAssets>runtime;contentFiles;native</ExcludeAssets>
 		</PackageReference>
-		<PackageReference Include="CefSharp.OffScreen.NETCore" Version="117.2.20" PrivateAssets="none">
+		<PackageReference Include="CefSharp.OffScreen.NETCore" Version="121.3.130" PrivateAssets="none">
 			<ExcludeAssets>contentFiles;native</ExcludeAssets>
 			<IncludeAssets>runtime; compile; build; analyzers; buildtransitive</IncludeAssets>
 		</PackageReference>

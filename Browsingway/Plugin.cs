@@ -34,8 +34,8 @@ public class Plugin : IDalamudPlugin
 		_pluginConfigDir = PluginInterface.GetPluginConfigDirectory();
 
 		_actHandler = PluginInterface.Create<ActHandler>()!;
-
-		_dependencyManager = new DependencyManager(_pluginDir, _pluginConfigDir, PluginLog);
+		
+		_dependencyManager = new DependencyManager(_pluginDir, _pluginConfigDir, PluginLog, TextureProvider);
 		_dependencyManager.DependenciesReady += (_, _) => DependenciesReady();
 		_dependencyManager.Initialise();
 
@@ -58,6 +58,10 @@ public class Plugin : IDalamudPlugin
 	[PluginService]
 	// ReSharper disable once AutoPropertyCanBeMadeGetOnly.Local
 	private static IPluginLog PluginLog { get; set; } = null!;
+	
+	[PluginService]
+	// ReSharper disable once AutoPropertyCanBeMadeGetOnly.Local
+	private static ITextureProvider TextureProvider { get; set; } = null!;
 
 	// Required for LivePluginLoader support
 	public string AssemblyLocation { get; } = Assembly.GetExecutingAssembly().Location;
