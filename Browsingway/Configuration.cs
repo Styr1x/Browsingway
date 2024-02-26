@@ -28,4 +28,5 @@ internal class InlayConfiguration
 	public string CustomCss = "";
 	public bool Muted;
 	public bool ActOptimizations;
+	public bool Fullscreen;
 }

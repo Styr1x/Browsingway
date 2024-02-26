@@ -111,6 +111,9 @@ internal class Settings : IDisposable
 			case "typethrough":
 				CommandSettingBoolean(args[2], ref targetConfig.TypeThrough);
 				break;
+			case "fullscreen":
+				CommandSettingBoolean(args[2], ref targetConfig.Fullscreen);
+				break;
 			case "clickthrough":
 				CommandSettingBoolean(args[2], ref targetConfig.ClickThrough);
 				break;
@@ -129,7 +132,7 @@ internal class Settings : IDisposable
 
 			default:
 				Chat.PrintError(
-					$"Unknown setting '{args[1]}. Valid settings are: url,hidden,locked,clickthrough,typethrough,muted,disabled,act.");
+					$"Unknown setting '{args[1]}. Valid settings are: url,hidden,locked,fullscreen,clickthrough,typethrough,muted,disabled,act.");
 				return;
 		}
 
@@ -381,6 +384,7 @@ internal class Settings : IDisposable
 				"\t\thidden: boolean\n" +
 				"\t\ttypethrough: boolean\n" +
 				"\t\tclickthrough: boolean\n" +
+				"\t\tfullscreen: boolean\n" +
 				"\t\treload: -\n" +
 				"\tvalue: Value to set for the setting. Accepted values are:\n" +
 				"\t\tstring: any string value\n\t\tboolean: on, off, toggle");
@@ -517,7 +521,7 @@ internal class Settings : IDisposable
 
 		ImGui.NextColumn();
 		ImGui.NextColumn();
-
+		
 		if (ImGui.Checkbox("ACT/IINACT optimizations", ref inlayConfig.ActOptimizations))
 		{
 			if (!inlayConfig.Disabled)
@@ -543,13 +547,20 @@ internal class Settings : IDisposable
 		ImGui.NextColumn();
 		ImGui.NextColumn();
 
-		if (inlayConfig.ClickThrough) { ImGui.PushStyleVar(ImGuiStyleVar.Alpha, 0.5f); }
+		dirty |= ImGui.Checkbox("Fullscreen", ref inlayConfig.Fullscreen);
+		if (ImGui.IsItemHovered()) { ImGui.SetTooltip("Automatically makes this inlay cover the entire screen when enabled."); }
+
+		ImGui.NextColumn();
+		ImGui.NextColumn();
+
+		if (inlayConfig.ClickThrough || inlayConfig.Fullscreen) { ImGui.PushStyleVar(ImGuiStyleVar.Alpha, 0.5f); }
 
 		bool true_ = true;
-		dirty |= ImGui.Checkbox("Locked", ref inlayConfig.ClickThrough ? ref true_ : ref inlayConfig.Locked);
+		bool implicit_ = inlayConfig.ClickThrough || inlayConfig.Fullscreen;
+		dirty |= ImGui.Checkbox("Locked", ref implicit_ ? ref true_ : ref inlayConfig.Locked);
 		if (inlayConfig.ClickThrough) { ImGui.PopStyleVar(); }
 
-		if (ImGui.IsItemHovered()) { ImGui.SetTooltip("Prevent the inlay from being resized or moved. This is implicitly set by Click Through."); }
+		if (ImGui.IsItemHovered()) { ImGui.SetTooltip("Prevent the inlay from being resized or moved. This is implicitly set by Click Through and Fullscreen."); }
 
 		ImGui.NextColumn();
 
@@ -561,7 +572,7 @@ internal class Settings : IDisposable
 		if (inlayConfig.ClickThrough) { ImGui.PushStyleVar(ImGuiStyleVar.Alpha, 0.5f); }
 
 		dirty |= ImGui.Checkbox("Type Through", ref inlayConfig.ClickThrough ? ref true_ : ref inlayConfig.TypeThrough);
-		if (inlayConfig.ClickThrough) { ImGui.PopStyleVar(); }
+		if (inlayConfig.ClickThrough || inlayConfig.Fullscreen) { ImGui.PopStyleVar(); }
 
 		if (ImGui.IsItemHovered()) { ImGui.SetTooltip("Prevent the inlay from intercepting any keyboard events. Implicitly set by Click Through."); }
 
