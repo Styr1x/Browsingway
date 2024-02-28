@@ -58,6 +58,9 @@ public class Plugin : IDalamudPlugin
 	[PluginService]
 	// ReSharper disable once AutoPropertyCanBeMadeGetOnly.Local
 	private static IPluginLog PluginLog { get; set; } = null!;
+
+	[PluginService]
+	private static IClientState ClientState { get; set; } = null!;
 	
 	[PluginService]
 	// ReSharper disable once AutoPropertyCanBeMadeGetOnly.Local
@@ -140,7 +143,7 @@ public class Plugin : IDalamudPlugin
 			return;
 		}
 
-		Inlay inlay = new(_renderProcess, _settings.Config, inlayConfig, PluginLog);
+		Inlay inlay = new(_renderProcess, _settings.Config, inlayConfig, PluginLog, ClientState);
 		_inlays.Add(inlayConfig.Guid, inlay);
 	}
 

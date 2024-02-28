@@ -1,5 +1,6 @@
 using Browsingway.Common;
 using Browsingway.TextureHandlers;
+using Dalamud.Game.ClientState.Objects.Enums;
 using Dalamud.Plugin.Services;
 using ImGuiNET;
 using System.Numerics;
@@ -23,8 +24,10 @@ internal class Inlay : IDisposable
 	private Exception? _textureRenderException;
 	private bool _windowFocused;
 	private IPluginLog _pluginLog;
+	private IClientState _clientState;
+	private long _timeLastInCombat;
 	
-	public Inlay(RenderProcess renderProcess, Configuration? config, InlayConfiguration inlayConfig, IPluginLog pluginLog)
+	public Inlay(RenderProcess renderProcess, Configuration? config, InlayConfiguration inlayConfig, IPluginLog pluginLog, IClientState clientState)
 	{
 		_renderProcess = renderProcess;
 		// TODO: handle that the correct way
@@ -36,6 +39,7 @@ internal class Inlay : IDisposable
 		_config = config;
 		_inlayConfig = inlayConfig;
 		_pluginLog = pluginLog;
+		_clientState = clientState;
 	}
 
 	public Guid RenderGuid { get; private set; } = Guid.NewGuid();
@@ -135,7 +139,7 @@ internal class Inlay : IDisposable
 
 	public void Render()
 	{
-		if (_inlayConfig.Hidden || _inlayConfig.Disabled)
+		if (_inlayConfig.Hidden || _inlayConfig.Disabled || DisabledByCombatFlags())
 		{
 			_mouseInWindow = false;
 			return;
@@ -180,6 +184,31 @@ internal class Inlay : IDisposable
 		}
 
 		ImGui.End();
+	}
+
+	private bool DisabledByCombatFlags()
+	{
+		if (!_inlayConfig.DisableOutOfCombat)
+		{
+			return false;
+		}
+
+		if (_clientState.LocalPlayer == null)
+		{
+			return true;
+		}
+
+		if (_clientState.LocalPlayer.StatusFlags.HasFlag(StatusFlags.InCombat))
+		{
+			_timeLastInCombat = DateTimeOffset.Now.ToUnixTimeMilliseconds();
+			return false;
+		}
+			
+		if (!_clientState.LocalPlayer.StatusFlags.HasFlag(StatusFlags.InCombat) && _inlayConfig.CombatDelay > 0)
+		{
+			return DateTimeOffset.Now.ToUnixTimeMilliseconds() >= _timeLastInCombat + (_inlayConfig.CombatDelay * 1000);
+		}
+		return true;
 	}
 
 	private ImGuiWindowFlags GetWindowFlags()
