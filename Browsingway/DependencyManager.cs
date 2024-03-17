@@ -1,5 +1,4 @@
 using Dalamud.Interface.Internal;
-using Dalamud.Plugin.Services;
 using ImGuiNET;
 using System.Collections.Concurrent;
 using System.IO.Compression;
@@ -26,7 +25,7 @@ internal class Dependency
 	}
 }
 
-internal class DependencyManager : IDisposable
+public class DependencyManager : IDisposable
 {
 	private const string _downloadDir = "downloads";
 
@@ -39,22 +38,20 @@ internal class DependencyManager : IDisposable
 	private const short _depComplete = -2;
 	private const short _depFailed = -3;
 
-	private static readonly Dependency[] _dependencies = { new("https://github.com/Styr1x/Browsingway/releases/download/cef-binaries/cefsharp-{VERSION}.zip", "cef", "121.3.13+g5c4a81b+chromium-121.0.6167.184", "352C738CC7603D4ABCFCFDE82BADC9113737B62C04CACFECB9658E4879841704") };
+	private static readonly Dependency[] _dependencies = { new("https://github.com/Styr1x/Browsingway/releases/download/cef-binaries/cefsharp-{VERSION}.zip", "cef", "122.1.12+g6e69d20+chromium-122.0.6261.112", "B2CE156C97CEF12EB6B7235B962CEE9EEBD71E91BC9343C4EC94073137734221") };
 	private readonly string _debugCheckDir;
 
 	private readonly string _dependencyDir;
 	private readonly ConcurrentDictionary<string, float> _installProgress = new();
 	private Dependency[]? _missingDependencies;
 	private ViewMode _viewMode = ViewMode.Hidden;
-	private readonly IPluginLog _pluginLog;
-	private readonly IDalamudTextureWrap? _texIcon;
+	private IDalamudTextureWrap? _texIcon;
 
-	public DependencyManager(string pluginDir, string pluginConfigDir, IPluginLog pluginLog, ITextureProvider textureProvider)
+	public DependencyManager(string pluginDir, string pluginConfigDir)
 	{
 		_dependencyDir = Path.Join(pluginConfigDir, "dependencies");
 		_debugCheckDir = Path.GetDirectoryName(pluginDir) ?? pluginDir;
-		_pluginLog = pluginLog;
-		_texIcon = textureProvider.GetTextureFromFile(new(Path.Combine(pluginDir, "icon.png")));
+		_texIcon = Services.TextureProvider.GetTextureFromFile(new(Path.Combine(pluginDir, "icon.png")));
 	}
 
 	public void Dispose() { }
@@ -99,14 +96,14 @@ internal class DependencyManager : IDisposable
 		}
 
 		_viewMode = ViewMode.Installing;
-		_pluginLog.Info("Installing dependencies...");
+		Services.PluginLog.Info("Installing dependencies...");
 
 		IEnumerable<Task> installTasks = _missingDependencies.Select(InstallDependency);
 		Task.WhenAll(installTasks).ContinueWith(task =>
 		{
 			bool failed = _installProgress.Any(pair => pair.Value == _depFailed);
 			_viewMode = failed ? ViewMode.Failed : ViewMode.Complete;
-			_pluginLog.Info($"Dependency install {_viewMode}.");
+			Services.PluginLog.Info($"Dependency install {_viewMode}.");
 
 			try { Directory.Delete(Path.Combine(_dependencyDir, _downloadDir), true); }
 			catch { }
@@ -115,7 +112,7 @@ internal class DependencyManager : IDisposable
 
 	private async Task InstallDependency(Dependency dependency)
 	{
-		_pluginLog.Info($"Downloading {dependency.Directory} {dependency.Version}");
+		Services.PluginLog.Info($"Downloading {dependency.Directory} {dependency.Version}");
 
 		// Ensure the downloads dir exists
 		string downloadDir = Path.Combine(_dependencyDir, _downloadDir);
@@ -157,14 +154,14 @@ internal class DependencyManager : IDisposable
 		}
 		catch
 		{
-			_pluginLog.Error($"Failed to calculate checksum for {filePath}");
+			Services.PluginLog.Error($"Failed to calculate checksum for {filePath}");
 			downloadedChecksum = "FAILED";
 		}
 
 		// Make sure the checksum matches
 		if (downloadedChecksum != dependency.Checksum)
 		{
-			_pluginLog.Error($"Mismatched checksum for {filePath}: Got {downloadedChecksum} but expected {dependency.Checksum}");
+			Services.PluginLog.Error($"Mismatched checksum for {filePath}: Got {downloadedChecksum} but expected {dependency.Checksum}");
 			_installProgress.AddOrUpdate(dependency.Directory, _depFailed, (key, oldValue) => _depFailed);
 			File.Delete(filePath);
 			return;

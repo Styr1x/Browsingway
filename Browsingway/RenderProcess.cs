@@ -1,4 +1,5 @@
 using Browsingway.Common;
+using Browsingway.Common.Ipc;
 using Dalamud.Plugin.Services;
 using System.Diagnostics;
 
@@ -6,12 +7,12 @@ namespace Browsingway;
 
 internal class RenderProcess : IDisposable
 {
-	public delegate object? ReceiveEventHandler(object sender, UpstreamIpcRequest request);
+	public event EventHandler? Crashed;
+	public BrowsingwayRpc Rpc { get; }
 
 	private readonly string _configDir;
 	private readonly DependencyManager _dependencyManager;
 
-	private readonly IpcBuffer<UpstreamIpcRequest, DownstreamIpcRequest> _ipc;
 	private readonly string _ipcChannelName;
 
 	private readonly string _keepAliveHandleName;
@@ -20,7 +21,6 @@ internal class RenderProcess : IDisposable
 
 	private Process _process;
 	private bool _running;
-	private readonly IPluginLog _pluginLog;
 
 	public RenderProcess(int pid,
 		string pluginDir,
@@ -35,9 +35,8 @@ internal class RenderProcess : IDisposable
 		_pluginDir = pluginDir;
 		_configDir = configDir;
 		_parentPid = pid;
-		_pluginLog = pluginLog;
 
-		_ipc = new IpcBuffer<UpstreamIpcRequest, DownstreamIpcRequest>(_ipcChannelName, request => Receive?.Invoke(this, request));
+		Rpc = new BrowsingwayRpc(_ipcChannelName);
 
 		_process = SetupProcess();
 	}
@@ -47,12 +46,8 @@ internal class RenderProcess : IDisposable
 		Stop();
 
 		_process.Dispose();
-		_ipc.Dispose();
+		Rpc.Dispose();
 	}
-
-	public event EventHandler? Crashed;
-
-	public event ReceiveEventHandler? Receive;
 
 	public void Start()
 	{
@@ -84,7 +79,7 @@ internal class RenderProcess : IDisposable
 				try
 				{
 					// process crashed, restart
-					_pluginLog.Error("Render process crashed - will restart asap");
+					Services.PluginLog.Error("Render process crashed - will restart asap");
 					_process = SetupProcess();
 					_process.Start();
 					_process.BeginOutputReadLine();
@@ -98,7 +93,7 @@ internal class RenderProcess : IDisposable
 				}
 				catch (Exception e)
 				{
-					_pluginLog.Error(e, "Failed to restart render process");
+					Services.PluginLog.Error(e, "Failed to restart render process");
 				}
 				finally
 				{
@@ -106,14 +101,6 @@ internal class RenderProcess : IDisposable
 				}
 			}
 		});
-	}
-
-	public void Send(DownstreamIpcRequest request) { Send<object>(request); }
-
-	// TODO: Option to wrap this func in an async version?
-	public Task<IpcResponse<TResponse>> Send<TResponse>(DownstreamIpcRequest request)
-	{
-		return _ipc.RemoteRequestAsync<TResponse>(request);
 	}
 
 	public void Stop()
@@ -152,7 +139,7 @@ internal class RenderProcess : IDisposable
 				}
 				catch (Exception e)
 				{
-					_pluginLog.Error(e, "Failed to get process exit status");
+					Services.PluginLog.Error(e, "Failed to get process exit status");
 				}
 				finally
 				{
@@ -168,7 +155,7 @@ internal class RenderProcess : IDisposable
 	{
 		string cefAssemblyDir = _dependencyManager.GetDependencyPathFor("cef");
 
-		RenderProcessArguments processArgs = new()
+		RenderParams processArgs = new()
 		{
 			ParentPid = _parentPid,
 			DalamudAssemblyDir = Path.GetDirectoryName(typeof(IPluginLog).Assembly.Location)!,
@@ -183,7 +170,7 @@ internal class RenderProcess : IDisposable
 		process.StartInfo = new ProcessStartInfo
 		{
 			FileName = Path.Combine(_pluginDir, "renderer", "Browsingway.Renderer.exe"),
-			Arguments = processArgs.Serialise().Replace("\"", "\"\"\""),
+			Arguments = RenderParamsSerializer.Serialize(processArgs),
 			UseShellExecute = false,
 			CreateNoWindow = true,
 			RedirectStandardOutput = true,
@@ -194,8 +181,8 @@ internal class RenderProcess : IDisposable
 		process.StartInfo.EnvironmentVariables.Remove("DOTNET_ROOT");
 		process.StartInfo.EnvironmentVariables.Add("DOTNET_ROOT", runtimePath);
 
-		process.OutputDataReceived += (_, args) => _pluginLog.Info($"[Render]: {args.Data}");
-		process.ErrorDataReceived += (_, args) => _pluginLog.Error($"[Render]: {args.Data}");
+		process.OutputDataReceived += (_, args) => Services.PluginLog.Info($"[Render]: {args.Data}");
+		process.ErrorDataReceived += (_, args) => Services.PluginLog.Error($"[Render]: {args.Data}");
 
 		return process;
 	}

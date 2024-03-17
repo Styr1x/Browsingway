@@ -15,5 +15,5 @@
         "website",
         "video"
     ],
-    "Changelog": "- Chromium 121.0.6167.184 (fix for various CVEs)\n- Fullscreen mode by Una (experimental, unsupported)\n- Minor UI fixes"
+    "Changelog": "- Chromium 122.0.6261.112\n- .net 8 support\n- IPC refactoring"
 }

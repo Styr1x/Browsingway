@@ -1,0 +1,13 @@
+attribute "fs_serializer";
+
+namespace Browsingway.Common.Ipc;
+
+table RenderParams (fs_serializer) {
+    CefAssemblyDir : string (required);
+    CefCacheDir : string (required);
+    DalamudAssemblyDir : string (required);
+    DxgiAdapterLuid: long;
+    IpcChannelName : string (required);
+    KeepAliveHandleName : string (required);
+    ParentPid : int;
+}

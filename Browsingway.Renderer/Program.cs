@@ -1,5 +1,5 @@
 ﻿using Browsingway.Common;
-using Browsingway.Renderer.RenderHandlers;
+using Browsingway.Common.Ipc;
 using System.Diagnostics;
 using System.Drawing;
 using System.Reflection;
@@ -15,9 +15,9 @@ internal static class Program
 	private static Thread? _parentWatchThread;
 	private static EventWaitHandle? _waitHandle;
 
-	private static IpcBuffer<DownstreamIpcRequest, UpstreamIpcRequest?> _ipcBuffer = null!;
+	private static RendererRpc _rpc = null!;
 
-	private static readonly Dictionary<Guid, Inlay> _inlays = new();
+	private static readonly Dictionary<Guid, Overlay> _overlays = new();
 
 	private static bool _isShuttingDown;
 	private static readonly object _lockIpc = new();
@@ -25,7 +25,9 @@ internal static class Program
 	private static void Main(string[] rawArgs)
 	{
 		Console.WriteLine("Render process running.");
-		RenderProcessArguments args = RenderProcessArguments.Deserialize(rawArgs[0]);
+
+		// Deserialize the arguments
+		var args = RenderParamsSerializer.Deserialize(rawArgs[0]);
 
 		// Need to pull these out before Run() so the resolver can access.
 		_cefAssemblyDir = args.CefAssemblyDir;
@@ -38,7 +40,7 @@ internal static class Program
 
 	// Main process logic. Seperated to ensure assembly resolution is configured.
 	[MethodImpl(MethodImplOptions.NoInlining)]
-	private static void Run(RenderProcessArguments args)
+	private static void Run(RenderParams args)
 	{
 		_waitHandle = new EventWaitHandle(false, EventResetMode.ManualReset, args.KeepAliveHandleName);
 
@@ -51,15 +53,12 @@ internal static class Program
 		bool dxRunning = DxHandler.Initialise(args.DxgiAdapterLuid);
 		CefHandler.Initialise(_cefAssemblyDir, args.CefCacheDir, args.ParentPid);
 
-		_ipcBuffer = new IpcBuffer<DownstreamIpcRequest, UpstreamIpcRequest?>(args.IpcChannelName, HandleIpcRequest);
+		InitializeIpc(args.IpcChannelName);
 
 		Console.WriteLine("Notifying on ready state.");
 
-		// We always support bitmap buffer transport
-		FrameTransportMode availableTransports = FrameTransportMode.BitmapBuffer;
-		if (dxRunning) { availableTransports |= FrameTransportMode.SharedTexture; }
-
-		_ipcBuffer.RemoteRequest<object>(new ReadyNotificationRequest { AvailableTransports = availableTransports });
+		// Notify plugin that render process is running
+		_ = _rpc.RendererReady(dxRunning);
 
 		Console.WriteLine("Waiting...");
 
@@ -72,6 +71,174 @@ internal static class Program
 
 		DxHandler.Shutdown();
 		CefHandler.Shutdown();
+	}
+
+	// TODO: move RPC stuff away
+	private static void InitializeIpc(string channelName)
+	{
+		_rpc = new RendererRpc(channelName);
+		_rpc.Debug += RpcOnDebug;
+		_rpc.Mute += RpcOnMute;
+		_rpc.Navigate += RpcOnNavigate;
+		_rpc.Zoom += RpcOnZoom;
+		_rpc.KeyEvent += RpcOnKeyEvent;
+		_rpc.MouseButton += RpcOnMouseButton;
+		_rpc.NewOverlay += RpcOnNewOverlay;
+		_rpc.RemoveOverlay += RpcOnRemoveOverlay;
+		_rpc.ResizeOverlay += RpcOnResizeOverlay;
+		_rpc.InjectUserCss += RpcOnInjectUserCss;
+	}
+
+	private static void RpcOnInjectUserCss(InjectUserCssMessage msg)
+	{
+		lock (_lockIpc)
+		{
+			if (_isShuttingDown)
+				return;
+
+			var guid = new Guid(msg.Guid.Span);
+			if (_overlays.TryGetValue(guid, out var overlay))
+				overlay.InjectUserCss(msg.Css);
+		}
+	}
+
+	private static void RpcOnResizeOverlay(ResizeOverlayMessage msg)
+	{
+		lock (_lockIpc)
+		{
+			if (_isShuttingDown)
+				return;
+
+			var guid = new Guid(msg.Guid.Span);
+			if (_overlays.TryGetValue(guid, out var overlay))
+			{
+				overlay.Resize(new Size(msg.Width, msg.Height));
+				_ = _rpc.UpdateTexture(guid, overlay.RenderHandler.SharedTextureHandle);
+			}
+		}
+	}
+
+	private static void RpcOnRemoveOverlay(RemoveOverlayMessage msg)
+	{
+		lock (_lockIpc)
+		{
+			if (_isShuttingDown)
+				return;
+
+			var guid = new Guid(msg.Guid.Span);
+			if (_overlays.Remove(guid, out var overlay))
+			{
+				overlay.Dispose();
+			}
+		}
+	}
+
+	private static void RpcOnNewOverlay(NewOverlayMessage msg)
+	{
+		lock (_lockIpc)
+		{
+			if (_isShuttingDown)
+				return;
+
+			Size size = new(msg.Width, msg.Height);
+
+			var renderHandler = new TextureRenderHandler(size);
+			var guid = new Guid(msg.Guid.Span);
+			if (_overlays.TryGetValue(guid, out Overlay? value))
+			{
+				value.Dispose();
+				_overlays.Remove(guid);
+			}
+
+			Overlay overlay = new(msg.Id, msg.Url, msg.Zoom, msg.Muted, msg.Framerate, msg.CustomCss, renderHandler);
+			overlay.Initialise();
+			_overlays.Add(guid, overlay);
+
+			renderHandler.CursorChanged += (o, cursor) =>
+			{
+				_ = _rpc.SetCursor(new SetCursorMessage() { Guid = msg.Guid, Cursor = cursor });
+			};
+
+			_ = _rpc.UpdateTexture(guid, renderHandler.SharedTextureHandle);
+		}
+	}
+
+	private static void RpcOnMouseButton(MouseButtonMessage msg)
+	{
+		lock (_lockIpc)
+		{
+			if (_isShuttingDown)
+				return;
+
+			var guid = new Guid(msg.Guid.Span);
+			if (_overlays.TryGetValue(guid, out var inlay))
+				inlay.HandleMouseEvent(msg);
+		}
+	}
+
+	private static void RpcOnKeyEvent(KeyEventMessage msg)
+	{
+		lock (_lockIpc)
+		{
+			if (_isShuttingDown)
+				return;
+
+			var guid = new Guid(msg.Guid.Span);
+			if (_overlays.TryGetValue(guid, out var inlay))
+				inlay.HandleKeyEvent(msg);
+		}
+	}
+
+	private static void RpcOnZoom(ZoomMessage msg)
+	{
+		lock (_lockIpc)
+		{
+			if (_isShuttingDown)
+				return;
+
+			var guid = new Guid(msg.Guid.Span);
+			if (_overlays.TryGetValue(guid, out var inlay))
+				inlay.Zoom(msg.Zoom);
+		}
+	}
+
+	private static void RpcOnNavigate(NavigateMessage msg)
+	{
+		lock (_lockIpc)
+		{
+			if (_isShuttingDown)
+				return;
+
+			var guid = new Guid(msg.Guid.Span);
+			if (_overlays.TryGetValue(guid, out var inlay))
+				inlay.Navigate(msg.Url);
+		}
+	}
+
+	private static void RpcOnMute(MuteMessage msg)
+	{
+		lock (_lockIpc)
+		{
+			if (_isShuttingDown)
+				return;
+
+			var guid = new Guid(msg.Guid.Span);
+			if (_overlays.TryGetValue(guid, out var inlay))
+				inlay.Mute(msg.Mute);
+		}
+	}
+
+	private static void RpcOnDebug(DebugMessage msg)
+	{
+		lock (_lockIpc)
+		{
+			if (_isShuttingDown)
+				return;
+
+			var guid = new Guid(msg.Guid.Span);
+			if (_overlays.TryGetValue(guid, out var inlay))
+				inlay.Debug();
+		}
 	}
 
 	private static void WatchParentStatus(object? pid)
@@ -95,134 +262,6 @@ internal static class Program
 				catch (InvalidOperationException) { }
 			}
 		}
-	}
-
-	private static object? HandleIpcRequest(DownstreamIpcRequest? request)
-	{
-		lock (_lockIpc)
-		{
-			if (_isShuttingDown)
-			{
-				return null;
-			}
-
-			switch (request)
-			{
-				case NewInlayRequest newInlayRequest: return OnNewInlayRequest(newInlayRequest);
-
-				case ResizeInlayRequest resizeInlayRequest:
-					{
-						if (_inlays.TryGetValue(resizeInlayRequest.Guid, out var inlay))
-						{
-							inlay.Resize(new Size(resizeInlayRequest.Width, resizeInlayRequest.Height));
-
-							return BuildRenderHandlerResponse(inlay.RenderHandler);
-						}
-
-						return new TextureHandleResponse { TextureHandle = 0 };
-					}
-
-				case NavigateInlayRequest navigateInlayRequest:
-					{
-						if (_inlays.TryGetValue(navigateInlayRequest.Guid, out var inlay))
-							inlay.Navigate(navigateInlayRequest.Url);
-						return null;
-					}
-
-				case ZoomInlayRequest zoomInlayRequest:
-					{
-						if (_inlays.TryGetValue(zoomInlayRequest.Guid, out var inlay))
-							inlay.Zoom(zoomInlayRequest.Zoom);
-						return null;
-					}
-
-				case DebugInlayRequest debugInlayRequest:
-					{
-						if (_inlays.TryGetValue(debugInlayRequest.Guid, out var inlay))
-							inlay.Debug();
-						return null;
-					}
-
-				case RemoveInlayRequest removeInlayRequest:
-					{
-						if (_inlays.TryGetValue(removeInlayRequest.Guid, out var inlay))
-						{
-							_inlays.Remove(removeInlayRequest.Guid);
-							inlay.Dispose();
-						}
-
-						return null;
-					}
-
-				case MouseEventRequest mouseMoveRequest:
-					{
-						if (_inlays.TryGetValue(mouseMoveRequest.Guid, out var inlay))
-							inlay.HandleMouseEvent(mouseMoveRequest);
-						return null;
-					}
-
-				case KeyEventRequest keyEventRequest:
-					{
-						if (_inlays.TryGetValue(keyEventRequest.Guid, out var inlay))
-							inlay.HandleKeyEvent(keyEventRequest);
-						return null;
-					}
-				case MuteInlayRequest muteRequest:
-					{
-						if (_inlays.TryGetValue(muteRequest.Guid, out var inlay))
-							inlay.Mute(muteRequest.Mute);
-						return null;
-					}
-
-				case InjectUserCssRequest injectUserCssRequest:
-					{
-						if (_inlays.TryGetValue(injectUserCssRequest.Guid, out var inlay))
-							inlay.InjectUserCss(injectUserCssRequest.Css);
-						return null;
-					}
-
-				default:
-					throw new Exception($"Unknown IPC request type {request?.GetType().Name} received.");
-			}
-		}
-	}
-
-	private static object OnNewInlayRequest(NewInlayRequest request)
-	{
-		Size size = new(request.Width, request.Height);
-		BaseRenderHandler renderHandler = request.FrameTransportMode switch
-		{
-			FrameTransportMode.SharedTexture => new TextureRenderHandler(size),
-			FrameTransportMode.BitmapBuffer => new BitmapBufferRenderHandler(size),
-			_ => throw new Exception($"Unhandled frame transport mode {request.FrameTransportMode}")
-		};
-
-		if (_inlays.ContainsKey(request.Guid))
-		{
-			_inlays[request.Guid].Dispose();
-			_inlays.Remove(request.Guid);
-		}
-
-		Inlay inlay = new(request.Id, request.Url, request.Zoom, request.Muted, request.Framerate, request.CustomCss, renderHandler);
-		inlay.Initialise();
-		_inlays.Add(request.Guid, inlay);
-
-		renderHandler.CursorChanged += (_, cursor) =>
-		{
-			_ipcBuffer.RemoteRequest<object>(new SetCursorRequest { Guid = request.Guid, Cursor = cursor });
-		};
-
-		return BuildRenderHandlerResponse(renderHandler);
-	}
-
-	private static object BuildRenderHandlerResponse(BaseRenderHandler renderHandler)
-	{
-		return renderHandler switch
-		{
-			TextureRenderHandler textureRenderHandler => new TextureHandleResponse { TextureHandle = textureRenderHandler.SharedTextureHandle },
-			BitmapBufferRenderHandler bitmapBufferRenderHandler => new BitmapBufferResponse { BitmapBufferName = bitmapBufferRenderHandler.BitmapBufferName!, FrameInfoBufferName = bitmapBufferRenderHandler.FrameInfoBufferName },
-			_ => throw new Exception($"Unhandled render handler type {renderHandler.GetType().Name}")
-		};
 	}
 
 	private static Assembly? CustomAssemblyResolver(object? sender, ResolveEventArgs args)

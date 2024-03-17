@@ -1,0 +1,71 @@
+// all FlatSharp FBS attributes start with the 'fs_' prefix.
+attribute "fs_serializer";
+
+namespace Browsingway.Common.Ipc;
+
+enum Cursor : ubyte
+{
+	Default = 0,
+	None,
+	ContextMenu,
+	Help,
+	Pointer,
+	Progress,
+	Wait,
+	Cell,
+	Crosshair,
+	Text,
+	VerticalText,
+	Alias,
+	Copy,
+	Move,
+	NoDrop,
+	NotAllowed,
+	Grab,
+	Grabbing,
+	AllScroll,
+	ColResize,
+	RowResize,
+	NResize,
+	EResize,
+	SResize,
+	WResize,
+	NeResize,
+	NwResize,
+	SeResize,
+	SwResize,
+	EwResize,
+	NsResize,
+	NeswResize,
+	NwseResize,
+	ZoomIn,
+	ZoomOut,
+
+	// Special case value - cursor is on a fully-transparent section of the page, and should not capture
+	BrowsingwayNoCapture
+}
+
+enum InputModifier : ubyte (bit_flags)
+{
+    None = 0,
+    Shift = 1,
+    Control = 2,
+    Alt = 4
+}
+
+enum MouseButton : uint32 (bit_flags)
+{
+    None = 0,
+    Primary = 1,
+    Secondary = 2,
+    Tertiary = 4,
+    Fourth = 8,
+    Fifth = 16
+}
+
+enum KeyEventType : ubyte
+{
+    KeyDown = 0,
+    KeyUp,
+    Character
+}

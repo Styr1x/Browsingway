@@ -1,0 +1,25 @@
+include "ToPluginMessages.fbs";
+include "ToRendererMessages.fbs";
+
+attribute "fs_serializer";
+
+namespace Browsingway.Common.Ipc;
+
+table RpcCall(fs_serializer) {
+    // Plugin -> Renderer
+    NewOverlay: NewOverlayMessage;
+    Navigate: NavigateMessage;
+    ResizeOverlay: ResizeOverlayMessage;
+    InjectUserCss: InjectUserCssMessage;
+    Zoom: ZoomMessage;
+    Mute: MuteMessage;
+    Debug: DebugMessage;
+    RemoveOverlay: RemoveOverlayMessage;
+    MouseButton: MouseButtonMessage;
+    KeyEvent: KeyEventMessage;
+    
+    // Renderer -> Plugin
+    RendererReady: RendererReadyMessage;
+    UpdateTexture: UpdateTextureMessage;
+    SetCursor: SetCursorMessage;
+}

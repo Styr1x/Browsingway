@@ -1,0 +1,13 @@
+attribute "fs_serializer";
+
+namespace Browsingway.Common.Ipc;
+
+table BitmapFrame(fs_serializer) {
+    Length: int;
+    Width: int;
+    Height: int;
+    DirtyX: int;
+    DirtyY: int;
+    DirtyWidth: int;
+    DirtyHeight: int;
+}

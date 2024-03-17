@@ -21,6 +21,7 @@
 				ProjectDir="$(ProjectDir)"
 				OutputPath="$(OutputPath)"
 				AssemblyName="$(AssemblyName)"
+				VersionComponents="3"
 				MakeZip="true"/>
 	</Target>
 </Project>

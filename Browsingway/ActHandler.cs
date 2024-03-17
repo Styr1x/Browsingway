@@ -7,10 +7,6 @@ namespace Browsingway;
 
 public class ActHandler
 {
-	[PluginService]
-	// ReSharper disable once AutoPropertyCanBeMadeGetOnly.Local
-	private static DalamudPluginInterface PluginInterface { get; set; } = null!;
-
 	public bool IsRunning { get; private set; }
 	public event EventHandler<bool>? AvailabilityChanged;
 	private int _ticksSinceCheck = 2000;
@@ -19,7 +15,7 @@ public class ActHandler
 
 	public ActHandler()
 	{
-		_iinactIpc = PluginInterface.GetIpcSubscriber<bool>("IINACT.Server.Listening");
+		_iinactIpc = Services.PluginInterface.GetIpcSubscriber<bool>("IINACT.Server.Listening");
 	}
 
 	public void Check()

@@ -1,30 +1,26 @@
-using Browsingway.Common;
-using Browsingway.TextureHandlers;
-using Dalamud.Plugin.Services;
+using Browsingway.Common.Ipc;
 using ImGuiNET;
 using System.Numerics;
 
 namespace Browsingway;
 
-internal class Inlay : IDisposable
+internal class Overlay : IDisposable
 {
-	private readonly Configuration? _config;
-	private readonly InlayConfiguration _inlayConfig;
+	private readonly InlayConfiguration _overlayConfig;
 
 	private readonly RenderProcess _renderProcess;
 	private bool _captureCursor;
 	private ImGuiMouseCursor _cursor;
-	
+
 	private bool _mouseInWindow;
 
 	private bool _resizing;
 	private Vector2 _size;
-	private ITextureHandler? _textureHandler;
+	private SharedTextureHandler? _textureHandler;
 	private Exception? _textureRenderException;
 	private bool _windowFocused;
-	private IPluginLog _pluginLog;
-	
-	public Inlay(RenderProcess renderProcess, Configuration? config, InlayConfiguration inlayConfig, IPluginLog pluginLog)
+
+	public Overlay(RenderProcess renderProcess, InlayConfiguration overlayConfig)
 	{
 		_renderProcess = renderProcess;
 		// TODO: handle that the correct way
@@ -33,60 +29,40 @@ internal class Inlay : IDisposable
 			_size = Vector2.Zero;
 		};
 
-		_config = config;
-		_inlayConfig = inlayConfig;
-		_pluginLog = pluginLog;
+		_overlayConfig = overlayConfig;
 	}
 
-	public Guid RenderGuid { get; private set; } = Guid.NewGuid();
+	public Guid RenderGuid => _overlayConfig.Guid;
 
 	public void Dispose()
 	{
 		_textureHandler?.Dispose();
-		_renderProcess.Send(new RemoveInlayRequest { Guid = RenderGuid });
+		_ = _renderProcess.Rpc.RemoveOverlay(RenderGuid);
 	}
 
 	public void Navigate(string newUrl)
 	{
-		_renderProcess.Send(new NavigateInlayRequest { Guid = RenderGuid, Url = newUrl });
+		_ = _renderProcess.Rpc.Navigate(RenderGuid, newUrl);
 	}
 
 	public void InjectUserCss(string css)
 	{
-		_renderProcess.Send(new InjectUserCssRequest { Guid = RenderGuid, Css = css });
+		_ = _renderProcess.Rpc.InjectUserCss(RenderGuid, css);
 	}
 
 	public void Zoom(float zoom)
 	{
-		_renderProcess.Send(new ZoomInlayRequest { Guid = RenderGuid, Zoom = zoom });
+		_ = _renderProcess.Rpc.Zoom(RenderGuid, zoom);
 	}
 
 	public void Mute(bool mute)
 	{
-		_renderProcess.Send(new MuteInlayRequest() { Guid = RenderGuid, Mute = mute });
+		_ = _renderProcess.Rpc.Mute(RenderGuid, mute);
 	}
 
 	public void Debug()
 	{
-		_renderProcess.Send(new DebugInlayRequest { Guid = RenderGuid });
-	}
-
-	public void InvalidateTransport()
-	{
-		// Get old refs so we can clean up later
-		ITextureHandler? oldTextureHandler = _textureHandler;
-		Guid oldRenderGuid = RenderGuid;
-
-		// Invalidate the handler, and reset the size to trigger a rebuild
-		// Also need to generate a new renderer guid so we don't have a collision during the hand over
-		// TODO: Might be able to tweak the logic in resize alongside this to shore up (re)builds
-		_textureHandler = null;
-		_size = Vector2.Zero;
-		RenderGuid = Guid.NewGuid();
-
-		// Clean up
-		oldTextureHandler?.Dispose();
-		_renderProcess.Send(new RemoveInlayRequest { Guid = oldRenderGuid });
+		_ = _renderProcess.Rpc.Debug(RenderGuid);
 	}
 
 	public void SetCursor(Cursor cursor)
@@ -102,10 +78,10 @@ internal class Inlay : IDisposable
 			// this message is only generated when someone clicked on an non ImGui window, meaning we want to loose focus here
 			_windowFocused = false;
 		}
-		
+
 		// Bail if we're not focused or we're typethrough
 		// TODO: Revisit the focus check for UI stuff, might not hold
-		if (!_windowFocused || _inlayConfig.TypeThrough) { return (false, 0); }
+		if (!_windowFocused || _overlayConfig.TypeThrough) { return (false, 0); }
 
 		KeyEventType? eventType = msg switch
 		{
@@ -120,14 +96,8 @@ internal class Inlay : IDisposable
 
 		// If the event isn't something we're tracking, bail early with no capture
 		if (eventType == null) { return (false, 0); }
-		
-		_renderProcess.Send(new KeyEventRequest
-		{
-			Guid = RenderGuid,
-			Msg = (int)msg,
-			WParam = (int)wParam,
-			LParam = (int)lParam
-		});
+
+		_ = _renderProcess.Rpc.KeyEvent(RenderGuid, (int)msg, (int)wParam, (int)lParam);
 
 		// We've handled the input, signal. For these message types, `0` signals a capture.
 		return (true, 0);
@@ -135,27 +105,30 @@ internal class Inlay : IDisposable
 
 	public void Render()
 	{
-		if (_inlayConfig.Hidden || _inlayConfig.Disabled)
+		if (_overlayConfig.Hidden || _overlayConfig.Disabled)
 		{
 			_mouseInWindow = false;
 			return;
 		}
 
 		ImGui.SetNextWindowSize(new Vector2(640, 480), ImGuiCond.FirstUseEver);
-		ImGui.Begin($"{_inlayConfig.Name}###{_inlayConfig.Guid}", GetWindowFlags());
+		ImGui.Begin($"{_overlayConfig.Name}###{_overlayConfig.Guid}", GetWindowFlags());
 
-		if (_inlayConfig.Fullscreen) {
+		if (_overlayConfig.Fullscreen)
+		{
 			var screen = ImGui.GetMainViewport();
 
 			// ImGui always leaves a 1px transparent border around the window, so we need to account for that.
-			var fsPos  = new Vector2(screen.WorkPos.X - 1, screen.WorkPos.Y - 1);
+			var fsPos = new Vector2(screen.WorkPos.X - 1, screen.WorkPos.Y - 1);
 			var fsSize = new Vector2(screen.Size.X + 2 - fsPos.X, screen.Size.Y + 2 - fsPos.Y);
 
-			if (ImGui.GetWindowPos() != fsPos) {
+			if (ImGui.GetWindowPos() != fsPos)
+			{
 				ImGui.SetWindowPos(fsPos, ImGuiCond.Always);
 			}
 
-			if (_size.X != fsSize.X || _size.Y != fsSize.Y) {
+			if (_size.X != fsSize.X || _size.Y != fsSize.Y)
+			{
 				ImGui.SetWindowSize(fsSize, ImGuiCond.Always);
 			}
 		}
@@ -167,7 +140,7 @@ internal class Inlay : IDisposable
 		{
 			HandleMouseEvent();
 
-			ImGui.PushStyleVar(ImGuiStyleVar.Alpha, _inlayConfig.Opacity / 100f);
+			ImGui.PushStyleVar(ImGuiStyleVar.Alpha, _overlayConfig.Opacity / 100f);
 			_textureHandler.Render();
 			ImGui.PopStyleVar();
 		}
@@ -193,7 +166,7 @@ internal class Inlay : IDisposable
 		                         | ImGuiWindowFlags.NoFocusOnAppearing;
 
 		// ClickThrough / fullscreen is implicitly locked
-		bool locked = _inlayConfig.Locked || _inlayConfig.ClickThrough || _inlayConfig.Fullscreen;
+		bool locked = _overlayConfig.Locked || _overlayConfig.ClickThrough || _overlayConfig.Fullscreen;
 
 		if (locked)
 		{
@@ -203,23 +176,37 @@ internal class Inlay : IDisposable
 			         | ImGuiWindowFlags.NoBackground;
 		}
 
-		if (_inlayConfig.ClickThrough || (!_captureCursor && locked))
+		if (_overlayConfig.ClickThrough || (!_captureCursor && locked))
 		{
 			flags |= ImGuiWindowFlags.NoMouseInputs | ImGuiWindowFlags.NoNav;
 		}
 
 		// don't think user wants a background when they decrease opacity
-		if (_inlayConfig.Opacity < 100f)
+		if (_overlayConfig.Opacity < 100f)
 			flags |= ImGuiWindowFlags.NoBackground;
 
 		return flags;
+	}
+
+	public void SetTexture(IntPtr handle)
+	{
+		_resizing = false;
+
+		SharedTextureHandler? oldTextureHandler = _textureHandler;
+		try
+		{
+			_textureHandler = new SharedTextureHandler(handle);
+		}
+		catch (Exception e) { _textureRenderException = e; }
+
+		if (oldTextureHandler != null) { oldTextureHandler.Dispose(); }
 	}
 
 	private void HandleMouseEvent()
 	{
 		// Render proc won't be ready on first boot
 		// Totally skip mouse handling for click through inlays, as well
-		if (_renderProcess == null || _inlayConfig.ClickThrough) { return; }
+		if (_renderProcess == null || _overlayConfig.ClickThrough) { return; }
 
 		ImGuiIOPtr io = ImGui.GetIO();
 		Vector2 windowPos = ImGui.GetWindowPos();
@@ -233,7 +220,7 @@ internal class Inlay : IDisposable
 		bool hovered = _captureCursor
 			? ImGui.IsWindowHovered()
 			: ImGui.IsMouseHoveringRect(windowPos, windowPos + ImGui.GetWindowSize());
-		
+
 		// manage focus
 		MouseButton down = EncodeMouseButtons(io.MouseClicked);
 		MouseButton double_ = EncodeMouseButtons(io.MouseDoubleClicked);
@@ -251,7 +238,7 @@ internal class Inlay : IDisposable
 			if (_mouseInWindow)
 			{
 				_mouseInWindow = false;
-				_renderProcess.Send(new MouseEventRequest { Guid = RenderGuid, X = mousePos.X, Y = mousePos.Y, Leaving = true });
+				_ = _renderProcess.Rpc.MouseButton(new MouseButtonMessage() { Guid = RenderGuid.ToByteArray(), X = (int)mousePos.X, Y = (int)mousePos.Y, Leaving = true });
 			}
 
 			return;
@@ -260,7 +247,7 @@ internal class Inlay : IDisposable
 		_mouseInWindow = true;
 
 		ImGui.SetMouseCursor(_cursor);
-		
+
 		// If the event boils down to no change, bail before sending
 		if (io.MouseDelta == Vector2.Zero && down == MouseButton.None && double_ == MouseButton.None && up == MouseButton.None && wheelX == 0 && wheelY == 0)
 		{
@@ -275,9 +262,9 @@ internal class Inlay : IDisposable
 		if (io.KeyAlt) { modifier |= InputModifier.Alt; }
 
 		// TODO: Either this or the entire handler function should be asynchronous so we're not blocking the entire draw thread
-		_renderProcess.Send(new MouseEventRequest
+		_ = _renderProcess.Rpc.MouseButton(new MouseButtonMessage()
 		{
-			Guid = RenderGuid,
+			Guid = RenderGuid.ToByteArray(),
 			X = mousePos.X,
 			Y = mousePos.Y,
 			Down = down,
@@ -289,56 +276,33 @@ internal class Inlay : IDisposable
 		});
 	}
 
-	private async void HandleWindowSize()
+	private void HandleWindowSize()
 	{
 		Vector2 currentSize = ImGui.GetWindowContentRegionMax() - ImGui.GetWindowContentRegionMin();
 		if (currentSize == _size || _resizing) { return; }
 
-		// If there isn't a size yet, we haven't rendered at all - boot up an inlay in the render process
-		// TODO: Edge case - if a user _somehow_ makes the size zero, this will freak out and generate a new render inlay
-		// TODO: Maybe consolidate the request types? dunno.
-		DownstreamIpcRequest request = _size == Vector2.Zero
-			? new NewInlayRequest
+		if (_size == Vector2.Zero)
+		{
+			_ = _renderProcess.Rpc.NewOverlay(new NewOverlayMessage()
 			{
-				Guid = RenderGuid,
-				Id = _inlayConfig.Name,
-				FrameTransportMode = _config?.FrameTransportMode ?? FrameTransportMode.None,
-				Url = _inlayConfig.Url,
+				Guid = RenderGuid.ToByteArray(),
+				Id = _overlayConfig.Name,
+				Url = _overlayConfig.Url,
 				Width = (int)currentSize.X,
 				Height = (int)currentSize.Y,
-				Zoom = _inlayConfig.Zoom,
-				Framerate = _inlayConfig.Framerate,
-				Muted = _inlayConfig.Muted,
-				CustomCss = _inlayConfig.CustomCss
-			}
-			: new ResizeInlayRequest { Guid = RenderGuid, Width = (int)currentSize.X, Height = (int)currentSize.Y };
-
+				Zoom = _overlayConfig.Zoom,
+				Framerate = _overlayConfig.Framerate,
+				Muted = _overlayConfig.Muted,
+				CustomCss = _overlayConfig.CustomCss
+			});
+		}
+		else
+		{
+			_ = _renderProcess.Rpc.ResizeOverlay(RenderGuid, (int)currentSize.X, (int)currentSize.Y);
+		}
+		
 		_resizing = true;
-
-		IpcResponse<FrameTransportResponse> response = await _renderProcess.Send<FrameTransportResponse>(request);
-		if (!response.Success)
-		{
-			_pluginLog.Error("Texture build failure, retrying...");
-			_resizing = false;
-			return;
-		}
-
 		_size = currentSize;
-		_resizing = false;
-
-		ITextureHandler? oldTextureHandler = _textureHandler;
-		try
-		{
-			_textureHandler = response.Data switch
-			{
-				TextureHandleResponse textureHandleResponse => new SharedTextureHandler(textureHandleResponse),
-				BitmapBufferResponse bitmapBufferResponse => new BitmapBufferTextureHandler(bitmapBufferResponse),
-				_ => throw new Exception($"Unhandled frame transport {response.GetType().Name}")
-			};
-		}
-		catch (Exception e) { _textureRenderException = e; }
-
-		if (oldTextureHandler != null) { oldTextureHandler.Dispose(); }
 	}
 
 	#region serde

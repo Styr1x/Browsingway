@@ -1,0 +1,19 @@
+include "Enums.fbs";
+
+attribute "fs_serializer";
+
+namespace Browsingway.Common.Ipc;
+
+table RendererReadyMessage (fs_serializer) {
+    HasDxSharedTexturesSupport : bool;
+}
+
+table UpdateTextureMessage (fs_serializer) {
+    Guid : [ubyte] (required);
+    TextureHandle : ulong;
+}
+
+table SetCursorMessage (fs_serializer) {
+    Cursor: Cursor;
+    Guid: [ubyte] (required);
+}

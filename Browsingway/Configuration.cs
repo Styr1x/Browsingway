@@ -1,4 +1,4 @@
-﻿using Browsingway.Common;
+﻿using Browsingway.Common.Ipc;
 using Dalamud.Configuration;
 
 namespace Browsingway;
@@ -6,7 +6,6 @@ namespace Browsingway;
 [Serializable]
 internal class Configuration : IPluginConfiguration
 {
-	public FrameTransportMode FrameTransportMode = FrameTransportMode.SharedTexture;
 	public List<InlayConfiguration> Inlays = new();
 	public int Version { get; set; } = 0;
 }

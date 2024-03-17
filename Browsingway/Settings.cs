@@ -1,4 +1,4 @@
-﻿using Browsingway.Common;
+﻿using Browsingway.Common.Ipc;
 using Dalamud.Interface;
 using Dalamud.IoC;
 using Dalamud.Plugin;
@@ -18,20 +18,8 @@ internal class Settings : IDisposable
 	public event EventHandler<InlayConfiguration>? InlayRemoved;
 	public event EventHandler<InlayConfiguration>? InlayZoomed;
 	public event EventHandler<InlayConfiguration>? InlayMuted;
-
 	public event EventHandler<InlayConfiguration>? InlayUserCssChanged;
-	public event EventHandler? TransportChanged;
-
 	public readonly Configuration Config;
-
-	[PluginService]
-	// ReSharper disable once AutoPropertyCanBeMadeGetOnly.Local
-	private static DalamudPluginInterface PluginInterface { get; set; } = null!;
-
-	[PluginService]
-	// ReSharper disable once AutoPropertyCanBeMadeGetOnly.Local
-	private static IChatGui Chat { get; set; } = null!;
-
 	private bool _actAvailable = false;
 
 #if DEBUG
@@ -40,15 +28,13 @@ internal class Settings : IDisposable
 	private bool _open;
 #endif
 
-	private List<FrameTransportMode> _availableTransports = new();
-
 	private InlayConfiguration? _selectedInlay;
 	private Timer? _saveDebounceTimer;
 
 	public Settings()
 	{
-		PluginInterface.UiBuilder.OpenConfigUi += () => _open = true;
-		Config = PluginInterface.GetPluginConfig() as Configuration ?? new Configuration();
+		Services.PluginInterface.UiBuilder.OpenConfigUi += () => _open = true;
+		Config = Services.PluginInterface.GetPluginConfig() as Configuration ?? new Configuration();
 	}
 
 	public void Dispose() { }
@@ -82,7 +68,7 @@ internal class Settings : IDisposable
 		// Ensure there's enough arguments
 		if (args.Length < 2 || (args[1] != "reload" && args.Length < 3))
 		{
-			Chat.PrintError("Invalid inlay command. Supported syntax: '[inlayCommandName] [setting] [value]'");
+			Services.Chat.PrintError("Invalid inlay command. Supported syntax: '[inlayCommandName] [setting] [value]'");
 			return;
 		}
 
@@ -90,7 +76,7 @@ internal class Settings : IDisposable
 		InlayConfiguration? targetConfig = Config.Inlays.Find(inlay => GetInlayCommandName(inlay) == args[0]);
 		if (targetConfig == null)
 		{
-			Chat.PrintError(
+			Services.Chat.PrintError(
 				$"Unknown inlay '{args[0]}'.");
 			return;
 		}
@@ -131,7 +117,7 @@ internal class Settings : IDisposable
 				break;
 
 			default:
-				Chat.PrintError(
+				Services.Chat.PrintError(
 					$"Unknown setting '{args[1]}. Valid settings are: url,hidden,locked,fullscreen,clickthrough,typethrough,muted,disabled,act.");
 				return;
 		}
@@ -158,25 +144,9 @@ internal class Settings : IDisposable
 				target = !target;
 				break;
 			default:
-				Chat.PrintError(
+				Services.Chat.PrintError(
 					$"Unknown boolean value '{value}. Valid values are: on,off,toggle.");
 				break;
-		}
-	}
-
-	public void SetAvailableTransports(FrameTransportMode transports)
-	{
-		// Decode bit flags to array for easier ui crap
-		_availableTransports = Enum.GetValues(typeof(FrameTransportMode))
-			.Cast<FrameTransportMode>()
-			.Where(transport => transport != FrameTransportMode.None && transports.HasFlag(transport))
-			.ToList();
-
-		// If the configured transport isn't available, pick the first so we don't end up in a weird spot.
-		// NOTE: Might be nice to avoid saving this to disc - a one-off failure may cause a save of full fallback mode.
-		if (_availableTransports.Count > 0 && !_availableTransports.Contains(Config.FrameTransportMode))
-		{
-			SetActiveTransport(_availableTransports[0]);
 		}
 	}
 
@@ -238,12 +208,6 @@ internal class Settings : IDisposable
 		SaveSettings();
 	}
 
-	private void SetActiveTransport(FrameTransportMode transport)
-	{
-		Config.FrameTransportMode = transport;
-		TransportChanged?.Invoke(this, EventArgs.Empty);
-	}
-
 	private void DebouncedSaveSettings()
 	{
 		_saveDebounceTimer?.Dispose();
@@ -254,7 +218,7 @@ internal class Settings : IDisposable
 	{
 		_saveDebounceTimer?.Dispose();
 		_saveDebounceTimer = null;
-		PluginInterface.SavePluginConfig(Config);
+		Services.PluginInterface.SavePluginConfig(Config);
 	}
 
 	private string GetInlayCommandName(InlayConfiguration inlayConfig)
@@ -311,7 +275,7 @@ internal class Settings : IDisposable
 			_selectedInlay = null;
 		}
 
-		// Inlay selector list
+		// Overlay selector list
 		ImGui.Dummy(new Vector2(0, 5));
 		ImGui.PushStyleVar(ImGuiStyleVar.Alpha, 0.5f);
 		ImGui.Text("- Inlays -");
@@ -388,37 +352,6 @@ internal class Settings : IDisposable
 				"\t\treload: -\n" +
 				"\tvalue: Value to set for the setting. Accepted values are:\n" +
 				"\t\tstring: any string value\n\t\tboolean: on, off, toggle");
-		}
-
-		if (ImGui.CollapsingHeader("Advanced Settings"))
-		{
-			IEnumerable<string> options = _availableTransports.Select(transport => transport.ToString());
-			int currentIndex = _availableTransports.IndexOf(Config.FrameTransportMode);
-
-			if (_availableTransports.Count == 0)
-			{
-				options = options.Append("Initialising...");
-				currentIndex = 0;
-			}
-
-			if (options.Count() <= 1) { ImGui.PushStyleVar(ImGuiStyleVar.Alpha, 0.5f); }
-
-			bool transportChanged = ImGui.Combo("Frame transport", ref currentIndex, options.ToArray(), options.Count());
-			if (options.Count() <= 1) { ImGui.PopStyleVar(); }
-
-			// TODO: Flipping this should probably try to rebuild existing inlays
-			dirty |= transportChanged;
-			if (transportChanged)
-			{
-				SetActiveTransport(_availableTransports[currentIndex]);
-			}
-
-			if (Config.FrameTransportMode == FrameTransportMode.BitmapBuffer)
-			{
-				ImGui.PushStyleColor(ImGuiCol.Text, 0xFF0000FF);
-				ImGui.TextWrapped("The bitmap buffer frame transport is a fallback, and should only be used if no other options work for you. It is not as stable as the shared texture option.");
-				ImGui.PopStyleColor();
-			}
 		}
 
 		return dirty;
@@ -521,7 +454,7 @@ internal class Settings : IDisposable
 
 		ImGui.NextColumn();
 		ImGui.NextColumn();
-		
+
 		if (ImGui.Checkbox("ACT/IINACT optimizations", ref inlayConfig.ActOptimizations))
 		{
 			if (!inlayConfig.Disabled)
@@ -546,7 +479,7 @@ internal class Settings : IDisposable
 
 		ImGui.NextColumn();
 		ImGui.NextColumn();
-		
+
 		if (inlayConfig.ClickThrough || inlayConfig.Fullscreen) { ImGui.PushStyleVar(ImGuiStyleVar.Alpha, 0.5f); }
 
 		bool true_ = true;
@@ -578,7 +511,7 @@ internal class Settings : IDisposable
 		ImGui.NextColumn();
 
 		ImGui.Columns(1);
-		
+
 		ImGui.NewLine();
 		if (ImGui.CollapsingHeader("Experimental / Unsupported"))
 		{
@@ -586,7 +519,7 @@ internal class Settings : IDisposable
 			dirty |= ImGui.Checkbox("Fullscreen", ref inlayConfig.Fullscreen);
 			ImGui.NewLine();
 			if (ImGui.IsItemHovered()) { ImGui.SetTooltip("Automatically makes this inlay cover the entire screen when enabled."); }
-			
+
 			ImGui.Text("Custom CSS code:");
 			if (ImGui.InputTextMultiline("Custom CSS code", ref inlayConfig.CustomCss, 1000000,
 				    new Vector2(-1, ImGui.GetTextLineHeight() * 10)))

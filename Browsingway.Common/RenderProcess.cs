@@ -1,30 +1,10 @@
-﻿using Browsingway.Common.TinyJson;
-using System;
+﻿/*using System;
 
 namespace Browsingway.Common;
 // TODO: I should probably split this file up it's getting a bit silly
 
-public class RenderProcessArguments
-{
-	public string CefAssemblyDir = null!;
-	public string CefCacheDir = null!;
-	public string DalamudAssemblyDir = null!;
-	public long DxgiAdapterLuid;
-	public string IpcChannelName = null!;
-	public string KeepAliveHandleName = null!;
-	public int ParentPid;
 
-	public string Serialise()
-	{
-		return JsonWriter.ToJson(this);
-	}
-
-	public static RenderProcessArguments Deserialize(string serialisedArgs)
-	{
-		return JsonParser.FromJson<RenderProcessArguments>(serialisedArgs);
-	}
-}
-
+// DONE
 public struct BitmapFrame
 {
 	public int Length;
@@ -36,6 +16,7 @@ public struct BitmapFrame
 	public int DirtyHeight;
 }
 
+// DONE
 [Flags]
 public enum FrameTransportMode
 {
@@ -51,6 +32,7 @@ public class DownstreamIpcRequest
 {
 }
 
+// DONE
 [Serializable]
 public class NewInlayRequest : DownstreamIpcRequest
 {
@@ -66,6 +48,7 @@ public class NewInlayRequest : DownstreamIpcRequest
 	public string CustomCss = null!;
 }
 
+// DONE
 [Serializable]
 public class ResizeInlayRequest : DownstreamIpcRequest
 {
@@ -74,17 +57,20 @@ public class ResizeInlayRequest : DownstreamIpcRequest
 	public int Width;
 }
 
+// DONE?
 [Serializable]
 public class FrameTransportResponse
 {
 }
 
+// DONE?
 [Serializable]
 public class TextureHandleResponse : FrameTransportResponse
 {
 	public IntPtr TextureHandle;
 }
 
+// DONE?
 [Serializable]
 public class BitmapBufferResponse : FrameTransportResponse
 {
@@ -92,6 +78,7 @@ public class BitmapBufferResponse : FrameTransportResponse
 	public string FrameInfoBufferName = null!;
 }
 
+// DONE
 [Serializable]
 public class NavigateInlayRequest : DownstreamIpcRequest
 {
@@ -99,6 +86,7 @@ public class NavigateInlayRequest : DownstreamIpcRequest
 	public string Url = null!;
 }
 
+// DONE
 [Serializable]
 public class InjectUserCssRequest : DownstreamIpcRequest
 {
@@ -106,6 +94,7 @@ public class InjectUserCssRequest : DownstreamIpcRequest
 	public string Css = null!;
 }
 
+// DONE
 [Serializable]
 public class ZoomInlayRequest : DownstreamIpcRequest
 {
@@ -113,6 +102,7 @@ public class ZoomInlayRequest : DownstreamIpcRequest
 	public float Zoom;
 }
 
+// DONE
 [Serializable]
 public class MuteInlayRequest : DownstreamIpcRequest
 {
@@ -120,12 +110,14 @@ public class MuteInlayRequest : DownstreamIpcRequest
 	public bool Mute;
 }
 
+// DONE
 [Serializable]
 public class DebugInlayRequest : DownstreamIpcRequest
 {
 	public Guid Guid;
 }
 
+// DONE
 [Serializable]
 public class RemoveInlayRequest : DownstreamIpcRequest
 {
@@ -252,4 +244,4 @@ public class SetCursorRequest : UpstreamIpcRequest
 	public Guid Guid;
 }
 
-#endregion
+#endregion*/
