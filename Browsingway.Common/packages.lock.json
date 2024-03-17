@@ -1,0 +1,41 @@
+{
+  "version": 1,
+  "dependencies": {
+    "net8.0-windows7.0": {
+      "FlatSharp.Compiler": {
+        "type": "Direct",
+        "requested": "[7.5.1, )",
+        "resolved": "7.5.1",
+        "contentHash": "8Np0TXyXTqhxDORm7PKxOz7AHNuKdkIXJCzOCufLwBtrOOunOGDtwSRR23iLEMcKkXV3pVBr0WSDEEErHaGocw=="
+      },
+      "FlatSharp.Runtime": {
+        "type": "Direct",
+        "requested": "[7.5.1, )",
+        "resolved": "7.5.1",
+        "contentHash": "R1i9CP2Kym0Vpou4gKa71N9xNque0h8H7Id75p0tan45Ki59gJpPoUg6dXssyF3LwQY5r1WkFQobwr2yegb5jQ==",
+        "dependencies": {
+          "System.Memory": "4.5.5"
+        }
+      },
+      "SharedMemory": {
+        "type": "Direct",
+        "requested": "[2.3.2, )",
+        "resolved": "2.3.2",
+        "contentHash": "hH34Y9xzvdJpgf/vwyWE/zYlY4BdQS3Zolfdg+8hV9A+UQRsBWyBS62kcLO55mF4etmMoL0PswEbT3lVXJSlFw==",
+        "dependencies": {
+          "System.Reflection.Emit.Lightweight": "4.7.0"
+        }
+      },
+      "System.Memory": {
+        "type": "Transitive",
+        "resolved": "4.5.5",
+        "contentHash": "XIWiDvKPXaTveaB7HVganDlOCRoj03l+jrwNvcge/t8vhGYKvqV+dMv6G4SAX2NoNmN0wZfVPTAlFwZcZvVOUw=="
+      },
+      "System.Reflection.Emit.Lightweight": {
+        "type": "Transitive",
+        "resolved": "4.7.0",
+        "contentHash": "a4OLB4IITxAXJeV74MDx49Oq2+PsF6Sml54XAFv+2RyWwtDBcabzoxiiJRhdhx+gaohLh4hEGCLQyBozXoQPqA=="
+      }
+    }
+  }
+}

@@ -5,6 +5,7 @@
 		<Copy SourceFiles="$(OutputPath)\Browsingway.Common.dll" DestinationFolder="$(OutputPath)\renderer"/>
 		<Copy SourceFiles="$(OutputPath)\Browsingway.Common.pdb" DestinationFolder="$(OutputPath)\renderer"/>
 		<Copy SourceFiles="$(OutputPath)\SharedMemory.dll" DestinationFolder="$(OutputPath)\renderer"/>
+		<Copy SourceFiles="$(OutputPath)\FlatSharp.Runtime.dll" DestinationFolder="$(OutputPath)\renderer"/>
 		<Copy SourceFiles="$(OutputPath)\images\icon.png" DestinationFolder="$(OutputPath)"/>
 		<Move SourceFiles="$(OutputPath)\Browsingway.Renderer.dll" DestinationFolder="$(OutputPath)\renderer"/>
 		<Move SourceFiles="$(OutputPath)\Browsingway.Renderer.exe" DestinationFolder="$(OutputPath)\renderer"/>

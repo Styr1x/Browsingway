@@ -9,6 +9,7 @@
 		<AssemblyName>Browsingway.Common</AssemblyName>
 		<RootNamespace>Browsingway.Common</RootNamespace>
 		<Version>1.6.0.0</Version>
+		<RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
 	</PropertyGroup>
 
 	<ItemGroup>
