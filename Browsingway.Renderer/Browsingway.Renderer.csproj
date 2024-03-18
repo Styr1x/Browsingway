@@ -18,6 +18,7 @@
 		<RuntimeIdentifier>win-x64</RuntimeIdentifier>
 		<SelfContained>false</SelfContained>
 		<NoWin32Manifest>true</NoWin32Manifest>
+		<RuntimeFrameworkVersion>8.0.0</RuntimeFrameworkVersion>
 	</PropertyGroup>
 
 	<PropertyGroup>
