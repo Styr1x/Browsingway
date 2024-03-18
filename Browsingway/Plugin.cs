@@ -29,7 +29,7 @@ public class Plugin : IDalamudPlugin
 	{
 		// init services
 		_services = pluginInterface.Create<Services>()!;
-		
+
 		_pluginDir = pluginInterface.AssemblyLocation.DirectoryName ?? "";
 		if (String.IsNullOrEmpty(_pluginDir))
 		{
@@ -39,7 +39,7 @@ public class Plugin : IDalamudPlugin
 		_pluginConfigDir = pluginInterface.GetPluginConfigDirectory();
 
 		_actHandler = new ActHandler();
-		
+
 		_dependencyManager = new DependencyManager(_pluginDir, _pluginConfigDir);
 		_dependencyManager.DependenciesReady += (_, _) => DependenciesReady();
 		_dependencyManager.Initialise();
@@ -54,7 +54,7 @@ public class Plugin : IDalamudPlugin
 
 	public void Dispose()
 	{
-		foreach (Overlay inlay in _overlays.Values) { inlay.Dispose(); }
+		foreach (Overlay overlay in _overlays.Values) { overlay.Dispose(); }
 
 		_overlays.Clear();
 
@@ -80,7 +80,7 @@ public class Plugin : IDalamudPlugin
 		WndProcHandler.WndProcMessage += OnWndProc;
 
 		// Boot the render process. This has to be done before initialising settings to prevent a
-		// race condition inlays receiving a null reference.
+		// race condition overlays receiving a null reference.
 		int pid = Process.GetCurrentProcess().Id;
 		_renderProcess = new RenderProcess(pid, _pluginDir, _pluginConfigDir, _dependencyManager, Services.PluginLog);
 		_renderProcess.Rpc.RendererReady += msg =>
@@ -90,12 +90,12 @@ public class Plugin : IDalamudPlugin
 				Services.PluginLog.Error("Could not initialize shared textures transport. Browsingway will not work.");
 				return;
 			}
-			
+
 			Services.Framework.RunOnFrameworkThread(() =>
 			{
 				if (_settings is not null)
 				{
-					_settings.HydrateInlays();
+					_settings.HydrateOverlays();
 				}
 			});
 		};
@@ -104,8 +104,8 @@ public class Plugin : IDalamudPlugin
 			Services.Framework.RunOnFrameworkThread(() =>
 			{
 				Guid guid = new(msg.Guid.Span);
-				Overlay? inlay = _overlays.Values.FirstOrDefault(inlay => inlay.RenderGuid == guid);
-				inlay?.SetCursor(msg.Cursor);
+				Overlay? overlay = _overlays.Values.FirstOrDefault(overlay => overlay.RenderGuid == guid);
+				overlay?.SetCursor(msg.Cursor);
 			});
 		};
 		_renderProcess.Rpc.UpdateTexture += msg =>
@@ -113,9 +113,9 @@ public class Plugin : IDalamudPlugin
 			Services.Framework.RunOnFrameworkThread(() =>
 			{
 				Guid guid = new(msg.Guid.Span);
-				if (_overlays.TryGetValue(guid, out Overlay? inlay))
+				if (_overlays.TryGetValue(guid, out Overlay? overlay))
 				{
-					inlay.SetTexture((IntPtr)msg.TextureHandle);
+					overlay.SetTexture((IntPtr)msg.TextureHandle);
 				}
 				else
 				{
@@ -129,14 +129,14 @@ public class Plugin : IDalamudPlugin
 		_settings = new Settings();
 		if (_settings is not null)
 		{
-			_settings.InlayAdded += OnInlayAdded;
-			_settings.InlayNavigated += OnInlayNavigated;
-			_settings.InlayDebugged += OnInlayDebugged;
-			_settings.InlayRemoved += OnInlayRemoved;
-			_settings.InlayZoomed += OnInlayZoomed;
-			_settings.InlayMuted += OnInlayMuted;
+			_settings.OverlayAdded += OnOverlayAdded;
+			_settings.OverlayNavigated += OnOverlayNavigated;
+			_settings.OverlayDebugged += OnOverlayDebugged;
+			_settings.OverlayRemoved += OnOverlayRemoved;
+			_settings.OverlayZoomed += OnOverlayZoomed;
+			_settings.OverlayMuted += OnOverlayMuted;
 			_actHandler.AvailabilityChanged += OnActAvailabilityChanged;
-			_settings.InlayUserCssChanged += OnUserCssChanged;
+			_settings.OverlayUserCssChanged += OnUserCssChanged;
 		}
 
 		// Hook up the main BW command
@@ -145,7 +145,7 @@ public class Plugin : IDalamudPlugin
 
 	private (bool, long) OnWndProc(WindowsMessage msg, ulong wParam, long lParam)
 	{
-		// Notify all the inlays of the wndproc, respond with the first capturing response (if any)
+		// Notify all the overlays of the wndproc, respond with the first capturing response (if any)
 		// TODO: Yeah this ain't great but realistically only one will capture at any one time for now.
 		IEnumerable<(bool, long)> responses = _overlays.Select(pair => pair.Value.WndProcMessage(msg, wParam, lParam));
 		return responses.FirstOrDefault(pair => pair.Item1);
@@ -156,47 +156,47 @@ public class Plugin : IDalamudPlugin
 		_settings?.OnActAvailabilityChanged(e);
 	}
 
-	private void OnInlayAdded(object? sender, InlayConfiguration inlayConfig)
+	private void OnOverlayAdded(object? sender, InlayConfiguration overlayConfig)
 	{
 		if (_renderProcess is null || _settings is null)
 		{
 			return;
 		}
-		
-		Overlay overlay = new(_renderProcess, inlayConfig);
-		_overlays.TryAdd(inlayConfig.Guid, overlay);
+
+		Overlay overlay = new(_renderProcess, overlayConfig);
+		_overlays.TryAdd(overlayConfig.Guid, overlay);
 	}
 
-	private void OnInlayNavigated(object? sender, InlayConfiguration config)
+	private void OnOverlayNavigated(object? sender, InlayConfiguration config)
 	{
-		if (_overlays.TryGetValue(config.Guid, out var inlay))
-			inlay.Navigate(config.Url);
+		if (_overlays.TryGetValue(config.Guid, out var overlay))
+			overlay.Navigate(config.Url);
 	}
 
-	private void OnInlayDebugged(object? sender, InlayConfiguration config)
+	private void OnOverlayDebugged(object? sender, InlayConfiguration config)
 	{
-		if (_overlays.TryGetValue(config.Guid, out var inlay))
-			inlay.Debug();
+		if (_overlays.TryGetValue(config.Guid, out var overlay))
+			overlay.Debug();
 	}
 
-	private void OnInlayRemoved(object? sender, InlayConfiguration config)
+	private void OnOverlayRemoved(object? sender, InlayConfiguration config)
 	{
-		if (_overlays.Remove(config.Guid, out var inlay))
+		if (_overlays.Remove(config.Guid, out var overlay))
 		{
-			inlay.Dispose();
+			overlay.Dispose();
 		}
 	}
 
-	private void OnInlayZoomed(object? sender, InlayConfiguration config)
+	private void OnOverlayZoomed(object? sender, InlayConfiguration config)
 	{
-		if (_overlays.TryGetValue(config.Guid, out var inlay))
-			inlay.Zoom(config.Zoom);
+		if (_overlays.TryGetValue(config.Guid, out var overlay))
+			overlay.Zoom(config.Zoom);
 	}
 
-	private void OnInlayMuted(object? sender, InlayConfiguration config)
+	private void OnOverlayMuted(object? sender, InlayConfiguration config)
 	{
-		if (_overlays.TryGetValue(config.Guid, out var inlay))
-			inlay.Mute(config.Muted);
+		if (_overlays.TryGetValue(config.Guid, out var overlay))
+			overlay.Mute(config.Muted);
 	}
 
 	private void OnUserCssChanged(object? sender, InlayConfiguration config)
@@ -215,7 +215,7 @@ public class Plugin : IDalamudPlugin
 		_renderProcess?.EnsureRenderProcessIsAlive();
 		_actHandler.Check();
 
-		foreach (Overlay inlay in _overlays.Values) { inlay.Render(); }
+		foreach (Overlay overlay in _overlays.Values) { overlay.Render(); }
 
 		ImGui.PopStyleVar();
 	}
@@ -229,7 +229,7 @@ public class Plugin : IDalamudPlugin
 		if (args.Length == 0)
 		{
 			Services.Chat.PrintError(
-				"No subcommand specified. Valid subcommands are: config,inlay.");
+				"No subcommand specified. Valid subcommands are: config,overlay.");
 			return;
 		}
 
@@ -241,11 +241,14 @@ public class Plugin : IDalamudPlugin
 				_settings?.HandleConfigCommand(subcommandArgs);
 				break;
 			case "inlay":
-				_settings?.HandleInlayCommand(subcommandArgs);
+				_settings?.HandleOverlayCommand(subcommandArgs);
+				break;
+			case "overlay":
+				_settings?.HandleOverlayCommand(subcommandArgs);
 				break;
 			default:
 				Services.Chat.PrintError(
-					$"Unknown subcommand '{args[0]}'. Valid subcommands are: config,inlay.");
+					$"Unknown subcommand '{args[0]}'. Valid subcommands are: config,overlay,inlay.");
 				break;
 		}
 	}

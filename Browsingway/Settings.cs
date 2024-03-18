@@ -1,8 +1,4 @@
-﻿using Browsingway.Common.Ipc;
-using Dalamud.Interface;
-using Dalamud.IoC;
-using Dalamud.Plugin;
-using Dalamud.Plugin.Services;
+﻿using Dalamud.Interface;
 using ImGuiNET;
 using System.Numerics;
 using System.Text.RegularExpressions;
@@ -12,13 +8,13 @@ namespace Browsingway;
 // ReSharper disable once ClassNeverInstantiated.Global
 internal class Settings : IDisposable
 {
-	public event EventHandler<InlayConfiguration>? InlayAdded;
-	public event EventHandler<InlayConfiguration>? InlayNavigated;
-	public event EventHandler<InlayConfiguration>? InlayDebugged;
-	public event EventHandler<InlayConfiguration>? InlayRemoved;
-	public event EventHandler<InlayConfiguration>? InlayZoomed;
-	public event EventHandler<InlayConfiguration>? InlayMuted;
-	public event EventHandler<InlayConfiguration>? InlayUserCssChanged;
+	public event EventHandler<InlayConfiguration>? OverlayAdded;
+	public event EventHandler<InlayConfiguration>? OverlayNavigated;
+	public event EventHandler<InlayConfiguration>? OverlayDebugged;
+	public event EventHandler<InlayConfiguration>? OverlayRemoved;
+	public event EventHandler<InlayConfiguration>? OverlayZoomed;
+	public event EventHandler<InlayConfiguration>? OverlayMuted;
+	public event EventHandler<InlayConfiguration>? OverlayUserCssChanged;
 	public readonly Configuration Config;
 	private bool _actAvailable = false;
 
@@ -28,7 +24,7 @@ internal class Settings : IDisposable
 	private bool _open;
 #endif
 
-	private InlayConfiguration? _selectedInlay;
+	private InlayConfiguration? _selectedOverlay;
 	private Timer? _saveDebounceTimer;
 
 	public Settings()
@@ -42,14 +38,14 @@ internal class Settings : IDisposable
 	public void OnActAvailabilityChanged(bool available)
 	{
 		_actAvailable = available;
-		foreach (InlayConfiguration? inlayConfig in Config.Inlays)
+		foreach (InlayConfiguration? overlayConfig in Config.Inlays)
 		{
-			if (inlayConfig is { ActOptimizations: true, Disabled: false })
+			if (overlayConfig is { ActOptimizations: true, Disabled: false })
 			{
 				if (_actAvailable)
-					InlayAdded?.Invoke(this, inlayConfig);
+					OverlayAdded?.Invoke(this, overlayConfig);
 				else
-					InlayRemoved?.Invoke(this, inlayConfig);
+					OverlayRemoved?.Invoke(this, overlayConfig);
 			}
 		}
 	}
@@ -61,23 +57,23 @@ internal class Settings : IDisposable
 		// TODO: Add further config handling if required here.
 	}
 
-	public void HandleInlayCommand(string rawArgs)
+	public void HandleOverlayCommand(string rawArgs)
 	{
 		string[] args = rawArgs.Split(null as char[], 3, StringSplitOptions.RemoveEmptyEntries);
 
 		// Ensure there's enough arguments
 		if (args.Length < 2 || (args[1] != "reload" && args.Length < 3))
 		{
-			Services.Chat.PrintError("Invalid inlay command. Supported syntax: '[inlayCommandName] [setting] [value]'");
+			Services.Chat.PrintError("Invalid overlay command. Supported syntax: '[overlayCommandName] [setting] [value]'");
 			return;
 		}
 
-		// Find the matching inlay config
-		InlayConfiguration? targetConfig = Config.Inlays.Find(inlay => GetInlayCommandName(inlay) == args[0]);
+		// Find the matching overlay config
+		InlayConfiguration? targetConfig = Config.Inlays.Find(overlay => GetOverlayCommandName(overlay) == args[0]);
 		if (targetConfig == null)
 		{
 			Services.Chat.PrintError(
-				$"Unknown inlay '{args[0]}'.");
+				$"Unknown overlay '{args[0]}'.");
 			return;
 		}
 
@@ -86,7 +82,7 @@ internal class Settings : IDisposable
 			case "url":
 				CommandSettingString(args[2], ref targetConfig.Url);
 				// TODO: This call is duped with imgui handling. DRY.
-				NavigateInlay(targetConfig);
+				NavigateOverlay(targetConfig);
 				break;
 			case "locked":
 				CommandSettingBoolean(args[2], ref targetConfig.Locked);
@@ -113,7 +109,7 @@ internal class Settings : IDisposable
 				CommandSettingBoolean(args[2], ref targetConfig.ActOptimizations);
 				break;
 			case "reload":
-				ReloadInlay(targetConfig);
+				ReloadOverlay(targetConfig);
 				break;
 
 			default:
@@ -150,61 +146,61 @@ internal class Settings : IDisposable
 		}
 	}
 
-	public void HydrateInlays()
+	public void HydrateOverlays()
 	{
-		// Hydrate any inlays in the config
-		foreach (InlayConfiguration? inlayConfig in Config.Inlays)
+		// Hydrate any overlays in the config
+		foreach (InlayConfiguration? overlayConfig in Config.Inlays)
 		{
-			if (!inlayConfig.Disabled && (!inlayConfig.ActOptimizations || _actAvailable))
+			if (!overlayConfig.Disabled && (!overlayConfig.ActOptimizations || _actAvailable))
 			{
-				InlayAdded?.Invoke(this, inlayConfig);
+				OverlayAdded?.Invoke(this, overlayConfig);
 			}
 		}
 	}
 
-	private InlayConfiguration? AddNewInlay()
+	private InlayConfiguration? AddNewOverlay()
 	{
-		InlayConfiguration? inlayConfig = new() { Guid = Guid.NewGuid(), Name = "New inlay", Url = "about:blank" };
-		Config.Inlays.Add(inlayConfig);
-		InlayAdded?.Invoke(this, inlayConfig);
+		InlayConfiguration? overlayConfig = new() { Guid = Guid.NewGuid(), Name = "New overlay", Url = "about:blank" };
+		Config.Inlays.Add(overlayConfig);
+		OverlayAdded?.Invoke(this, overlayConfig);
 		SaveSettings();
 
-		return inlayConfig;
+		return overlayConfig;
 	}
 
-	private void NavigateInlay(InlayConfiguration inlayConfig)
+	private void NavigateOverlay(InlayConfiguration overlayConfig)
 	{
-		if (inlayConfig.Url == "") { inlayConfig.Url = "about:blank"; }
+		if (overlayConfig.Url == "") { overlayConfig.Url = "about:blank"; }
 
-		InlayNavigated?.Invoke(this, inlayConfig);
+		OverlayNavigated?.Invoke(this, overlayConfig);
 	}
 
-	private void UpdateZoomInlay(InlayConfiguration inlayConfig)
+	private void UpdateZoomOverlay(InlayConfiguration overlayConfig)
 	{
-		InlayZoomed?.Invoke(this, inlayConfig);
+		OverlayZoomed?.Invoke(this, overlayConfig);
 	}
 
-	private void UpdateMuteInlay(InlayConfiguration inlayConfig)
+	private void UpdateMuteOverlay(InlayConfiguration overlayConfig)
 	{
-		InlayMuted?.Invoke(this, inlayConfig);
+		OverlayMuted?.Invoke(this, overlayConfig);
 	}
 
-	private void UpdateUserCss(InlayConfiguration inlayConfig)
+	private void UpdateUserCss(InlayConfiguration overlayConfig)
 	{
-		InlayUserCssChanged?.Invoke(this, inlayConfig);
+		OverlayUserCssChanged?.Invoke(this, overlayConfig);
 	}
 
-	private void ReloadInlay(InlayConfiguration inlayConfig) { NavigateInlay(inlayConfig); }
+	private void ReloadOverlay(InlayConfiguration overlayConfig) { NavigateOverlay(overlayConfig); }
 
-	private void DebugInlay(InlayConfiguration inlayConfig)
+	private void DebugOverlay(InlayConfiguration overlayConfig)
 	{
-		InlayDebugged?.Invoke(this, inlayConfig);
+		OverlayDebugged?.Invoke(this, overlayConfig);
 	}
 
-	private void RemoveInlay(InlayConfiguration inlayConfig)
+	private void RemoveOverlay(InlayConfiguration overlayConfig)
 	{
-		InlayRemoved?.Invoke(this, inlayConfig);
-		Config.Inlays.Remove(inlayConfig);
+		OverlayRemoved?.Invoke(this, overlayConfig);
+		Config.Inlays.Remove(overlayConfig);
 		SaveSettings();
 	}
 
@@ -221,9 +217,9 @@ internal class Settings : IDisposable
 		Services.PluginInterface.SavePluginConfig(Config);
 	}
 
-	private string GetInlayCommandName(InlayConfiguration inlayConfig)
+	private string GetOverlayCommandName(InlayConfiguration overlayConfig)
 	{
-		return Regex.Replace(inlayConfig.Name, @"\s+", "").ToLower();
+		return Regex.Replace(overlayConfig.Name, @"\s+", "").ToLower();
 	}
 
 	public void Render()
@@ -244,13 +240,13 @@ internal class Settings : IDisposable
 		bool dirty = false;
 		ImGui.SameLine();
 		ImGui.BeginChild("details");
-		if (_selectedInlay == null)
+		if (_selectedOverlay == null)
 		{
 			dirty |= RenderGeneralSettings();
 		}
 		else
 		{
-			dirty |= RenderInlaySettings(_selectedInlay);
+			dirty |= RenderOverlaySettings(_selectedOverlay);
 		}
 
 		ImGui.EndChild();
@@ -270,21 +266,21 @@ internal class Settings : IDisposable
 		ImGui.BeginChild("panes", new Vector2(selectorWidth, -ImGui.GetFrameHeightWithSpacing()), true);
 
 		// General settings
-		if (ImGui.Selectable("General", _selectedInlay == null))
+		if (ImGui.Selectable("General", _selectedOverlay == null))
 		{
-			_selectedInlay = null;
+			_selectedOverlay = null;
 		}
 
 		// Overlay selector list
 		ImGui.Dummy(new Vector2(0, 5));
 		ImGui.PushStyleVar(ImGuiStyleVar.Alpha, 0.5f);
-		ImGui.Text("- Inlays -");
+		ImGui.Text("- Overlays -");
 		ImGui.PopStyleVar();
-		foreach (InlayConfiguration? inlayConfig in Config?.Inlays!)
+		foreach (InlayConfiguration? overlayConfig in Config?.Inlays!)
 		{
-			if (ImGui.Selectable($"{inlayConfig.Name}##{inlayConfig.Guid}", _selectedInlay == inlayConfig))
+			if (ImGui.Selectable($"{overlayConfig.Name}##{overlayConfig.Guid}", _selectedOverlay == overlayConfig))
 			{
-				_selectedInlay = inlayConfig;
+				_selectedOverlay = overlayConfig;
 			}
 		}
 
@@ -297,17 +293,17 @@ internal class Settings : IDisposable
 		int buttonWidth = selectorWidth / 2;
 		if (ImGui.Button(FontAwesomeIcon.Plus.ToIconString(), new Vector2(buttonWidth, 0)))
 		{
-			_selectedInlay = AddNewInlay();
+			_selectedOverlay = AddNewOverlay();
 		}
 
 		ImGui.SameLine();
-		if (_selectedInlay != null)
+		if (_selectedOverlay != null)
 		{
 			if (ImGui.Button(FontAwesomeIcon.Trash.ToIconString(), new Vector2(buttonWidth, 0)))
 			{
-				InlayConfiguration? toRemove = _selectedInlay;
-				_selectedInlay = null;
-				RemoveInlay(toRemove);
+				InlayConfiguration? toRemove = _selectedOverlay;
+				_selectedOverlay = null;
+				RemoveOverlay(toRemove);
 			}
 		}
 		else
@@ -327,7 +323,7 @@ internal class Settings : IDisposable
 	{
 		bool dirty = false;
 
-		ImGui.Text("Select an inlay on the left to edit its settings.");
+		ImGui.Text("Select an overlay on the left to edit its settings.");
 
 		if (ImGui.CollapsingHeader("Command Help", ImGuiTreeNodeFlags.DefaultOpen))
 		{
@@ -335,10 +331,10 @@ internal class Settings : IDisposable
 			ImGui.Text("/bw config");
 			ImGui.Text("Open this configuration window.");
 			ImGui.Dummy(new Vector2(0, 5));
-			ImGui.Text("/bw inlay [inlayCommandName] [setting] [value]");
+			ImGui.Text("/bw overlay [overlayCommandName] [setting] [value]");
 			ImGui.TextWrapped(
-				"Change a setting for an inlay.\n" +
-				"\tinlayCommandName: The inlay to edit. Use the 'Command Name' shown in its config.\n" +
+				"Change a setting for an overlay.\n" +
+				"\toverlayCommandName: The overlay to edit. Use the 'Command Name' shown in its config.\n" +
 				"\tsetting: Value to change. Accepted settings are:\n" +
 				"\t\turl: string\n" +
 				"\t\tdisabled: boolean\n" +
@@ -357,121 +353,117 @@ internal class Settings : IDisposable
 		return dirty;
 	}
 
-	private bool RenderInlaySettings(InlayConfiguration inlayConfig)
+	private bool RenderOverlaySettings(InlayConfiguration overlayConfig)
 	{
 		bool dirty = false;
 
-		ImGui.PushID(inlayConfig.Guid.ToString());
+		ImGui.PushID(overlayConfig.Guid.ToString());
 
-		dirty |= ImGui.InputText("Name", ref inlayConfig.Name, 100);
+		dirty |= ImGui.InputText("Name", ref overlayConfig.Name, 100);
 
 		ImGui.PushStyleVar(ImGuiStyleVar.Alpha, 0.5f);
-		string? commandName = GetInlayCommandName(inlayConfig);
+		string? commandName = GetOverlayCommandName(overlayConfig);
 		ImGui.InputText("Command Name", ref commandName, 100);
 		ImGui.PopStyleVar();
 
-		dirty |= ImGui.InputText("URL", ref inlayConfig.Url, 1000);
-		if (ImGui.IsItemDeactivatedAfterEdit()) { NavigateInlay(inlayConfig); }
+		dirty |= ImGui.InputText("URL", ref overlayConfig.Url, 1000);
+		if (ImGui.IsItemDeactivatedAfterEdit()) { NavigateOverlay(overlayConfig); }
 
-		if (ImGui.InputFloat("Zoom", ref inlayConfig.Zoom, 1f, 10f, "%.0f%%"))
+		if (ImGui.InputFloat("Zoom", ref overlayConfig.Zoom, 1f, 10f, "%.0f%%"))
 		{
 			// clamp to allowed range 
-			if (inlayConfig.Zoom < 10f)
+			if (overlayConfig.Zoom < 10f)
 			{
-				inlayConfig.Zoom = 10f;
+				overlayConfig.Zoom = 10f;
 			}
-			else if (inlayConfig.Zoom > 500f)
+			else if (overlayConfig.Zoom > 500f)
 			{
-				inlayConfig.Zoom = 500f;
+				overlayConfig.Zoom = 500f;
 			}
 
 			dirty = true;
 
 			// notify of zoom change
-			UpdateZoomInlay(inlayConfig);
+			UpdateZoomOverlay(overlayConfig);
 		}
 
-		if (ImGui.InputFloat("Opacity", ref inlayConfig.Opacity, 1f, 10f, "%.0f%%"))
+		if (ImGui.InputFloat("Opacity", ref overlayConfig.Opacity, 1f, 10f, "%.0f%%"))
 		{
 			// clamp to allowed range 
-			if (inlayConfig.Opacity < 10f)
+			if (overlayConfig.Opacity < 10f)
 			{
-				inlayConfig.Opacity = 10f;
+				overlayConfig.Opacity = 10f;
 			}
-			else if (inlayConfig.Opacity > 100f)
+			else if (overlayConfig.Opacity > 100f)
 			{
-				inlayConfig.Opacity = 100f;
+				overlayConfig.Opacity = 100f;
 			}
 
 			dirty = true;
 		}
 
-		if (ImGui.InputInt("Framerate", ref inlayConfig.Framerate, 1, 10))
+		if (ImGui.InputInt("Framerate", ref overlayConfig.Framerate, 1, 10))
 		{
 			// clamp to allowed range 
-			if (inlayConfig.Framerate < 1)
+			if (overlayConfig.Framerate < 1)
 			{
-				inlayConfig.Framerate = 1;
+				overlayConfig.Framerate = 1;
 			}
-			else if (inlayConfig.Framerate > 300)
+			else if (overlayConfig.Framerate > 300)
 			{
-				inlayConfig.Framerate = 300;
+				overlayConfig.Framerate = 300;
 			}
 
 			dirty = true;
 
 			// framerate changes require the recreation of the browser instance
 			// TODO: this is ugly as heck, fix once proper IPC is up and running
-			InlayRemoved?.Invoke(this, inlayConfig);
-			InlayAdded?.Invoke(this, inlayConfig);
+			OverlayRemoved?.Invoke(this, overlayConfig);
+			OverlayAdded?.Invoke(this, overlayConfig);
 		}
 
 		ImGui.SetNextItemWidth(100);
 		ImGui.Columns(2, "boolInlayOptions", false);
 
-		if (ImGui.Checkbox("Disabled", ref inlayConfig.Disabled))
+		if (ImGui.Checkbox("Disabled", ref overlayConfig.Disabled))
 		{
-			if (inlayConfig.Disabled)
-				InlayRemoved?.Invoke(this, inlayConfig);
+			if (overlayConfig.Disabled)
+				OverlayRemoved?.Invoke(this, overlayConfig);
 			else
-				InlayAdded?.Invoke(this, inlayConfig);
+				OverlayAdded?.Invoke(this, overlayConfig);
 			dirty = true;
 		}
 
-		if (ImGui.IsItemHovered()) { ImGui.SetTooltip("Disables the inlay. Contrary to just hiding it this setting will stop it from ever being created."); }
+		if (ImGui.IsItemHovered()) { ImGui.SetTooltip("Disables the overlay. Contrary to just hiding it this setting will stop it from ever being created."); }
 
 		ImGui.NextColumn();
 		ImGui.NextColumn();
 
 
-		if (ImGui.Checkbox("Muted", ref inlayConfig.Muted))
+		if (ImGui.Checkbox("Muted", ref overlayConfig.Muted))
 		{
-			UpdateMuteInlay(inlayConfig);
+			UpdateMuteOverlay(overlayConfig);
 			dirty = true;
 		}
 
 		if (ImGui.IsItemHovered()) { ImGui.SetTooltip("Enables or disables audio playback."); }
 
 		ImGui.NextColumn();
-		dirty |= ImGui.InputInt("Delay", ref inlayConfig.CombatDelay);
-		if (ImGui.IsItemHovered()) { ImGui.SetTooltip("Delay to hide overlay when out-of-combat in seconds."); }
 
-		ImGui.NextColumn();
-
-		if (ImGui.Checkbox("ACT/IINACT optimizations", ref inlayConfig.ActOptimizations))
+		if (ImGui.Checkbox("ACT/IINACT optimizations", ref overlayConfig.ActOptimizations))
 		{
-			if (!inlayConfig.Disabled)
+			if (!overlayConfig.Disabled)
 			{
-				if (inlayConfig.ActOptimizations)
+				if (overlayConfig.ActOptimizations)
 				{
 					if (!_actAvailable)
-						InlayRemoved?.Invoke(this, inlayConfig);
+						OverlayRemoved?.Invoke(this, overlayConfig);
 					else
-						InlayAdded?.Invoke(this, inlayConfig);
+						OverlayAdded?.Invoke(this, overlayConfig);
 				}
 				else
 				{
-					InlayAdded?.Invoke(this, inlayConfig);
+					OverlayAdded?.Invoke(this, overlayConfig);
 				}
 			}
 
@@ -482,40 +474,48 @@ internal class Settings : IDisposable
 
 		ImGui.NextColumn();
 
-		dirty |= ImGui.Checkbox("Disable out of combat", ref inlayConfig.DisableOutOfCombat);
-		if (ImGui.IsItemHovered()) { ImGui.SetTooltip("Disable this overlay when out-of-combat."); }
-
-		ImGui.NextColumn();
-
-		if (inlayConfig.ClickThrough || inlayConfig.Fullscreen) { ImGui.PushStyleVar(ImGuiStyleVar.Alpha, 0.5f); }
+		if (overlayConfig.ClickThrough || overlayConfig.Fullscreen) { ImGui.PushStyleVar(ImGuiStyleVar.Alpha, 0.5f); }
 
 		bool true_ = true;
-		bool implicit_ = inlayConfig.ClickThrough || inlayConfig.Fullscreen;
-		dirty |= ImGui.Checkbox("Locked", ref implicit_ ? ref true_ : ref inlayConfig.Locked);
-		if (inlayConfig.ClickThrough) { ImGui.PopStyleVar(); }
+		bool implicit_ = overlayConfig.ClickThrough || overlayConfig.Fullscreen;
+		dirty |= ImGui.Checkbox("Locked", ref implicit_ ? ref true_ : ref overlayConfig.Locked);
+		if (overlayConfig.ClickThrough) { ImGui.PopStyleVar(); }
 
-		if (ImGui.IsItemHovered()) { ImGui.SetTooltip("Prevent the inlay from being resized or moved. This is implicitly set by Click Through and Fullscreen."); }
-
-		ImGui.NextColumn();
-
-		dirty |= ImGui.Checkbox("Hidden", ref inlayConfig.Hidden);
-		if (ImGui.IsItemHovered()) { ImGui.SetTooltip("Hide the inlay. This does not stop the inlay from executing, only from being displayed."); }
+		if (ImGui.IsItemHovered()) { ImGui.SetTooltip("Prevent the overlay from being resized or moved. This is implicitly set by Click Through and Fullscreen."); }
 
 		ImGui.NextColumn();
 
-		if (inlayConfig.ClickThrough) { ImGui.PushStyleVar(ImGuiStyleVar.Alpha, 0.5f); }
-
-		dirty |= ImGui.Checkbox("Type Through", ref inlayConfig.ClickThrough ? ref true_ : ref inlayConfig.TypeThrough);
-		if (inlayConfig.ClickThrough || inlayConfig.Fullscreen) { ImGui.PopStyleVar(); }
-
-		if (ImGui.IsItemHovered()) { ImGui.SetTooltip("Prevent the inlay from intercepting any keyboard events. Implicitly set by Click Through."); }
+		dirty |= ImGui.Checkbox("Hidden", ref overlayConfig.Hidden);
+		if (ImGui.IsItemHovered()) { ImGui.SetTooltip("Hide the overlay. This does not stop the overlay from executing, only from being displayed."); }
 
 		ImGui.NextColumn();
 
-		dirty |= ImGui.Checkbox("Click Through", ref inlayConfig.ClickThrough);
-		if (ImGui.IsItemHovered()) { ImGui.SetTooltip("Prevent the inlay from intercepting any mouse events. Implicitly sets Locked and Type Through."); }
+		if (overlayConfig.ClickThrough) { ImGui.PushStyleVar(ImGuiStyleVar.Alpha, 0.5f); }
+
+		dirty |= ImGui.Checkbox("Type Through", ref overlayConfig.ClickThrough ? ref true_ : ref overlayConfig.TypeThrough);
+		if (overlayConfig.ClickThrough || overlayConfig.Fullscreen) { ImGui.PopStyleVar(); }
+
+		if (ImGui.IsItemHovered()) { ImGui.SetTooltip("Prevent the overlay from intercepting any keyboard events. Implicitly set by Click Through."); }
 
 		ImGui.NextColumn();
+
+		dirty |= ImGui.Checkbox("Click Through", ref overlayConfig.ClickThrough);
+		if (ImGui.IsItemHovered()) { ImGui.SetTooltip("Prevent the overlay from intercepting any mouse events. Implicitly sets Locked and Type Through."); }
+
+		ImGui.NextColumn();
+
+		dirty |= ImGui.Checkbox("Hide out of combat", ref overlayConfig.HideOutOfCombat);
+		if (ImGui.IsItemHovered()) { ImGui.SetTooltip("Hide this overlay when out-of-combat."); }
+
+		ImGui.NextColumn();
+		ImGui.NextColumn();
+
+		if (!overlayConfig.HideOutOfCombat) { ImGui.PushStyleVar(ImGuiStyleVar.Alpha, 0.5f); }
+
+		dirty |= ImGui.InputInt("Hide Delay", ref overlayConfig.HideDelay);
+		if (ImGui.IsItemHovered()) { ImGui.SetTooltip("Delay to hide overlay when out-of-combat in seconds."); }
+
+		if (!overlayConfig.HideOutOfCombat) { ImGui.PopStyleVar(); }
 
 		ImGui.Columns(1);
 
@@ -523,25 +523,25 @@ internal class Settings : IDisposable
 		if (ImGui.CollapsingHeader("Experimental / Unsupported"))
 		{
 			ImGui.NewLine();
-			dirty |= ImGui.Checkbox("Fullscreen", ref inlayConfig.Fullscreen);
+			dirty |= ImGui.Checkbox("Fullscreen", ref overlayConfig.Fullscreen);
 			ImGui.NewLine();
-			if (ImGui.IsItemHovered()) { ImGui.SetTooltip("Automatically makes this inlay cover the entire screen when enabled."); }
+			if (ImGui.IsItemHovered()) { ImGui.SetTooltip("Automatically makes this overlay cover the entire screen when enabled."); }
 
 			ImGui.Text("Custom CSS code:");
-			if (ImGui.InputTextMultiline("Custom CSS code", ref inlayConfig.CustomCss, 1000000,
+			if (ImGui.InputTextMultiline("Custom CSS code", ref overlayConfig.CustomCss, 1000000,
 				    new Vector2(-1, ImGui.GetTextLineHeight() * 10)))
 			{
 				dirty = true;
 			}
 
-			if (ImGui.IsItemDeactivatedAfterEdit()) { UpdateUserCss(inlayConfig); }
+			if (ImGui.IsItemDeactivatedAfterEdit()) { UpdateUserCss(overlayConfig); }
 		}
 
 		ImGui.NewLine();
-		if (ImGui.Button("Reload")) { ReloadInlay(inlayConfig); }
+		if (ImGui.Button("Reload")) { ReloadOverlay(overlayConfig); }
 
 		ImGui.SameLine();
-		if (ImGui.Button("Open Dev Tools")) { DebugInlay(inlayConfig); }
+		if (ImGui.Button("Open Dev Tools")) { DebugOverlay(overlayConfig); }
 
 		ImGui.PopID();
 

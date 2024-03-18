@@ -171,8 +171,8 @@ internal static class Program
 				return;
 
 			var guid = new Guid(msg.Guid.Span);
-			if (_overlays.TryGetValue(guid, out var inlay))
-				inlay.HandleMouseEvent(msg);
+			if (_overlays.TryGetValue(guid, out var overlay))
+				overlay.HandleMouseEvent(msg);
 		}
 	}
 
@@ -184,8 +184,8 @@ internal static class Program
 				return;
 
 			var guid = new Guid(msg.Guid.Span);
-			if (_overlays.TryGetValue(guid, out var inlay))
-				inlay.HandleKeyEvent(msg);
+			if (_overlays.TryGetValue(guid, out var overlay))
+				overlay.HandleKeyEvent(msg);
 		}
 	}
 
@@ -197,8 +197,8 @@ internal static class Program
 				return;
 
 			var guid = new Guid(msg.Guid.Span);
-			if (_overlays.TryGetValue(guid, out var inlay))
-				inlay.Zoom(msg.Zoom);
+			if (_overlays.TryGetValue(guid, out var overlay))
+				overlay.Zoom(msg.Zoom);
 		}
 	}
 
@@ -210,8 +210,8 @@ internal static class Program
 				return;
 
 			var guid = new Guid(msg.Guid.Span);
-			if (_overlays.TryGetValue(guid, out var inlay))
-				inlay.Navigate(msg.Url);
+			if (_overlays.TryGetValue(guid, out var overlay))
+				overlay.Navigate(msg.Url);
 		}
 	}
 
@@ -223,8 +223,8 @@ internal static class Program
 				return;
 
 			var guid = new Guid(msg.Guid.Span);
-			if (_overlays.TryGetValue(guid, out var inlay))
-				inlay.Mute(msg.Mute);
+			if (_overlays.TryGetValue(guid, out var overlay))
+				overlay.Mute(msg.Mute);
 		}
 	}
 
@@ -236,8 +236,8 @@ internal static class Program
 				return;
 
 			var guid = new Guid(msg.Guid.Span);
-			if (_overlays.TryGetValue(guid, out var inlay))
-				inlay.Debug();
+			if (_overlays.TryGetValue(guid, out var overlay))
+				overlay.Debug();
 		}
 	}
 

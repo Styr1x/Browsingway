@@ -107,7 +107,7 @@ internal class Overlay : IDisposable
 
 	public void Render()
 	{
-		if (_overlayConfig.Hidden || _overlayConfig.Disabled || DisabledByCombatFlags())
+		if (_overlayConfig.Hidden || _overlayConfig.Disabled || HiddenByCombatFlags())
 		{
 			_mouseInWindow = false;
 			return;
@@ -149,7 +149,7 @@ internal class Overlay : IDisposable
 		else if (_textureRenderException != null)
 		{
 			ImGui.PushStyleColor(ImGuiCol.Text, 0xFF0000FF);
-			ImGui.Text("An error occured while building the browser inlay texture:");
+			ImGui.Text("An error occured while building the browser overlay texture:");
 			ImGui.Text(_textureRenderException.ToString());
 			ImGui.PopStyleColor();
 		}
@@ -207,7 +207,7 @@ internal class Overlay : IDisposable
 	private void HandleMouseEvent()
 	{
 		// Render proc won't be ready on first boot
-		// Totally skip mouse handling for click through inlays, as well
+		// Totally skip mouse handling for click through overlays, as well
 		if (_renderProcess == null || _overlayConfig.ClickThrough) { return; }
 
 		ImGuiIOPtr io = ImGui.GetIO();
@@ -362,9 +362,9 @@ internal class Overlay : IDisposable
 		return ImGuiMouseCursor.Arrow;
 	}
 
-	private bool DisabledByCombatFlags()
+	private bool HiddenByCombatFlags()
 	{
-		if (!_overlayConfig.DisableOutOfCombat)
+		if (!_overlayConfig.HideOutOfCombat)
 		{
 			return false;
 		}
@@ -380,9 +380,9 @@ internal class Overlay : IDisposable
 			return false;
 		}
 
-		if (!Services.ClientState.LocalPlayer.StatusFlags.HasFlag(StatusFlags.InCombat) && _overlayConfig.CombatDelay > 0)
+		if (!Services.ClientState.LocalPlayer.StatusFlags.HasFlag(StatusFlags.InCombat) && _overlayConfig.HideDelay > 0)
 		{
-			return DateTimeOffset.Now.ToUnixTimeMilliseconds() >= _timeLastInCombat + (_overlayConfig.CombatDelay * 1000);
+			return DateTimeOffset.Now.ToUnixTimeMilliseconds() >= _timeLastInCombat + (_overlayConfig.HideDelay * 1000);
 		}
 
 		return true;
