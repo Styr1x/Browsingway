@@ -453,6 +453,9 @@ internal class Settings : IDisposable
 		if (ImGui.IsItemHovered()) { ImGui.SetTooltip("Enables or disables audio playback."); }
 
 		ImGui.NextColumn();
+		dirty |= ImGui.InputInt("Delay", ref inlayConfig.CombatDelay);
+		if (ImGui.IsItemHovered()) { ImGui.SetTooltip("Delay to hide overlay when out-of-combat in seconds."); }
+
 		ImGui.NextColumn();
 
 		if (ImGui.Checkbox("ACT/IINACT optimizations", ref inlayConfig.ActOptimizations))
@@ -475,9 +478,13 @@ internal class Settings : IDisposable
 			dirty = true;
 		}
 
-		if (ImGui.IsItemHovered()) { ImGui.SetTooltip("Enables ACT/IINACT specific optimizations. This will automatically disable the overlay if ACT/IINACT is not running."); }
+		if (ImGui.IsItemHovered()) { ImGui.SetTooltip("Enables ACT/IINACT specific optimizations. This will automatically disable the overlay if ACT/IINACT is not running.\n\nNOTE: This does NOT disable the overlay if the websocket is not reporting data."); }
 
 		ImGui.NextColumn();
+
+		dirty |= ImGui.Checkbox("Disable out of combat", ref inlayConfig.DisableOutOfCombat);
+		if (ImGui.IsItemHovered()) { ImGui.SetTooltip("Disable this overlay when out-of-combat."); }
+
 		ImGui.NextColumn();
 
 		if (inlayConfig.ClickThrough || inlayConfig.Fullscreen) { ImGui.PushStyleVar(ImGuiStyleVar.Alpha, 0.5f); }

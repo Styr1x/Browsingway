@@ -28,4 +28,6 @@ internal class InlayConfiguration
 	public bool Muted;
 	public bool ActOptimizations;
 	public bool Fullscreen;
+	public bool DisableOutOfCombat;
+	public int CombatDelay = 0;
 }

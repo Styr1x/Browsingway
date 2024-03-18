@@ -30,4 +30,8 @@ public class Services
 	[PluginService]
 	// ReSharper disable once AutoPropertyCanBeMadeGetOnly.Local
 	public static IFramework Framework { get; private set; } = null!;
+
+	[PluginService]
+	// ReSharper disable once AutoPropertyCanBeMadeGetOnly.Local
+	public static IClientState ClientState { get; set; } = null!;
 }

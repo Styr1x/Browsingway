@@ -1,4 +1,5 @@
 using Browsingway.Common.Ipc;
+using Dalamud.Game.ClientState.Objects.Enums;
 using ImGuiNET;
 using System.Numerics;
 
@@ -19,6 +20,7 @@ internal class Overlay : IDisposable
 	private SharedTextureHandler? _textureHandler;
 	private Exception? _textureRenderException;
 	private bool _windowFocused;
+	private long _timeLastInCombat;
 
 	public Overlay(RenderProcess renderProcess, InlayConfiguration overlayConfig)
 	{
@@ -105,7 +107,7 @@ internal class Overlay : IDisposable
 
 	public void Render()
 	{
-		if (_overlayConfig.Hidden || _overlayConfig.Disabled)
+		if (_overlayConfig.Hidden || _overlayConfig.Disabled || DisabledByCombatFlags())
 		{
 			_mouseInWindow = false;
 			return;
@@ -300,7 +302,7 @@ internal class Overlay : IDisposable
 		{
 			_ = _renderProcess.Rpc.ResizeOverlay(RenderGuid, (int)currentSize.X, (int)currentSize.Y);
 		}
-		
+
 		_resizing = true;
 		_size = currentSize;
 	}
@@ -358,6 +360,32 @@ internal class Overlay : IDisposable
 		}
 
 		return ImGuiMouseCursor.Arrow;
+	}
+
+	private bool DisabledByCombatFlags()
+	{
+		if (!_overlayConfig.DisableOutOfCombat)
+		{
+			return false;
+		}
+
+		if (Services.ClientState.LocalPlayer == null)
+		{
+			return true;
+		}
+
+		if (Services.ClientState.LocalPlayer.StatusFlags.HasFlag(StatusFlags.InCombat))
+		{
+			_timeLastInCombat = DateTimeOffset.Now.ToUnixTimeMilliseconds();
+			return false;
+		}
+
+		if (!Services.ClientState.LocalPlayer.StatusFlags.HasFlag(StatusFlags.InCombat) && _overlayConfig.CombatDelay > 0)
+		{
+			return DateTimeOffset.Now.ToUnixTimeMilliseconds() >= _timeLastInCombat + (_overlayConfig.CombatDelay * 1000);
+		}
+
+		return true;
 	}
 
 	#endregion
