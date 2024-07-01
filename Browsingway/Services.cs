@@ -25,7 +25,7 @@ public class Services
 
 	[PluginService]
 	// ReSharper disable once AutoPropertyCanBeMadeGetOnly.Local
-	public static DalamudPluginInterface PluginInterface { get; private set; } = null!;
+	public static IDalamudPluginInterface PluginInterface { get; private set; } = null!;
 
 	[PluginService]
 	// ReSharper disable once AutoPropertyCanBeMadeGetOnly.Local

@@ -84,7 +84,13 @@ internal class TextureRenderHandler : IRenderHandler
 
 		return new Rect(0, 0, 1, 1);
 	}
-
+	
+	public void OnAcceleratedPaint(PaintElementType type, Rect dirtyRect, AcceleratedPaintInfo acceleratedPaintInfo)
+	{
+		// TODO: use this instead of manual texture copying
+		throw new NotImplementedException();
+	}
+	
 	public void OnPaint(PaintElementType type, Rect dirtyRect, IntPtr buffer, int width, int height)
 	{
 		lock (_renderLock)

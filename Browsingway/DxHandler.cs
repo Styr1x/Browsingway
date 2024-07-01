@@ -10,7 +10,7 @@ internal static class DxHandler
 	public static IntPtr WindowHandle { get; private set; }
 	public static long AdapterLuid { get; private set; }
 
-	public static void Initialise(DalamudPluginInterface pluginInterface)
+	public static void Initialise(IDalamudPluginInterface pluginInterface)
 	{
 		Device = pluginInterface.UiBuilder.Device;
 		//Device = new D3D11.Device(SharpDX.Direct3D.DriverType.Hardware, D3D11.DeviceCreationFlags.BgraSupport | D3D11.DeviceCreationFlags.Debug);
