@@ -84,13 +84,13 @@ internal class TextureRenderHandler : IRenderHandler
 
 		return new Rect(0, 0, 1, 1);
 	}
-	
+
 	public void OnAcceleratedPaint(PaintElementType type, Rect dirtyRect, AcceleratedPaintInfo acceleratedPaintInfo)
 	{
 		// TODO: use this instead of manual texture copying
 		throw new NotImplementedException();
 	}
-	
+
 	public void OnPaint(PaintElementType type, Rect dirtyRect, IntPtr buffer, int width, int height)
 	{
 		lock (_renderLock)
@@ -178,7 +178,8 @@ internal class TextureRenderHandler : IRenderHandler
 		D3D11.Texture2DDescription texDesc = _sharedTexture.Description;
 		if (_popupRect.Width > texDesc.Width || _popupRect.Height > texDesc.Height)
 		{
-			Console.Error.WriteLine($"Trying to build popup layer ({_popupRect.Width}x{_popupRect.Height}) larger than primary surface ({texDesc.Width}x{texDesc.Height}).");
+			Console.Error.WriteLine(
+				$"Trying to build popup layer ({_popupRect.Width}x{_popupRect.Height}) larger than primary surface ({texDesc.Width}x{texDesc.Height}).");
 		}
 
 		// Get a reference to the old _sharedTexture, we'll make sure to assign a new _sharedTexture before disposing the old one.
@@ -192,7 +193,7 @@ internal class TextureRenderHandler : IRenderHandler
 
 	public ScreenInfo? GetScreenInfo()
 	{
-		return new ScreenInfo { DeviceScaleFactor = DpiScaling.GetDeviceScale() };
+		return new ScreenInfo {DeviceScaleFactor = DpiScaling.GetDeviceScale()};
 	}
 
 	public bool GetScreenPoint(int viewX, int viewY, out int screenX, out int screenY)
@@ -201,13 +202,6 @@ internal class TextureRenderHandler : IRenderHandler
 		screenY = viewY;
 
 		return false;
-	}
-
-	public void OnAcceleratedPaint(PaintElementType type, Rect dirtyRect, IntPtr sharedHandle)
-	{
-		// UNUSED
-		// CEF has removed support for DX accelerated paint shared textures, pending re-implementation in
-		// chromium's new compositor, Vis. Ref: https://bitbucket.org/chromiumembedded/cef/issues/2575/viz-implementation-for-osr
 	}
 
 	public void OnVirtualKeyboardRequested(IBrowser browser, TextInputMode inputMode)
@@ -280,19 +274,20 @@ internal class TextureRenderHandler : IRenderHandler
 	private D3D11.Texture2D BuildViewTexture(Size size, bool isShared)
 	{
 		// Build _sharedTexture. Most of these properties are defined to match how CEF exposes the render buffer.
-		return new D3D11.Texture2D(DxHandler.Device, new D3D11.Texture2DDescription
-		{
-			Width = size.Width,
-			Height = size.Height,
-			MipLevels = 1,
-			ArraySize = 1,
-			Format = Format.B8G8R8A8_UNorm,
-			SampleDescription = new SampleDescription(1, 0),
-			Usage = D3D11.ResourceUsage.Default,
-			BindFlags = D3D11.BindFlags.ShaderResource,
-			CpuAccessFlags = D3D11.CpuAccessFlags.None,
-			OptionFlags = isShared ? D3D11.ResourceOptionFlags.Shared : D3D11.ResourceOptionFlags.None
-		});
+		return new D3D11.Texture2D(DxHandler.Device,
+			new D3D11.Texture2DDescription
+			{
+				Width = size.Width,
+				Height = size.Height,
+				MipLevels = 1,
+				ArraySize = 1,
+				Format = Format.B8G8R8A8_UNorm,
+				SampleDescription = new SampleDescription(1, 0),
+				Usage = D3D11.ResourceUsage.Default,
+				BindFlags = D3D11.BindFlags.ShaderResource,
+				CpuAccessFlags = D3D11.CpuAccessFlags.None,
+				OptionFlags = isShared ? D3D11.ResourceOptionFlags.Shared : D3D11.ResourceOptionFlags.None
+			});
 	}
 
 	private Rect GetViewRectInternal()

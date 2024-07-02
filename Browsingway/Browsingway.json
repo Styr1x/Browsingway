@@ -15,5 +15,5 @@
         "website",
         "video"
     ],
-    "Changelog": "- Bump Chromium to 126.0.6478.115\n- Api X support"
+    "Changelog": "- Fix local storage not working after Chromium update\n  Note: Due to encryption changes in Chromium, local storage data from previous versions will be lost.\n"
 }

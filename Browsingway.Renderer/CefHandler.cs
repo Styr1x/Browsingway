@@ -6,15 +6,18 @@ namespace Browsingway.Renderer;
 
 internal static class CefHandler
 {
+	public static string RootCachePath { get; private set; } = null!;
+	
 	public static void Initialise(string cefAssemblyPath, string cefCacheDir, int parentPid)
 	{
 		CefSettings settings = new()
 		{
-			BrowserSubprocessPath = Path.Combine(cefAssemblyPath, "CefSharp.BrowserSubprocess.exe"), CachePath = cefCacheDir,
+			BrowserSubprocessPath = Path.Combine(cefAssemblyPath, "CefSharp.BrowserSubprocess.exe"), RootCachePath = cefCacheDir,
 #if !DEBUG
 			LogSeverity = LogSeverity.Fatal,
 #endif
 		};
+		RootCachePath = settings.RootCachePath;
 		settings.CefCommandLineArgs["autoplay-policy"] = "no-user-gesture-required";
 		settings.EnableAudio();
 		settings.SetOffScreenRenderingBestPerformanceArgs();
