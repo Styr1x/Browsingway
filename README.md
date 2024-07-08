@@ -42,3 +42,6 @@ For ACT overlays to work correctly the overlay WSServer has to be enabled. ACT a
 ![image](https://user-images.githubusercontent.com/569324/148692825-f29e41ae-cec5-4144-974f-394e14ec108a.png)
 
 You might also want to enable 'ACT optimizations' inside Browsingway for the specifc overlays, this will also enable and disable them automatically if ACT is running or not running.
+
+## Linux Support ##
+Currently Browsingway does **not** support Linux due to how the texture transport between the render process and the game process works.
