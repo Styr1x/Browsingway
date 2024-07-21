@@ -508,6 +508,10 @@ internal class Settings : IDisposable
 		if (ImGui.IsItemHovered()) { ImGui.SetTooltip("Hide this overlay when out-of-combat."); }
 
 		ImGui.NextColumn();
+
+		dirty |= ImGui.Checkbox("Hide in PvP", ref overlayConfig.HideInPvP);
+		if (ImGui.IsItemHovered()) { ImGui.SetTooltip("Hide this overlay when in a PvP area."); }
+
 		ImGui.NextColumn();
 
 		if (!overlayConfig.HideOutOfCombat) { ImGui.PushStyleVar(ImGuiStyleVar.Alpha, 0.5f); }
