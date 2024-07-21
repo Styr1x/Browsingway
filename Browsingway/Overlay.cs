@@ -107,7 +107,8 @@ internal class Overlay : IDisposable
 
 	public void Render()
 	{
-		if (_overlayConfig.Hidden || _overlayConfig.Disabled || HiddenByCombatFlags())
+		if (_overlayConfig.Hidden || _overlayConfig.Disabled || HiddenByCombatFlags() ||
+			(_overlayConfig.HideInPvP && Services.ClientState.IsPvP))
 		{
 			_mouseInWindow = false;
 			return;
