@@ -1,6 +1,7 @@
 using Browsingway.Common.Ipc;
 using Dalamud.Game.ClientState.Objects.Enums;
 using ImGuiNET;
+using System.Diagnostics;
 using System.Numerics;
 
 namespace Browsingway;
@@ -116,13 +117,33 @@ internal class Overlay : IDisposable
 		ImGui.SetNextWindowSize(new Vector2(640, 480), ImGuiCond.FirstUseEver);
 		ImGui.Begin($"{_overlayConfig.Name}###{_overlayConfig.Guid}", GetWindowFlags());
 
-		if (_overlayConfig.Fullscreen)
+		if (_overlayConfig.Fullscreen || _overlayConfig.Fixed)
 		{
 			var screen = ImGui.GetMainViewport();
 
+			var contentSize = _overlayConfig.Fullscreen
+											? screen.WorkSize
+											: new Vector2(_overlayConfig.Size.Width, _overlayConfig.Size.Height)
+												* (_overlayConfig.SizeDpiAware ? ImGui.GetIO().FontGlobalScale : 1);
+
 			// ImGui always leaves a 1px transparent border around the window, so we need to account for that.
 			var fsPos = new Vector2(screen.WorkPos.X - 1, screen.WorkPos.Y - 1);
-			var fsSize = new Vector2(screen.Size.X + 2 - fsPos.X, screen.Size.Y + 2 - fsPos.Y);
+			if (_overlayConfig.Fixed)
+			{
+				var baseOffset = (RelativePosition)_overlayConfig.RelativeTo switch
+				{
+					RelativePosition.TopLeft => Vector2.Zero,
+					RelativePosition.TopRight => new Vector2(screen.WorkSize.X - contentSize.X, 0),
+					RelativePosition.BottomLeft => new Vector2(0, screen.WorkSize.Y - contentSize.Y),
+					RelativePosition.BottomRight => new Vector2(screen.WorkSize.X - contentSize.X, screen.WorkSize.Y - contentSize.Y),
+					_ => Vector2.Zero
+				};
+				var userOffset = new Vector2(_overlayConfig.Position.Width, _overlayConfig.Position.Height);
+
+				fsPos += baseOffset + userOffset;
+			}
+
+			var fsSize = new Vector2(2, 2) + contentSize;
 
 			if (ImGui.GetWindowPos() != fsPos)
 			{
@@ -167,8 +188,11 @@ internal class Overlay : IDisposable
 		                         | ImGuiWindowFlags.NoBringToFrontOnFocus
 		                         | ImGuiWindowFlags.NoFocusOnAppearing;
 
-		// ClickThrough / fullscreen is implicitly locked
-		bool locked = _overlayConfig.Locked || _overlayConfig.ClickThrough || _overlayConfig.Fullscreen;
+		// ClickThrough / fixed position / fullscreen is implicitly locked
+		bool locked = _overlayConfig.Locked
+							 || _overlayConfig.ClickThrough
+							 || _overlayConfig.Fixed
+							 || _overlayConfig.Fullscreen;
 
 		if (locked)
 		{
