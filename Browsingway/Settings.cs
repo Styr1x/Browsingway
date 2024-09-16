@@ -474,12 +474,11 @@ internal class Settings : IDisposable
 
 		ImGui.NextColumn();
 
-		if (overlayConfig.ClickThrough || overlayConfig.Fullscreen) { ImGui.PushStyleVar(ImGuiStyleVar.Alpha, 0.5f); }
-
 		bool true_ = true;
-		bool implicit_ = overlayConfig.ClickThrough || overlayConfig.Fullscreen;
+		bool implicit_ = overlayConfig.ClickThrough || overlayConfig.Fixed || overlayConfig.Fullscreen;
+		if (implicit_) { ImGui.PushStyleVar(ImGuiStyleVar.Alpha, 0.5f); }
 		dirty |= ImGui.Checkbox("Locked", ref implicit_ ? ref true_ : ref overlayConfig.Locked);
-		if (overlayConfig.ClickThrough) { ImGui.PopStyleVar(); }
+		if (implicit_) { ImGui.PopStyleVar(); }
 
 		if (ImGui.IsItemHovered()) { ImGui.SetTooltip("Prevent the overlay from being resized or moved. This is implicitly set by Click Through and Fullscreen."); }
 
@@ -508,6 +507,52 @@ internal class Settings : IDisposable
 		if (ImGui.IsItemHovered()) { ImGui.SetTooltip("Hide this overlay when out-of-combat."); }
 
 		ImGui.NextColumn();
+		ImGui.NextColumn();
+
+		dirty |= ImGui.Checkbox("Fixed", ref overlayConfig.Fixed);
+		if (ImGui.IsItemHovered()) { ImGui.SetTooltip("Place the overlay in a fixed position on the game window."); }
+		ImGui.NextColumn();
+
+		if (overlayConfig.Fixed)
+		{
+			dirty |= ImGui.Combo("Relative To", ref overlayConfig.RelativeTo, ["Top Left", "Top Right", "Bottom Left", "Bottom Right"], 4);
+			if (ImGui.IsItemHovered()) { ImGui.SetTooltip("Position the overlay relative to the game window."); }
+			ImGui.NextColumn();
+
+			dirty |= ImGui.InputInt(
+				(RelativePosition)overlayConfig.RelativeTo switch
+				{
+					RelativePosition.TopLeft => "Left",
+					RelativePosition.TopRight => "Right",
+					RelativePosition.BottomLeft => "Left",
+					RelativePosition.BottomRight => "Right",
+					_ => "Left"
+				},
+				ref overlayConfig.Position.Width);
+			ImGui.NextColumn();
+
+			dirty |= ImGui.InputInt(
+				(RelativePosition)overlayConfig.RelativeTo switch
+				{
+					RelativePosition.TopLeft => "Top",
+					RelativePosition.TopRight => "Top",
+					RelativePosition.BottomLeft => "Bottom",
+					RelativePosition.BottomRight => "Bottom",
+					_ => "Top"
+				},
+				ref overlayConfig.Position.Height);
+			ImGui.NextColumn();
+
+			dirty |= ImGui.InputInt("Width", ref overlayConfig.Size.Width);
+			ImGui.NextColumn();
+
+			dirty |= ImGui.InputInt("Height", ref overlayConfig.Size.Height);
+			ImGui.NextColumn();
+
+			dirty |= ImGui.Checkbox("DPI Aware", ref overlayConfig.SizeDpiAware);
+			if (ImGui.IsItemHovered()) { ImGui.SetTooltip("Scale the overlay size based on Dalamud's DPI scale factor."); }
+			ImGui.NextColumn();
+		}
 		ImGui.NextColumn();
 
 		if (!overlayConfig.HideOutOfCombat) { ImGui.PushStyleVar(ImGuiStyleVar.Alpha, 0.5f); }

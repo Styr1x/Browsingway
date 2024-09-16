@@ -1,5 +1,6 @@
 ﻿using Browsingway.Common.Ipc;
 using Dalamud.Configuration;
+using SharpDX;
 
 namespace Browsingway;
 
@@ -8,6 +9,15 @@ internal class Configuration : IPluginConfiguration
 {
 	public List<InlayConfiguration> Inlays = new();
 	public int Version { get; set; } = 0;
+}
+
+[Serializable]
+internal enum RelativePosition
+{
+	TopLeft,
+	TopRight,
+	BottomLeft,
+	BottomRight
 }
 
 [Serializable]
@@ -30,4 +40,9 @@ internal class InlayConfiguration
 	public bool Fullscreen;
 	public bool HideOutOfCombat;
 	public int HideDelay = 0;
+	public bool Fixed;
+	public int RelativeTo;
+	public Size2 Position = new(0, 0);
+	public Size2 Size = new(0, 0);
+	public bool SizeDpiAware;
 }
