@@ -15,5 +15,5 @@
         "website",
         "video"
     ],
-    "Changelog": "- Fix local storage not working after Chromium update\n  Note: Due to encryption changes in Chromium, local storage data from previous versions will be lost.\n"
+    "Changelog": "- Bump Chromium to 130.0.6723.70\n- Api 11 support\n"
 }
