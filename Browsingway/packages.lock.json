@@ -1,12 +1,12 @@
 {
   "version": 1,
   "dependencies": {
-    "net8.0-windows7.0": {
+    "net9.0-windows7.0": {
       "DalamudPackager": {
         "type": "Direct",
-        "requested": "[11.0.0, )",
-        "resolved": "11.0.0",
-        "contentHash": "bjT7XUlhIJSmsE/O76b7weUX+evvGQctbQB8aKXt94o+oPWxHpCepxAGMs7Thow3AzCyqWs7cOpp9/2wcgRRQA=="
+        "requested": "[12.0.0, )",
+        "resolved": "12.0.0",
+        "contentHash": "J5TJLV3f16T/E2H2P17ClWjtfEBPpq3yxvqW46eN36JCm6wR+EaoaYkqG9Rm5sHqs3/nK/vKjWWyvEs/jhKoXw=="
       },
       "SharedMemory": {
         "type": "Direct",
@@ -19,8 +19,8 @@
       },
       "FlatSharp.Runtime": {
         "type": "Transitive",
-        "resolved": "7.5.1",
-        "contentHash": "R1i9CP2Kym0Vpou4gKa71N9xNque0h8H7Id75p0tan45Ki59gJpPoUg6dXssyF3LwQY5r1WkFQobwr2yegb5jQ==",
+        "resolved": "7.8.0",
+        "contentHash": "9F0nIJxQA7Ka+uQjIPT/AxkaGH83bnaG1Avt9in+TWGCfDmvf1iQ7MQGvw7gcU3Tl/cdBalPk8zoDW1S8aMuCw==",
         "dependencies": {
           "System.Memory": "4.5.5"
         }
@@ -38,7 +38,7 @@
       "browsingway.common": {
         "type": "Project",
         "dependencies": {
-          "FlatSharp.Runtime": "[7.5.1, )",
+          "FlatSharp.Runtime": "[7.8.0, )",
           "SharedMemory": "[2.3.2, )"
         }
       }
