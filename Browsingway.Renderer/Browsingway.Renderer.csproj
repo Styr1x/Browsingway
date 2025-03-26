@@ -18,7 +18,7 @@
 		<RuntimeIdentifier>win-x64</RuntimeIdentifier>
 		<SelfContained>false</SelfContained>
 		<NoWin32Manifest>true</NoWin32Manifest>
-		<RuntimeFrameworkVersion>9.0.0</RuntimeFrameworkVersion>
+		<RuntimeFrameworkVersion>9.0.3</RuntimeFrameworkVersion>
 	</PropertyGroup>
 
 	<PropertyGroup>
