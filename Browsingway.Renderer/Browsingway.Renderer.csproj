@@ -2,7 +2,7 @@
 
 	<PropertyGroup>
 		<OutputType>Exe</OutputType>
-		<TargetFramework>net8.0-windows</TargetFramework>
+		<TargetFramework>net9.0-windows</TargetFramework>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
 		<Configurations>Release;Debug</Configurations>
@@ -11,14 +11,14 @@
 		<AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
 		<AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
 		<LangVersion>latestmajor</LangVersion>
-		<Version>1.6.2.0</Version>
+		<Version>1.6.5.0</Version>
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 		<OutputPath>..\out</OutputPath>
 		<RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
 		<RuntimeIdentifier>win-x64</RuntimeIdentifier>
 		<SelfContained>false</SelfContained>
 		<NoWin32Manifest>true</NoWin32Manifest>
-		<RuntimeFrameworkVersion>8.0.0</RuntimeFrameworkVersion>
+		<RuntimeFrameworkVersion>9.0.3</RuntimeFrameworkVersion>
 	</PropertyGroup>
 
 	<PropertyGroup>
@@ -45,10 +45,10 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<PackageReference Include="CefSharp.Common.NETCore" Version="126.2.70">
+		<PackageReference Include="CefSharp.Common.NETCore" Version="134.3.90">
 			<ExcludeAssets>runtime;contentFiles;native</ExcludeAssets>
 		</PackageReference>
-		<PackageReference Include="CefSharp.OffScreen.NETCore" Version="126.2.70" PrivateAssets="none">
+		<PackageReference Include="CefSharp.OffScreen.NETCore" Version="134.3.90" PrivateAssets="none">
 			<ExcludeAssets>contentFiles;native</ExcludeAssets>
 			<IncludeAssets>runtime; compile; build; analyzers; buildtransitive</IncludeAssets>
 		</PackageReference>

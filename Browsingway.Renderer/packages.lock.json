@@ -1,23 +1,23 @@
 {
   "version": 1,
   "dependencies": {
-    "net8.0-windows7.0": {
+    "net9.0-windows7.0": {
       "CefSharp.Common.NETCore": {
         "type": "Direct",
-        "requested": "[126.2.70, )",
-        "resolved": "126.2.70",
-        "contentHash": "T3leXaL+YtUyVtID0vDdVxwV+nt2pjeBHn+rFnb3yxKxQRlGON5ZBzKpnX7CzZgfRgp58y0OQL2rWerWxrmOsw==",
+        "requested": "[134.3.90, )",
+        "resolved": "134.3.90",
+        "contentHash": "hn1otMLDk4z0oRhOBPS9DGJWzhYH5vE2E77Y2mwwiACSq3n+l0M9d/D2VfzejIDYY0ts20kDvvMKR1Tu1PScgQ==",
         "dependencies": {
-          "chromiumembeddedframework.runtime": "[126.2.7]"
+          "chromiumembeddedframework.runtime": "[134.3.9]"
         }
       },
       "CefSharp.OffScreen.NETCore": {
         "type": "Direct",
-        "requested": "[126.2.70, )",
-        "resolved": "126.2.70",
-        "contentHash": "xFdWAQL7AQbj+U8hBJL0AsawUqqPDVSf2aGGSxQHQ29B8SWlg29NV/r3o/dPzTEoTZG3pgrGyUfnmBbQlqF28w==",
+        "requested": "[134.3.90, )",
+        "resolved": "134.3.90",
+        "contentHash": "rw+zLWYi/47Qfj8EpAWM0M9LyIHBvPkEdnTDWBG9M4BxE+eWtnpV6LMsSxT2KcatxfZbcDctWnntZjfUXs2oug==",
         "dependencies": {
-          "CefSharp.Common.NETCore": "[126.2.70]",
+          "CefSharp.Common.NETCore": "[134.3.90]",
           "System.Drawing.Common": "4.7.3"
         }
       },
@@ -32,13 +32,13 @@
       },
       "chromiumembeddedframework.runtime": {
         "type": "Transitive",
-        "resolved": "126.2.7",
-        "contentHash": "UWgBVuaJ79R/AgkBBjXeU0f2xeCdkB6cEY6kPjVGzTlL+CEXXRLSnrAMMq8DU9vjk7/OvPW8uXB/tBzifTuT3Q=="
+        "resolved": "134.3.9",
+        "contentHash": "7u3+6rp2UaXD368bAMWyzIJubl6u39bZY8oT96R7FcmQdEM4lg3wXti40wztrvc4t1xTtC/H+mfPVZItzsJ17Q=="
       },
       "FlatSharp.Runtime": {
         "type": "Transitive",
-        "resolved": "7.5.1",
-        "contentHash": "R1i9CP2Kym0Vpou4gKa71N9xNque0h8H7Id75p0tan45Ki59gJpPoUg6dXssyF3LwQY5r1WkFQobwr2yegb5jQ==",
+        "resolved": "7.8.0",
+        "contentHash": "9F0nIJxQA7Ka+uQjIPT/AxkaGH83bnaG1Avt9in+TWGCfDmvf1iQ7MQGvw7gcU3Tl/cdBalPk8zoDW1S8aMuCw==",
         "dependencies": {
           "System.Memory": "4.5.5"
         }
@@ -78,33 +78,33 @@
       "browsingway.common": {
         "type": "Project",
         "dependencies": {
-          "FlatSharp.Runtime": "[7.5.1, )",
+          "FlatSharp.Runtime": "[7.8.0, )",
           "SharedMemory": "[2.3.2, )"
         }
       }
     },
-    "net8.0-windows7.0/win-x64": {
+    "net9.0-windows7.0/win-x64": {
       "CefSharp.Common.NETCore": {
         "type": "Direct",
-        "requested": "[126.2.70, )",
-        "resolved": "126.2.70",
-        "contentHash": "T3leXaL+YtUyVtID0vDdVxwV+nt2pjeBHn+rFnb3yxKxQRlGON5ZBzKpnX7CzZgfRgp58y0OQL2rWerWxrmOsw==",
+        "requested": "[134.3.90, )",
+        "resolved": "134.3.90",
+        "contentHash": "hn1otMLDk4z0oRhOBPS9DGJWzhYH5vE2E77Y2mwwiACSq3n+l0M9d/D2VfzejIDYY0ts20kDvvMKR1Tu1PScgQ==",
         "dependencies": {
-          "chromiumembeddedframework.runtime": "[126.2.7]"
+          "chromiumembeddedframework.runtime": "[134.3.9]"
         }
       },
       "chromiumembeddedframework.runtime": {
         "type": "Transitive",
-        "resolved": "126.2.7",
-        "contentHash": "UWgBVuaJ79R/AgkBBjXeU0f2xeCdkB6cEY6kPjVGzTlL+CEXXRLSnrAMMq8DU9vjk7/OvPW8uXB/tBzifTuT3Q==",
+        "resolved": "134.3.9",
+        "contentHash": "7u3+6rp2UaXD368bAMWyzIJubl6u39bZY8oT96R7FcmQdEM4lg3wXti40wztrvc4t1xTtC/H+mfPVZItzsJ17Q==",
         "dependencies": {
-          "chromiumembeddedframework.runtime.win-x64": "126.2.7"
+          "chromiumembeddedframework.runtime.win-x64": "134.3.9"
         }
       },
       "chromiumembeddedframework.runtime.win-x64": {
         "type": "Transitive",
-        "resolved": "126.2.7",
-        "contentHash": "b7Kgu3lRglDPJ7LQfsGgWujlzGrFzxQYy9iSC5DJUG0IAOdIlsFtOCNKehiNOtr/ob0uIiSj1SGTTyQ2F+T3pw=="
+        "resolved": "134.3.9",
+        "contentHash": "DtizHongD9FtFinE3aJbWlGek9LEuMY5tkCoPBfXQOksIsbO7N0++nPeDqTFKwDcnd5YB6pc+/I5ywB0fclQvg=="
       },
       "Microsoft.Win32.SystemEvents": {
         "type": "Transitive",

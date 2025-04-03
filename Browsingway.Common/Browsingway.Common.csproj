@@ -1,23 +1,23 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
-		<TargetFramework>net8.0-windows</TargetFramework>
+		<TargetFramework>net9.0-windows</TargetFramework>
 		<LangVersion>latestmajor</LangVersion>
 		<Nullable>enable</Nullable>
 		<Configurations>Release;Debug</Configurations>
 		<Platforms>x64</Platforms>
 		<AssemblyName>Browsingway.Common</AssemblyName>
 		<RootNamespace>Browsingway.Common</RootNamespace>
-		<Version>1.6.2.0</Version>
+		<Version>1.6.5.0</Version>
 		<RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
 	</PropertyGroup>
 
 	<ItemGroup>
-	  <PackageReference Include="FlatSharp.Compiler" Version="7.5.1">
+	  <PackageReference Include="FlatSharp.Compiler" Version="7.8.0">
 	    <PrivateAssets>all</PrivateAssets>
 	    <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
 	  </PackageReference>
-	  <PackageReference Include="FlatSharp.Runtime" Version="7.5.1" />
+	  <PackageReference Include="FlatSharp.Runtime" Version="7.8.0" />
 	  <PackageReference Include="SharedMemory" Version="2.3.2" />
 	</ItemGroup>
 	<ItemGroup>

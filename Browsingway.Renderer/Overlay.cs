@@ -49,7 +49,6 @@ internal class Overlay : IDisposable
 		var requestContextSettings = new RequestContextSettings
 		{
 			CachePath = Path.Combine(CefHandler.RootCachePath, _id),
-			PersistUserPreferences = true,
 			PersistSessionCookies = true
 		};
 		var rc = new RequestContext(requestContextSettings);

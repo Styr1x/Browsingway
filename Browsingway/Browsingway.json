@@ -15,5 +15,5 @@
         "website",
         "video"
     ],
-    "Changelog": "- Fix local storage not working after Chromium update\n  Note: Due to encryption changes in Chromium, local storage data from previous versions will be lost.\n"
+    "Changelog": "- Bump Chromium to 134.0.6998.178\n- (this fixes CVE-2025-2783)\n"
 }
