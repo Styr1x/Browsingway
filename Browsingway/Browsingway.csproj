@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Dalamud.NET.Sdk/13.0.0">
 
 	<PropertyGroup>
 		<TargetFramework>net9.0-windows</TargetFramework>
@@ -9,7 +9,7 @@
 		<ProduceReferenceAssembly>false</ProduceReferenceAssembly>
 		<AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
 		<LangVersion>latestmajor</LangVersion>
-		<Version>1.6.5.0</Version>
+		<Version>1.6.6.0</Version>
 		<OutputPath>..\out</OutputPath>
 		<RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
 	</PropertyGroup>
@@ -19,28 +19,6 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<PackageReference Include="DalamudPackager" Version="12.0.0" />
-		<PackageReference Include="SharedMemory" Version="2.3.2" />
-	</ItemGroup>
-
-	<ItemGroup>
-		<ProjectReference Include="..\Browsingway.Common\Browsingway.Common.csproj" />
-		<ProjectReference Include="..\Browsingway.Renderer\Browsingway.Renderer.csproj" ReferenceOutputAssembly="false" />
-	</ItemGroup>
-
-	<ItemGroup>
-		<Reference Include="Dalamud">
-			<HintPath>$(DalamudLibPath)Dalamud.dll</HintPath>
-			<Private>false</Private>
-		</Reference>
-		<Reference Include="ImGui.NET">
-			<HintPath>$(DalamudLibPath)ImGui.NET.dll</HintPath>
-			<Private>false</Private>
-		</Reference>
-		<Reference Include="ImGuiScene">
-			<HintPath>$(DalamudLibPath)ImGuiScene.dll</HintPath>
-			<Private>false</Private>
-		</Reference>
 		<Reference Include="SharpDX">
 			<HintPath>$(DalamudLibPath)SharpDX.dll</HintPath>
 			<Private>false</Private>
@@ -54,7 +32,16 @@
 			<Private>false</Private>
 		</Reference>
 	</ItemGroup>
+	
+	<ItemGroup>
+		<PackageReference Include="SharedMemory" Version="2.3.2" />
+	</ItemGroup>
 
+	<ItemGroup>
+		<ProjectReference Include="..\Browsingway.Common\Browsingway.Common.csproj" />
+		<ProjectReference Include="..\Browsingway.Renderer\Browsingway.Renderer.csproj" ReferenceOutputAssembly="false" />
+	</ItemGroup>
+	
 	<ItemGroup>
 		<Content Include="Browsingway.json">
 			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>

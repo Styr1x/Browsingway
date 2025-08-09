@@ -1,6 +1,6 @@
 using Dalamud.Interface.Internal;
 using Dalamud.Interface.Textures;
-using ImGuiNET;
+using Dalamud.Bindings.ImGui;
 using System.Collections.Concurrent;
 using System.IO.Compression;
 using System.Net;
@@ -42,8 +42,8 @@ public class DependencyManager : IDisposable
 	private static readonly Dependency[] _dependencies =
 	{
 		new("https://github.com/Styr1x/Browsingway/releases/download/cef-binaries/cefsharp-{VERSION}.zip", "cef",
-			"134.3.9+g5dc6f2f+chromium-134.0.6998.178",
-			"F761372E54962FBF1F8906EE864F8B92D3A3A5B4F5EA5C34EA12340907E0B41A")
+			"138.0.34+ga94b31b+chromium-138.0.7204.184",
+			"BE12A8395971041DD9DDEB928070C358F1DA0B6F4B3D9A6CA6C94B701A7A203D")
 	};
 
 	private readonly string _debugCheckDir;
@@ -212,7 +212,7 @@ public class DependencyManager : IDisposable
 		ImGuiWindowFlags windowFlags = ImGuiWindowFlags.NoCollapse | ImGuiWindowFlags.NoResize;
 		ImGui.Begin("Browsingway dependencies", windowFlags);
 		if (_texIcon is not null)
-			ImGui.Image(_texIcon.GetWrapOrEmpty().ImGuiHandle, new Vector2(256, 256));
+			ImGui.Image(_texIcon.GetWrapOrEmpty().Handle, new Vector2(256, 256));
 
 		ImGui.SameLine();
 

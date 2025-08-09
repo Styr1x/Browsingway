@@ -4,21 +4,20 @@
     "net9.0-windows7.0": {
       "CefSharp.Common.NETCore": {
         "type": "Direct",
-        "requested": "[134.3.90, )",
-        "resolved": "134.3.90",
-        "contentHash": "hn1otMLDk4z0oRhOBPS9DGJWzhYH5vE2E77Y2mwwiACSq3n+l0M9d/D2VfzejIDYY0ts20kDvvMKR1Tu1PScgQ==",
+        "requested": "[138.0.340, )",
+        "resolved": "138.0.340",
+        "contentHash": "9gkYHfPUXm38BKGt7PXmEihZJ1EIh03wzn0owdX3tIoxwyxyeggsO61PfiMQIMNxKIZd7tmyNsx8SnrKG6FS+A==",
         "dependencies": {
-          "chromiumembeddedframework.runtime": "[134.3.9]"
+          "chromiumembeddedframework.runtime": "[138.0.34]"
         }
       },
       "CefSharp.OffScreen.NETCore": {
         "type": "Direct",
-        "requested": "[134.3.90, )",
-        "resolved": "134.3.90",
-        "contentHash": "rw+zLWYi/47Qfj8EpAWM0M9LyIHBvPkEdnTDWBG9M4BxE+eWtnpV6LMsSxT2KcatxfZbcDctWnntZjfUXs2oug==",
+        "requested": "[138.0.340, )",
+        "resolved": "138.0.340",
+        "contentHash": "yv0Fc7TfM3pn9XAeA+o0V/1smPAdvbHofJ/+Ipie+vy3UOzIBOYB1Lg77NmODmC3FyGm8n2bcYXwqn+vfTxSpg==",
         "dependencies": {
-          "CefSharp.Common.NETCore": "[134.3.90]",
-          "System.Drawing.Common": "4.7.3"
+          "CefSharp.Common.NETCore": "[138.0.340]"
         }
       },
       "SharedMemory": {
@@ -32,37 +31,15 @@
       },
       "chromiumembeddedframework.runtime": {
         "type": "Transitive",
-        "resolved": "134.3.9",
-        "contentHash": "7u3+6rp2UaXD368bAMWyzIJubl6u39bZY8oT96R7FcmQdEM4lg3wXti40wztrvc4t1xTtC/H+mfPVZItzsJ17Q=="
+        "resolved": "138.0.34",
+        "contentHash": "OUWJ40rLyce0swmckJ56DtVRdTEZKR9pEzNtphEBF+n88lGWgmhQn8P1gbPUxFIlzcvS9U5nG/BBPtEgFVJ3ww=="
       },
       "FlatSharp.Runtime": {
         "type": "Transitive",
-        "resolved": "7.8.0",
-        "contentHash": "9F0nIJxQA7Ka+uQjIPT/AxkaGH83bnaG1Avt9in+TWGCfDmvf1iQ7MQGvw7gcU3Tl/cdBalPk8zoDW1S8aMuCw==",
+        "resolved": "7.9.0",
+        "contentHash": "Bm8+WqzEsWNpxqrD5x4x+zQ8dyINlToCreM5FI2oNSfUVc9U9ZB+qztX/jd8rlJb3r0vBSlPwVLpw0xBtPa3Vw==",
         "dependencies": {
           "System.Memory": "4.5.5"
-        }
-      },
-      "Microsoft.NETCore.Platforms": {
-        "type": "Transitive",
-        "resolved": "3.1.9",
-        "contentHash": "e+/BrhryHoMojWlbcPJAFcShpk3JYvsMfrmoM26dnvHARWR6vtmGbfHppZcANVqf7DUBDIRxlZXcWg7v/9e1TQ=="
-      },
-      "Microsoft.Win32.SystemEvents": {
-        "type": "Transitive",
-        "resolved": "4.7.0",
-        "contentHash": "mtVirZr++rq+XCDITMUdnETD59XoeMxSpLRIII7JRI6Yj0LEDiO1pPn0ktlnIj12Ix8bfvQqQDMMIF9wC98oCA==",
-        "dependencies": {
-          "Microsoft.NETCore.Platforms": "3.1.0"
-        }
-      },
-      "System.Drawing.Common": {
-        "type": "Transitive",
-        "resolved": "4.7.3",
-        "contentHash": "B3+wwhAeoUQ6KeshWSq3IRLQiMoqPEzSHzyVyxTI/EbYuqIp90lXrRISlip2AF+5tj74ycIVPpnRY4M424HahA==",
-        "dependencies": {
-          "Microsoft.NETCore.Platforms": "3.1.9",
-          "Microsoft.Win32.SystemEvents": "4.7.0"
         }
       },
       "System.Memory": {
@@ -78,7 +55,7 @@
       "browsingway.common": {
         "type": "Project",
         "dependencies": {
-          "FlatSharp.Runtime": "[7.8.0, )",
+          "FlatSharp.Runtime": "[7.9.0, )",
           "SharedMemory": "[2.3.2, )"
         }
       }
@@ -86,42 +63,25 @@
     "net9.0-windows7.0/win-x64": {
       "CefSharp.Common.NETCore": {
         "type": "Direct",
-        "requested": "[134.3.90, )",
-        "resolved": "134.3.90",
-        "contentHash": "hn1otMLDk4z0oRhOBPS9DGJWzhYH5vE2E77Y2mwwiACSq3n+l0M9d/D2VfzejIDYY0ts20kDvvMKR1Tu1PScgQ==",
+        "requested": "[138.0.340, )",
+        "resolved": "138.0.340",
+        "contentHash": "9gkYHfPUXm38BKGt7PXmEihZJ1EIh03wzn0owdX3tIoxwyxyeggsO61PfiMQIMNxKIZd7tmyNsx8SnrKG6FS+A==",
         "dependencies": {
-          "chromiumembeddedframework.runtime": "[134.3.9]"
+          "chromiumembeddedframework.runtime": "[138.0.34]"
         }
       },
       "chromiumembeddedframework.runtime": {
         "type": "Transitive",
-        "resolved": "134.3.9",
-        "contentHash": "7u3+6rp2UaXD368bAMWyzIJubl6u39bZY8oT96R7FcmQdEM4lg3wXti40wztrvc4t1xTtC/H+mfPVZItzsJ17Q==",
+        "resolved": "138.0.34",
+        "contentHash": "OUWJ40rLyce0swmckJ56DtVRdTEZKR9pEzNtphEBF+n88lGWgmhQn8P1gbPUxFIlzcvS9U5nG/BBPtEgFVJ3ww==",
         "dependencies": {
-          "chromiumembeddedframework.runtime.win-x64": "134.3.9"
+          "chromiumembeddedframework.runtime.win-x64": "138.0.34"
         }
       },
       "chromiumembeddedframework.runtime.win-x64": {
         "type": "Transitive",
-        "resolved": "134.3.9",
-        "contentHash": "DtizHongD9FtFinE3aJbWlGek9LEuMY5tkCoPBfXQOksIsbO7N0++nPeDqTFKwDcnd5YB6pc+/I5ywB0fclQvg=="
-      },
-      "Microsoft.Win32.SystemEvents": {
-        "type": "Transitive",
-        "resolved": "4.7.0",
-        "contentHash": "mtVirZr++rq+XCDITMUdnETD59XoeMxSpLRIII7JRI6Yj0LEDiO1pPn0ktlnIj12Ix8bfvQqQDMMIF9wC98oCA==",
-        "dependencies": {
-          "Microsoft.NETCore.Platforms": "3.1.0"
-        }
-      },
-      "System.Drawing.Common": {
-        "type": "Transitive",
-        "resolved": "4.7.3",
-        "contentHash": "B3+wwhAeoUQ6KeshWSq3IRLQiMoqPEzSHzyVyxTI/EbYuqIp90lXrRISlip2AF+5tj74ycIVPpnRY4M424HahA==",
-        "dependencies": {
-          "Microsoft.NETCore.Platforms": "3.1.9",
-          "Microsoft.Win32.SystemEvents": "4.7.0"
-        }
+        "resolved": "138.0.34",
+        "contentHash": "N0IktSiCwSuAgro3Tjp4ZLo4ZprlhvQLucKP452ygvxumKNNcJQXnuwVQFXiHZluiD8fvVuHDwknWXx1B/ZzCw=="
       }
     }
   }

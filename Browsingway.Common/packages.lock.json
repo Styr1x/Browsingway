@@ -4,15 +4,15 @@
     "net9.0-windows7.0": {
       "FlatSharp.Compiler": {
         "type": "Direct",
-        "requested": "[7.8.0, )",
-        "resolved": "7.8.0",
-        "contentHash": "kM0JM6o6vbR1hYXVAoliJokv+lxtIDxR7V3IYrw0LJImNHF/BZ91cYdRPf0kAs/Hj6+HXrphD+nZxWn46xu97w=="
+        "requested": "[7.9.0, )",
+        "resolved": "7.9.0",
+        "contentHash": "MU6808xvdbWJ3Ev+5PKalqQuzvVbn1DzzQH8txRDHGFUNDvHjd+ejqpvnYc9BSJ8Qp8VjkkpJD8OzRYilbPp3A=="
       },
       "FlatSharp.Runtime": {
         "type": "Direct",
-        "requested": "[7.8.0, )",
-        "resolved": "7.8.0",
-        "contentHash": "9F0nIJxQA7Ka+uQjIPT/AxkaGH83bnaG1Avt9in+TWGCfDmvf1iQ7MQGvw7gcU3Tl/cdBalPk8zoDW1S8aMuCw==",
+        "requested": "[7.9.0, )",
+        "resolved": "7.9.0",
+        "contentHash": "Bm8+WqzEsWNpxqrD5x4x+zQ8dyINlToCreM5FI2oNSfUVc9U9ZB+qztX/jd8rlJb3r0vBSlPwVLpw0xBtPa3Vw==",
         "dependencies": {
           "System.Memory": "4.5.5"
         }

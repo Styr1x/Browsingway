@@ -12,8 +12,6 @@
 		<Move SourceFiles="$(OutputPath)\Browsingway.Renderer.pdb" DestinationFolder="$(OutputPath)\renderer"/>
 		<Move SourceFiles="$(OutputPath)\Browsingway.Renderer.runtimeconfig.json" DestinationFolder="$(OutputPath)\renderer"/>
 		<Move SourceFiles="$(OutputPath)\CefSharp.OffScreen.dll" DestinationFolder="$(OutputPath)\renderer"/>
-		<Move SourceFiles="$(OutputPath)\Microsoft.Win32.SystemEvents.dll" DestinationFolder="$(OutputPath)\renderer"/>
-		<Move SourceFiles="$(OutputPath)\System.Drawing.Common.dll" DestinationFolder="$(OutputPath)\renderer"/>
 		<Delete Files="$(OutputPath)\Browsingway.Renderer.deps.json"/>
 		<Delete Files="$(OutputPath)\Browsingway.Renderer.exe.bak"/>
 	</Target>

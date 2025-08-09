@@ -1,6 +1,6 @@
 using Browsingway.Common.Ipc;
 using Dalamud.Game.ClientState.Objects.Enums;
-using ImGuiNET;
+using Dalamud.Bindings.ImGui;
 using System.Numerics;
 
 namespace Browsingway;
@@ -240,7 +240,7 @@ internal class Overlay : IDisposable
 			if (_mouseInWindow)
 			{
 				_mouseInWindow = false;
-				_ = _renderProcess.Rpc.MouseButton(new MouseButtonMessage() { Guid = RenderGuid.ToByteArray(), X = (int)mousePos.X, Y = (int)mousePos.Y, Leaving = true });
+				_ = _renderProcess.Rpc.MouseButton(new MouseButtonMessage() {Guid = RenderGuid.ToByteArray(), X = (int)mousePos.X, Y = (int)mousePos.Y, Leaving = true});
 			}
 
 			return;
@@ -309,7 +309,7 @@ internal class Overlay : IDisposable
 
 	#region serde
 
-	private MouseButton EncodeMouseButtons(RangeAccessor<bool> buttons)
+	private MouseButton EncodeMouseButtons(Span<bool> buttons)
 	{
 		MouseButton result = MouseButton.None;
 		if (buttons[0]) { result |= MouseButton.Primary; }
@@ -341,22 +341,22 @@ internal class Overlay : IDisposable
 			case Cursor.NResize:
 			case Cursor.SResize:
 			case Cursor.NsResize:
-				return ImGuiMouseCursor.ResizeNS;
+				return ImGuiMouseCursor.ResizeNs;
 
 			case Cursor.EResize:
 			case Cursor.WResize:
 			case Cursor.EwResize:
-				return ImGuiMouseCursor.ResizeEW;
+				return ImGuiMouseCursor.ResizeEw;
 
 			case Cursor.NeResize:
 			case Cursor.SwResize:
 			case Cursor.NeswResize:
-				return ImGuiMouseCursor.ResizeNESW;
+				return ImGuiMouseCursor.ResizeNesw;
 
 			case Cursor.NwResize:
 			case Cursor.SeResize:
 			case Cursor.NwseResize:
-				return ImGuiMouseCursor.ResizeNWSE;
+				return ImGuiMouseCursor.ResizeNwse;
 		}
 
 		return ImGuiMouseCursor.Arrow;

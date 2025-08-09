@@ -15,5 +15,5 @@
         "website",
         "video"
     ],
-    "Changelog": "- Bump Chromium to 134.0.6998.178\n- (this fixes CVE-2025-2783)\n"
+    "Changelog": "- Bump Chromium to 138.0.7204.184\n- Api 13 support\n"
 }
