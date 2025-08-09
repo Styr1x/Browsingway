@@ -15,5 +15,5 @@
         "website",
         "video"
     ],
-    "Changelog": "- Bump Chromium to 138.0.7204.184\n- Api 13 support\n"
+    "Changelog": "- Bump Chromium to 138.0.7204.184\n- Api 13 support\n- Add HideInPvP setting (by SheepGoMeh)\n"
 }
