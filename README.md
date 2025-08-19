@@ -44,4 +44,14 @@ For ACT overlays to work correctly the overlay WSServer has to be enabled. ACT a
 You might also want to enable 'ACT optimizations' inside Browsingway for the specifc overlays, this will also enable and disable them automatically if ACT is running or not running.
 
 ## Linux Support ##
-Currently Browsingway does **not** support Linux due to how the texture transport between the render process and the game process works.
+
+Using Browsingway in Linux is experimental and *not supported*. However, you may have some success if you try the following steps:
+
+- Download the .NET Framework for Windows (not a typo) version 9.0.3, both [x64](https://builds.dotnet.microsoft.com/dotnet/Runtime/9.0.3/dotnet-runtime-9.0.3-win-x64.exe) and [x86](https://builds.dotnet.microsoft.com/dotnet/Runtime/9.0.3/dotnet-runtime-9.0.3-win-x86.exe) versions.
+- In XIVLauncher's settings, navigate to the `Wine` tab, then click `Open Wine explorer (run apps in prefix)`.
+- In the new window, find the two .NET installers you downloaded, and run them, leaving everything set to defaults. (You can also run the installers from the command line if you prefer, but make sure to set `WINEPREFIX=~/.xlcore/wineprefix` and use the Wine executable in `~/xlcore/compatibilitytool/wine/` that matches what you're trying to use with FFXIV.
+
+### Troubleshooting
+- Delete the contents of `~/.xlcore/pluginConfigs/Browsingway`. This should cause the plugin to reinstall CEF on next launch. This is most likely to help if you've switched Wine/Proton versions since installing CEF (XIVLauncher may do this on its own as part of its own updates, though this is rare.)
+- If your Wine version has changed (see above), you may need to clear your Wine prefix. This can be done from the `Wine` tab in XIVLauncher's settings.
+- After clearing your Wine prefix, you **will** need to repeat steps in which you install the .NET Framework.
