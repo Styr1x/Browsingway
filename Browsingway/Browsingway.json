@@ -15,5 +15,5 @@
         "website",
         "video"
     ],
-    "Changelog": "- Bump Chromium to 138.0.7204.184\n- Api 13 support\n- Add HideInPvP setting (by SheepGoMeh)\n"
+    "Changelog": "- Bump Chromium to 139.0.7258.139\n- Improve renderer crash handling\n- Fix CEF not loading when game runs as a privileged process (please don't..)\n"
 }

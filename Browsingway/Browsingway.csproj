@@ -9,15 +9,11 @@
 		<ProduceReferenceAssembly>false</ProduceReferenceAssembly>
 		<AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
 		<LangVersion>latestmajor</LangVersion>
-		<Version>1.6.6.0</Version>
+		<Version>1.6.7.0</Version>
 		<OutputPath>..\out</OutputPath>
 		<RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
 	</PropertyGroup>
-
-	<PropertyGroup>
-		<DalamudLibPath>$(appdata)\XIVLauncher\addon\Hooks\dev\</DalamudLibPath>
-	</PropertyGroup>
-
+    
 	<ItemGroup>
 		<Reference Include="SharpDX">
 			<HintPath>$(DalamudLibPath)SharpDX.dll</HintPath>
@@ -35,6 +31,7 @@
 	
 	<ItemGroup>
 		<PackageReference Include="SharedMemory" Version="2.3.2" />
+		<PackageReference Update="DalamudPackager" Version="13.1.0" />
 	</ItemGroup>
 
 	<ItemGroup>
@@ -49,6 +46,9 @@
 		<Content Include="images\icon.png">
 			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 		</Content>
+        <Content Include="images\dead.png">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </Content>
 	</ItemGroup>
 	
 </Project>

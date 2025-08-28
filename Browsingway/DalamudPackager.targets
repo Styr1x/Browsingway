@@ -7,6 +7,7 @@
 		<Copy SourceFiles="$(OutputPath)\SharedMemory.dll" DestinationFolder="$(OutputPath)\renderer"/>
 		<Copy SourceFiles="$(OutputPath)\FlatSharp.Runtime.dll" DestinationFolder="$(OutputPath)\renderer"/>
 		<Copy SourceFiles="$(OutputPath)\images\icon.png" DestinationFolder="$(OutputPath)"/>
+        <Copy SourceFiles="$(OutputPath)\images\dead.png" DestinationFolder="$(OutputPath)"/>
 		<Move SourceFiles="$(OutputPath)\Browsingway.Renderer.dll" DestinationFolder="$(OutputPath)\renderer"/>
 		<Move SourceFiles="$(OutputPath)\Browsingway.Renderer.exe" DestinationFolder="$(OutputPath)\renderer"/>
 		<Move SourceFiles="$(OutputPath)\Browsingway.Renderer.pdb" DestinationFolder="$(OutputPath)\renderer"/>

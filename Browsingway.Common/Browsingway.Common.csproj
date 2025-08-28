@@ -8,7 +8,7 @@
 		<Platforms>x64</Platforms>
 		<AssemblyName>Browsingway.Common</AssemblyName>
 		<RootNamespace>Browsingway.Common</RootNamespace>
-		<Version>1.6.6.0</Version>
+		<Version>1.6.7.0</Version>
 		<RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
 	</PropertyGroup>
 

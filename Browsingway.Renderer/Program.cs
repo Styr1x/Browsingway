@@ -156,7 +156,7 @@ internal static class Program
 
 			renderHandler.CursorChanged += (o, cursor) =>
 			{
-				_ = _rpc.SetCursor(new SetCursorMessage() { Guid = msg.Guid, Cursor = cursor });
+				_ = _rpc.SetCursor(new SetCursorMessage() {Guid = msg.Guid, Cursor = cursor});
 			};
 
 			_ = _rpc.UpdateTexture(guid, renderHandler.SharedTextureHandle);
@@ -266,7 +266,7 @@ internal static class Program
 
 	private static Assembly? CustomAssemblyResolver(object? sender, ResolveEventArgs args)
 	{
-		string assemblyName = args.Name.Split(new[] { ',' }, 2)[0] + ".dll";
+		string assemblyName = args.Name.Split(new[] {','}, 2)[0] + ".dll";
 
 		string? assemblyPath = null;
 		if (assemblyName.StartsWith("CefSharp"))

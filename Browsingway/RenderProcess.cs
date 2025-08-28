@@ -8,7 +8,7 @@ namespace Browsingway;
 internal class RenderProcess : IDisposable
 {
 	public event EventHandler? Crashed;
-	public BrowsingwayRpc Rpc { get; }
+	public BrowsingwayRpc? Rpc { get; private set; }
 
 	private readonly string _configDir;
 	private readonly DependencyManager _dependencyManager;
@@ -18,6 +18,13 @@ internal class RenderProcess : IDisposable
 	private readonly string _keepAliveHandleName;
 	private readonly int _parentPid;
 	private readonly string _pluginDir;
+
+	private DateTime _lastRenderCheck = DateTime.MinValue;
+	private uint _restartCount = 0;
+
+	private const uint _maxRestarts = 5;
+	private const uint _checkDelaySeconds = 1;
+	private const uint _processOkAfterSeconds = 5;
 
 	private Process _process;
 	private bool _running;
@@ -46,7 +53,7 @@ internal class RenderProcess : IDisposable
 		Stop();
 
 		_process.Dispose();
-		Rpc.Dispose();
+		Rpc?.Dispose();
 	}
 
 	public void Start()
@@ -67,8 +74,37 @@ internal class RenderProcess : IDisposable
 
 	public void EnsureRenderProcessIsAlive()
 	{
-		if (!_running || !HasProcessExited())
+		if (!_running)
 		{
+			return;
+		}
+
+		// only check every second, reduces stress on the render thread
+		if (DateTime.Now - _lastRenderCheck < TimeSpan.FromSeconds(_checkDelaySeconds))
+		{
+			return;
+		}
+
+		_lastRenderCheck = DateTime.Now;
+
+		if (!HasProcessExited())
+		{
+			// process is still running, reset restart counter if it ran for at least 5 seconds
+			if (_restartCount > 0 && DateTime.Now - _process.StartTime > TimeSpan.FromSeconds(_processOkAfterSeconds))
+			{
+				_restartCount = 0;
+			}
+
+			return;
+		}
+
+		if (_restartCount >= _maxRestarts)
+		{
+			Services.PluginLog.Error("Render process is crashing in a loop - please check the logs. No further restarts will be attempted until Browsingway is restarted.");
+			Stop();
+			Rpc?.Dispose();
+			Rpc = null;
+			OnProcessCrashed();
 			return;
 		}
 
@@ -79,7 +115,8 @@ internal class RenderProcess : IDisposable
 				try
 				{
 					// process crashed, restart
-					Services.PluginLog.Error("Render process crashed - will restart asap");
+					_restartCount++;
+					Services.PluginLog.Error($"Render process crashed - will restart asap (attempt {_restartCount}/{_maxRestarts}).");
 					_process = SetupProcess();
 					_process.Start();
 					_process.BeginOutputReadLine();

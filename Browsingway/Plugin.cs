@@ -83,7 +83,7 @@ public class Plugin : IDalamudPlugin
 		// race condition overlays receiving a null reference.
 		int pid = Process.GetCurrentProcess().Id;
 		_renderProcess = new RenderProcess(pid, _pluginDir, _pluginConfigDir, _dependencyManager, Services.PluginLog);
-		_renderProcess.Rpc.RendererReady += msg =>
+		_renderProcess.Rpc!.RendererReady += msg =>
 		{
 			if (!msg.HasDxSharedTexturesSupport)
 			{
@@ -164,7 +164,7 @@ public class Plugin : IDalamudPlugin
 			return;
 		}
 
-		Overlay overlay = new(_renderProcess, overlayConfig);
+		Overlay overlay = new(_renderProcess, overlayConfig, _pluginDir);
 		_overlays.TryAdd(overlayConfig.Guid, overlay);
 	}
 
