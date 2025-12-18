@@ -162,7 +162,7 @@ internal class Overlay : IDisposable
 				ImGui.NewLine();
 				ImGuiHelpers.CenterCursorFor(size);
 				ImGui.Image(_texErrorIcon.GetWrapOrEmpty().Handle, new Vector2(size, size));
-				
+
 				ImGui.PushStyleColor(ImGuiCol.Text, 0xFF0000FF);
 				if (_textureRenderException is not null)
 				{
@@ -173,6 +173,7 @@ internal class Overlay : IDisposable
 				{
 					ImGuiHelpers.CenteredText("An error occured while building the browser overlay texture. Check the log for more details.");
 				}
+
 				ImGui.PopStyleColor();
 			}
 		}
@@ -393,18 +394,18 @@ internal class Overlay : IDisposable
 			return false;
 		}
 
-		if (Services.ClientState.LocalPlayer == null)
+		if (Services.ObjectTable.LocalPlayer == null)
 		{
 			return true;
 		}
 
-		if (Services.ClientState.LocalPlayer.StatusFlags.HasFlag(StatusFlags.InCombat))
+		if (Services.ObjectTable.LocalPlayer.StatusFlags.HasFlag(StatusFlags.InCombat))
 		{
 			_timeLastInCombat = DateTimeOffset.Now.ToUnixTimeMilliseconds();
 			return false;
 		}
 
-		if (!Services.ClientState.LocalPlayer.StatusFlags.HasFlag(StatusFlags.InCombat) && _overlayConfig.HideDelay > 0)
+		if (!Services.ObjectTable.LocalPlayer.StatusFlags.HasFlag(StatusFlags.InCombat) && _overlayConfig.HideDelay > 0)
 		{
 			return DateTimeOffset.Now.ToUnixTimeMilliseconds() >= _timeLastInCombat + (_overlayConfig.HideDelay * 1000);
 		}

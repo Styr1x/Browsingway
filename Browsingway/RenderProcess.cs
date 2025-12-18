@@ -198,7 +198,8 @@ internal class RenderProcess : IDisposable
 			DalamudAssemblyDir = Path.GetDirectoryName(typeof(IPluginLog).Assembly.Location)!,
 			CefAssemblyDir = cefAssemblyDir,
 			CefCacheDir = Path.Combine(_configDir, "cef-cache"),
-			DxgiAdapterLuid = DxHandler.AdapterLuid,
+			DxgiAdapterLuidLow = DxHandler.AdapterLuid.LowPart,
+			DxgiAdapterLuidHigh = DxHandler.AdapterLuid.HighPart,
 			KeepAliveHandleName = _keepAliveHandleName,
 			IpcChannelName = _ipcChannelName
 		};

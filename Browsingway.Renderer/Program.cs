@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Drawing;
 using System.Reflection;
 using System.Runtime.CompilerServices;
+using TerraFX.Interop.Windows;
 
 namespace Browsingway.Renderer;
 
@@ -50,7 +51,7 @@ internal static class Program
 
 		AppDomain.CurrentDomain.FirstChanceException += (_, e) => Console.Error.WriteLine(e.Exception.ToString());
 
-		bool dxRunning = DxHandler.Initialise(args.DxgiAdapterLuid);
+		bool dxRunning = DxHandler.Initialise(new LUID {LowPart = args.DxgiAdapterLuidLow, HighPart = args.DxgiAdapterLuidHigh});
 		CefHandler.Initialise(_cefAssemblyDir, args.CefCacheDir, args.ParentPid);
 
 		InitializeIpc(args.IpcChannelName);
@@ -273,7 +274,7 @@ internal static class Program
 		{
 			assemblyPath = Path.Combine(_cefAssemblyDir, assemblyName);
 		}
-		else if (assemblyName.StartsWith("SharpDX"))
+		else if (assemblyName.StartsWith("TerraFX"))
 		{
 			assemblyPath = Path.Combine(_dalamudAssemblyDir, assemblyName);
 		}

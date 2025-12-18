@@ -42,8 +42,8 @@ public class DependencyManager : IDisposable
 	private static readonly Dependency[] _dependencies =
 	{
 		new("https://github.com/Styr1x/Browsingway/releases/download/cef-binaries/cefsharp-{VERSION}.zip", "cef",
-			"139.0.28+g55ab8a8+chromium-139.0.7258.139",
-			"5D33D2B962AFF8DC9C14761DE7DF41DB85ED63AE0E590F0EC317221A545C087E")
+			"143.0.9+ge88e818+chromium-143.0.7499.40",
+			"2911B142BE2B9F8555FD7A2FF28B47ADFFF531D4E509BD8E0020FA0771DADAA4")
 	};
 
 	private readonly string _debugCheckDir;

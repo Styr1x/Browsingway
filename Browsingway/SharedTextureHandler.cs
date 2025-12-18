@@ -1,37 +1,63 @@
-﻿using Dalamud.Bindings.ImGui;
+using Dalamud.Bindings.ImGui;
 using System.Numerics;
-using D3D = SharpDX.Direct3D;
-using D3D11 = SharpDX.Direct3D11;
+using TerraFX.Interop.DirectX;
+using TerraFX.Interop.Windows;
 
 namespace Browsingway;
 
-internal class SharedTextureHandler : IDisposable
+internal unsafe class SharedTextureHandler : IDisposable
 {
-	private readonly D3D11.ShaderResourceView _view;
+	private readonly ID3D11ShaderResourceView* _view;
+	private readonly ID3D11Texture2D* _texture;
 	private readonly Vector2 _size;
 	private readonly ImTextureID _textureId;
 
 	public SharedTextureHandler(IntPtr handle)
 	{
-		D3D11.Texture2D? textureSource = DxHandler.Device?.OpenSharedResource<D3D11.Texture2D>(handle);
-		if (textureSource is null)
+		ID3D11Device* device = DxHandler.Device;
+		if (device == null)
 		{
-			throw new Exception("Could not initialize shared texture");
+			throw new Exception("Device is null");
 		}
 
+		// Open the shared resource
+		Guid texture2DGuid = typeof(ID3D11Texture2D).GUID;
+		void* texturePtr;
+		HRESULT hr = device->OpenSharedResource((HANDLE)handle, &texture2DGuid, &texturePtr);
+		if (hr.FAILED)
+		{
+			throw new Exception($"Could not open shared resource: {hr}");
+		}
 
-		_view = new(DxHandler.Device, textureSource,
-			new D3D11.ShaderResourceViewDescription
-			{
-				Format = textureSource.Description.Format, Dimension = D3D.ShaderResourceViewDimension.Texture2D, Texture2D = {MipLevels = textureSource.Description.MipLevels}
-			});
-		_size = new Vector2(textureSource.Description.Width, textureSource.Description.Height);
-		_textureId = new ImTextureID(_view.NativePointer);
+		_texture = (ID3D11Texture2D*)texturePtr;
+
+		// Get the texture description
+		D3D11_TEXTURE2D_DESC texDesc;
+		_texture->GetDesc(&texDesc);
+
+		// Create the shader resource view
+		D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc = new()
+		{
+			Format = texDesc.Format, ViewDimension = D3D_SRV_DIMENSION.D3D_SRV_DIMENSION_TEXTURE2D, Texture2D = new D3D11_TEX2D_SRV {MostDetailedMip = 0, MipLevels = texDesc.MipLevels}
+		};
+
+		ID3D11ShaderResourceView* view;
+		hr = device->CreateShaderResourceView((ID3D11Resource*)_texture, &srvDesc, &view);
+		if (hr.FAILED)
+		{
+			_texture->Release();
+			throw new Exception($"Could not create shader resource view: {hr}");
+		}
+
+		_view = view;
+		_size = new Vector2(texDesc.Width, texDesc.Height);
+		_textureId = new ImTextureID((nint)_view);
 	}
 
 	public void Dispose()
 	{
-		_view.Dispose();
+		_view->Release();
+		_texture->Release();
 	}
 
 	public void Render()

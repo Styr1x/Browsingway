@@ -15,5 +15,5 @@
         "website",
         "video"
     ],
-    "Changelog": "- Bump Chromium to 139.0.7258.139\n- Improve renderer crash handling\n- Fix CEF not loading when game runs as a privileged process (please don't..)\n"
+    "Changelog": "- Bump Chromium to 143.0.7499.40\n- Api 14\n"
 }

@@ -6,7 +6,8 @@ table RenderParams (fs_serializer) {
     CefAssemblyDir : string (required);
     CefCacheDir : string (required);
     DalamudAssemblyDir : string (required);
-    DxgiAdapterLuid: long;
+    DxgiAdapterLuidHigh: int;
+    DxgiAdapterLuidLow: uint;
     IpcChannelName : string (required);
     KeepAliveHandleName : string (required);
     ParentPid : int;

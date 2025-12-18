@@ -1,17 +1,17 @@
-﻿using Browsingway.Common.Ipc;
+using Browsingway.Common.Ipc;
 using CefSharp;
 using CefSharp.Enums;
 using CefSharp.OffScreen;
 using CefSharp.Structs;
-using SharpDX.DXGI;
+using TerraFX.Interop.DirectX;
+using TerraFX.Interop.Windows;
 using System.Collections.Concurrent;
-using D3D11 = SharpDX.Direct3D11;
 using Range = CefSharp.Structs.Range;
 using Size = System.Drawing.Size;
 
 namespace Browsingway.Renderer;
 
-internal class TextureRenderHandler : IRenderHandler
+internal unsafe class TextureRenderHandler : IRenderHandler
 {
 	// CEF buffers are 32-bit BGRA
 	private const byte _bytesPerPixel = 4;
@@ -29,15 +29,15 @@ internal class TextureRenderHandler : IRenderHandler
 	// Transparent background click-through state
 	private bool _cursorOnBackground;
 
-	private ConcurrentBag<D3D11.Texture2D> _obsoleteTextures = new();
+	private ConcurrentBag<IntPtr> _obsoleteTextures = [];
 
 	private Rect _popupRect;
-	private D3D11.Texture2D? _popupTexture;
+	private ID3D11Texture2D* _popupTexture;
 	private bool _popupVisible;
-	private D3D11.Texture2D _sharedTexture;
+	private ID3D11Texture2D* _sharedTexture;
 
 	private IntPtr _sharedTextureHandle = IntPtr.Zero;
-	private D3D11.Texture2D _viewTexture;
+	private ID3D11Texture2D* _viewTexture;
 
 	public TextureRenderHandler(Size size)
 	{
@@ -51,8 +51,16 @@ internal class TextureRenderHandler : IRenderHandler
 		{
 			if (_sharedTextureHandle == IntPtr.Zero)
 			{
-				using Resource? resource = _sharedTexture.QueryInterface<Resource>();
-				_sharedTextureHandle = resource.SharedHandle;
+				IDXGIResource* resource;
+				Guid resourceGuid = typeof(IDXGIResource).GUID;
+				HRESULT hr = ((IUnknown*)_sharedTexture)->QueryInterface(&resourceGuid, (void**)&resource);
+				if (hr.SUCCEEDED)
+				{
+					HANDLE sharedHandle;
+					resource->GetSharedHandle(&sharedHandle);
+					_sharedTextureHandle = (IntPtr)sharedHandle.Value;
+					resource->Release();
+				}
 			}
 
 			return _sharedTextureHandle;
@@ -63,11 +71,17 @@ internal class TextureRenderHandler : IRenderHandler
 
 	public void Dispose()
 	{
-		_sharedTexture.Dispose();
-		_viewTexture.Dispose();
-		_popupTexture?.Dispose();
+		_sharedTexture->Release();
+		_viewTexture->Release();
+		if (_popupTexture != null)
+		{
+			_popupTexture->Release();
+		}
 
-		foreach (D3D11.Texture2D texture in _obsoleteTextures) { texture.Dispose(); }
+		foreach (IntPtr texturePtr in _obsoleteTextures)
+		{
+			((ID3D11Texture2D*)texturePtr)->Release();
+		}
 	}
 
 	public Rect GetViewRect()
@@ -95,12 +109,17 @@ internal class TextureRenderHandler : IRenderHandler
 	{
 		lock (_renderLock)
 		{
-			D3D11.Texture2D targetTexture = type switch
+			ID3D11Texture2D* targetTexture = type switch
 			{
 				PaintElementType.View => _viewTexture,
 				PaintElementType.Popup => _popupTexture,
 				_ => throw new Exception($"Unknown paint type {type}")
-			} ?? throw new Exception($"Target texture is null for paint type {type}");
+			};
+
+			if (targetTexture == null)
+			{
+				throw new Exception($"Target texture is null for paint type {type}");
+			}
 
 			// keep buffer to make alpha checks later on.
 			// TODO: make this a back and front buffer to atomic swap them
@@ -115,12 +134,9 @@ internal class TextureRenderHandler : IRenderHandler
 					_alphaLookupBuffer = new byte[width * height * _bytesPerPixel];
 				}
 
-				unsafe
+				fixed (void* dstBuffer = _alphaLookupBuffer)
 				{
-					fixed (void* dstBuffer = _alphaLookupBuffer)
-					{
-						Buffer.MemoryCopy(buffer.ToPointer(), dstBuffer, _alphaLookupBuffer.Length, requiredBufferSize);
-					}
+					Buffer.MemoryCopy(buffer.ToPointer(), dstBuffer, _alphaLookupBuffer.Length, requiredBufferSize);
 				}
 			}
 
@@ -129,39 +145,69 @@ internal class TextureRenderHandler : IRenderHandler
 			int depthPitch = rowPitch * height;
 
 			// Build the destination region for the dirty rect that we'll draw to
-			D3D11.Texture2DDescription texDesc = targetTexture.Description;
+			D3D11_TEXTURE2D_DESC texDesc;
+			targetTexture->GetDesc(&texDesc);
+
 			IntPtr sourceRegionPtr = buffer + (dirtyRect.X * _bytesPerPixel) + (dirtyRect.Y * rowPitch);
-			D3D11.ResourceRegion destinationRegion = new()
+			D3D11_BOX destinationBox = new()
 			{
-				Top = Math.Min(dirtyRect.Y, texDesc.Height),
-				Bottom = Math.Min(dirtyRect.Y + dirtyRect.Height, texDesc.Height),
-				Left = Math.Min(dirtyRect.X, texDesc.Width),
-				Right = Math.Min(dirtyRect.X + dirtyRect.Width, texDesc.Width),
-				Front = 0,
-				Back = 1
+				top = (uint)Math.Min(dirtyRect.Y, (int)texDesc.Height),
+				bottom = (uint)Math.Min(dirtyRect.Y + dirtyRect.Height, (int)texDesc.Height),
+				left = (uint)Math.Min(dirtyRect.X, (int)texDesc.Width),
+				right = (uint)Math.Min(dirtyRect.X + dirtyRect.Width, (int)texDesc.Width),
+				front = 0,
+				back = 1
 			};
 
 			// Draw to the target
-			D3D11.DeviceContext? context = targetTexture.Device.ImmediateContext;
-			context.UpdateSubresource(targetTexture, 0, destinationRegion, sourceRegionPtr, rowPitch, depthPitch);
+			ID3D11DeviceContext* context;
+			DxHandler.Device->GetImmediateContext(&context);
+
+			context->UpdateSubresource(
+				(ID3D11Resource*)targetTexture,
+				0,
+				&destinationBox,
+				sourceRegionPtr.ToPointer(),
+				(uint)rowPitch,
+				(uint)depthPitch);
 
 			// composite final picture
 			// draw view layer, first
-			context.CopySubresourceRegion(_viewTexture, 0, null, _sharedTexture, 0);
+			context->CopySubresourceRegion(
+				(ID3D11Resource*)_sharedTexture,
+				0,
+				0,
+				0,
+				0,
+				(ID3D11Resource*)_viewTexture,
+				0,
+				null);
 
 			// draw popup layer if required
-			if (_popupVisible)
+			if (_popupVisible && _popupTexture != null)
 			{
 				Point popupPos = DpiScaling.ScaleScreenPoint(_popupRect.X, _popupRect.Y);
-				context.CopySubresourceRegion(_popupTexture, 0, null, _sharedTexture, 0, popupPos.X, popupPos.Y);
+				context->CopySubresourceRegion(
+					(ID3D11Resource*)_sharedTexture,
+					0,
+					(uint)popupPos.X,
+					(uint)popupPos.Y,
+					0,
+					(ID3D11Resource*)_popupTexture,
+					0,
+					null);
 			}
 
-			context.Flush();
+			context->Flush();
+			context->Release();
 
 			// Rendering is complete, clean up any obsolete textures
-			ConcurrentBag<D3D11.Texture2D> textures = _obsoleteTextures;
-			_obsoleteTextures = new ConcurrentBag<D3D11.Texture2D>();
-			foreach (D3D11.Texture2D tex in textures) { tex.Dispose(); }
+			ConcurrentBag<IntPtr> textures = _obsoleteTextures;
+			_obsoleteTextures = new ConcurrentBag<IntPtr>();
+			foreach (IntPtr texPtr in textures)
+			{
+				((ID3D11Texture2D*)texPtr)->Release();
+			}
 		}
 	}
 
@@ -175,7 +221,8 @@ internal class TextureRenderHandler : IRenderHandler
 		_popupRect = DpiScaling.ScaleScreenRect(rect);
 
 		// I'm really not sure if this happens. If it does, frequently - will probably need 2x shared textures and some jazz.
-		D3D11.Texture2DDescription texDesc = _sharedTexture.Description;
+		D3D11_TEXTURE2D_DESC texDesc;
+		_sharedTexture->GetDesc(&texDesc);
 		if (_popupRect.Width > texDesc.Width || _popupRect.Height > texDesc.Height)
 		{
 			Console.Error.WriteLine(
@@ -183,12 +230,15 @@ internal class TextureRenderHandler : IRenderHandler
 		}
 
 		// Get a reference to the old _sharedTexture, we'll make sure to assign a new _sharedTexture before disposing the old one.
-		D3D11.Texture2D? oldTexture = _popupTexture;
+		ID3D11Texture2D* oldTexture = _popupTexture;
 
 		// Build a _sharedTexture for the new sized popup
 		_popupTexture = BuildViewTexture(new Size(_popupRect.Width, _popupRect.Height), false);
 
-		oldTexture?.Dispose();
+		if (oldTexture != null)
+		{
+			oldTexture->Release();
+		}
 	}
 
 	public ScreenInfo? GetScreenInfo()
@@ -235,12 +285,12 @@ internal class TextureRenderHandler : IRenderHandler
 		lock (_renderLock)
 		{
 			// TODO: make this thread unsafe crap thread safe crap
-			D3D11.Texture2D oldTexture1 = _sharedTexture;
-			D3D11.Texture2D oldTexture2 = _viewTexture;
+			ID3D11Texture2D* oldTexture1 = _sharedTexture;
+			ID3D11Texture2D* oldTexture2 = _viewTexture;
 			_sharedTexture = BuildViewTexture(size, true);
 			_viewTexture = BuildViewTexture(size, false);
-			_obsoleteTextures.Add(oldTexture1);
-			_obsoleteTextures.Add(oldTexture2);
+			_obsoleteTextures.Add((IntPtr)oldTexture1);
+			_obsoleteTextures.Add((IntPtr)oldTexture2);
 
 			// Need to clear the cached handle value
 			// TODO: Maybe I should just avoid the lazy cache and do it eagerly on _sharedTexture build.
@@ -271,29 +321,38 @@ internal class TextureRenderHandler : IRenderHandler
 		}
 	}
 
-	private D3D11.Texture2D BuildViewTexture(Size size, bool isShared)
+	private ID3D11Texture2D* BuildViewTexture(Size size, bool isShared)
 	{
 		// Build _sharedTexture. Most of these properties are defined to match how CEF exposes the render buffer.
-		return new D3D11.Texture2D(DxHandler.Device,
-			new D3D11.Texture2DDescription
-			{
-				Width = size.Width,
-				Height = size.Height,
-				MipLevels = 1,
-				ArraySize = 1,
-				Format = Format.B8G8R8A8_UNorm,
-				SampleDescription = new SampleDescription(1, 0),
-				Usage = D3D11.ResourceUsage.Default,
-				BindFlags = D3D11.BindFlags.ShaderResource,
-				CpuAccessFlags = D3D11.CpuAccessFlags.None,
-				OptionFlags = isShared ? D3D11.ResourceOptionFlags.Shared : D3D11.ResourceOptionFlags.None
-			});
+		D3D11_TEXTURE2D_DESC desc = new()
+		{
+			Width = (uint)size.Width,
+			Height = (uint)size.Height,
+			MipLevels = 1,
+			ArraySize = 1,
+			Format = DXGI_FORMAT.DXGI_FORMAT_B8G8R8A8_UNORM,
+			SampleDesc = new DXGI_SAMPLE_DESC { Count = 1, Quality = 0 },
+			Usage = D3D11_USAGE.D3D11_USAGE_DEFAULT,
+			BindFlags = (uint)D3D11_BIND_FLAG.D3D11_BIND_SHADER_RESOURCE,
+			CPUAccessFlags = 0,
+			MiscFlags = isShared ? (uint)D3D11_RESOURCE_MISC_FLAG.D3D11_RESOURCE_MISC_SHARED : 0
+		};
+
+		ID3D11Texture2D* texture;
+		HRESULT hr = DxHandler.Device->CreateTexture2D(&desc, null, &texture);
+		if (hr.FAILED)
+		{
+			throw new Exception($"Failed to create texture: {hr}");
+		}
+
+		return texture;
 	}
 
 	private Rect GetViewRectInternal()
 	{
-		D3D11.Texture2DDescription texDesc = _sharedTexture.Description;
-		return DpiScaling.ScaleViewRect(new Rect(0, 0, texDesc.Width, texDesc.Height));
+		D3D11_TEXTURE2D_DESC texDesc;
+		_sharedTexture->GetDesc(&texDesc);
+		return DpiScaling.ScaleViewRect(new Rect(0, 0, (int)texDesc.Width, (int)texDesc.Height));
 	}
 
 	public void SetMousePosition(int x, int y)

@@ -1,7 +1,7 @@
-<Project Sdk="Dalamud.NET.Sdk/13.0.0">
+<Project Sdk="Dalamud.NET.Sdk/14.0.1">
 
 	<PropertyGroup>
-		<TargetFramework>net9.0-windows</TargetFramework>
+		<TargetFramework>net10.0-windows</TargetFramework>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
 		<Configurations>Release;Debug</Configurations>
@@ -9,29 +9,21 @@
 		<ProduceReferenceAssembly>false</ProduceReferenceAssembly>
 		<AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
 		<LangVersion>latestmajor</LangVersion>
-		<Version>1.6.7.0</Version>
+		<Version>1.7.0.0</Version>
 		<OutputPath>..\out</OutputPath>
 		<RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
 	</PropertyGroup>
     
 	<ItemGroup>
-		<Reference Include="SharpDX">
-			<HintPath>$(DalamudLibPath)SharpDX.dll</HintPath>
-			<Private>false</Private>
-		</Reference>
-		<Reference Include="SharpDX.Direct3D11">
-			<HintPath>$(DalamudLibPath)SharpDX.Direct3D11.dll</HintPath>
-			<Private>false</Private>
-		</Reference>
-		<Reference Include="SharpDX.DXGI">
-			<HintPath>$(DalamudLibPath)SharpDX.DXGI.dll</HintPath>
-			<Private>false</Private>
-		</Reference>
+        <Reference Include="TerraFX.Interop.Windows">
+            <HintPath>$(DalamudLibPath)TerraFX.Interop.Windows.dll</HintPath>
+            <Private>false</Private>
+        </Reference>
 	</ItemGroup>
 	
 	<ItemGroup>
 		<PackageReference Include="SharedMemory" Version="2.3.2" />
-		<PackageReference Update="DalamudPackager" Version="13.1.0" />
+		<PackageReference Update="DalamudPackager" Version="14.0.1" />
 	</ItemGroup>
 
 	<ItemGroup>
