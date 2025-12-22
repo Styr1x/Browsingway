@@ -47,7 +47,7 @@ You might also want to enable 'ACT optimizations' inside Browsingway for the spe
 
 Using Browsingway in Linux is experimental and *not supported*. However, you may have some success if you try the following steps:
 
-- Download the .NET Framework for Windows (not a typo) version 9.0.3, both [x64](https://builds.dotnet.microsoft.com/dotnet/Runtime/9.0.3/dotnet-runtime-9.0.3-win-x64.exe) and [x86](https://builds.dotnet.microsoft.com/dotnet/Runtime/9.0.3/dotnet-runtime-9.0.3-win-x86.exe) versions.
+- Download the .NET Framework for Windows (yes, Windows, not a typo) version 10.0.0, both [x64](https://builds.dotnet.microsoft.com/dotnet/Runtime/10.0.0/dotnet-runtime-10.0.0-win-x64.exe) and [x86](https://builds.dotnet.microsoft.com/dotnet/Runtime/10.0.0/dotnet-runtime-10.0.0-win-x86.exe) versions.
 - In XIVLauncher's settings, navigate to the `Wine` tab, then click `Open Wine explorer (run apps in prefix)`.
 - In the new window, find the two .NET installers you downloaded, and run them, leaving everything set to defaults. (You can also run the installers from the command line if you prefer, but make sure to set `WINEPREFIX=~/.xlcore/wineprefix` and use the Wine executable in `~/xlcore/compatibilitytool/wine/` that matches what you're trying to use with FFXIV.
 
