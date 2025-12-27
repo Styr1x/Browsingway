@@ -214,10 +214,6 @@ internal class RenderProcess : IDisposable
 			RedirectStandardOutput = true,
 			RedirectStandardError = true
 		};
-		string runtimePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "XIVLauncher", "runtime");
-		// ensure Dalamud's runtime is used even if there's a system runtime, to avoid runtime version mismatches
-		process.StartInfo.EnvironmentVariables.Remove("DOTNET_ROOT");
-		process.StartInfo.EnvironmentVariables.Add("DOTNET_ROOT", runtimePath);
 
 		process.OutputDataReceived += (_, args) => Services.PluginLog.Info($"[Render]: {args.Data}");
 		process.ErrorDataReceived += (_, args) => Services.PluginLog.Error($"[Render]: {args.Data}");
