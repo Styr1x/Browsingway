@@ -1,11 +1,11 @@
-﻿using Browsingway.Common;
+using Browsingway.Commands;
+using Browsingway.Models;
+using Browsingway.Services;
+using Browsingway.UI.Windows;
+using Dalamud.Bindings.ImGui;
 using Dalamud.Game.Command;
 using Dalamud.Interface.Windowing;
-using Dalamud.IoC;
 using Dalamud.Plugin;
-using Dalamud.Plugin.Services;
-using Dalamud.Bindings.ImGui;
-using System.Diagnostics;
 using System.Numerics;
 using System.Reflection;
 
@@ -16,32 +16,40 @@ public class Plugin : IDalamudPlugin
 	private const string _command = "/bw";
 
 	private readonly DependencyManager _dependencyManager;
-	private readonly Dictionary<Guid, Overlay> _overlays = new();
 	private readonly string _pluginConfigDir;
 	private readonly string _pluginDir;
+	private readonly IServiceContainer _services;
+	private readonly ActManager _actManager;
 
 	private RenderProcess? _renderProcess;
-	private ActHandler _actHandler;
-	private Settings? _settings;
-	private Services _services;
+	private OverlayManager? _overlayManager;
+	private SettingsWindow? _settingsWindow;
+	private DependencyWindow? _dependencyWindow;
+	private OverlayCommandHandler? _commandHandler;
+	private Configuration? _config;
+	private readonly WindowSystem _windowSystem = new("Browsingway");
 
 	public Plugin(IDalamudPluginInterface pluginInterface)
 	{
-		// init services
-		_services = pluginInterface.Create<Services>()!;
+		// Initialize service container via Dalamud IoC
+		_services = pluginInterface.Create<ServiceContainer>()!;
 
 		_pluginDir = pluginInterface.AssemblyLocation.DirectoryName ?? "";
-		if (String.IsNullOrEmpty(_pluginDir))
+		if (string.IsNullOrEmpty(_pluginDir))
 		{
 			throw new Exception("Could not determine plugin directory");
 		}
 
 		_pluginConfigDir = pluginInterface.GetPluginConfigDirectory();
 
-		_actHandler = new ActHandler();
+		_actManager = new ActManager(_services);
 
-		_dependencyManager = new DependencyManager(_pluginDir, _pluginConfigDir);
+		_dependencyManager = new DependencyManager(_services, _pluginDir, _pluginConfigDir);
 		_dependencyManager.DependenciesReady += (_, _) => DependenciesReady();
+		// Initialise DependencyWindow
+		_dependencyWindow = new DependencyWindow(_dependencyManager, _services, _pluginDir);
+		_windowSystem.AddWindow(_dependencyWindow);
+		
 		_dependencyManager.Initialise();
 
 		// Hook up render hook
@@ -54,15 +62,14 @@ public class Plugin : IDalamudPlugin
 
 	public void Dispose()
 	{
-		foreach (Overlay overlay in _overlays.Values) { overlay.Dispose(); }
-
-		_overlays.Clear();
-
+		_overlayManager?.Dispose();
 		_renderProcess?.Dispose();
+		_settingsWindow?.Dispose();
+		_dependencyWindow?.Dispose();
 
-		_settings?.Dispose();
+		_windowSystem.RemoveAllWindows();
 
-		Services.CommandManager.RemoveHandler(_command);
+		_services.CommandManager.RemoveHandler(_command);
 
 		WndProcHandler.Shutdown();
 		DxHandler.Shutdown();
@@ -73,164 +80,103 @@ public class Plugin : IDalamudPlugin
 	private void DependenciesReady()
 	{
 		// Spin up DX handling from the plugin interface
-		DxHandler.Initialise(Services.PluginInterface);
+		DxHandler.Initialise(_services.PluginInterface);
 
 		// Spin up WndProc hook
 		WndProcHandler.Initialise(DxHandler.WindowHandle);
 		WndProcHandler.WndProcMessage += OnWndProc;
 
-		// Boot the render process. This has to be done before initialising settings to prevent a
-		// race condition overlays receiving a null reference.
-		int pid = Process.GetCurrentProcess().Id;
-		_renderProcess = new RenderProcess(pid, _pluginDir, _pluginConfigDir, _dependencyManager, Services.PluginLog);
+		// Boot the render process
+		int pid = Environment.ProcessId;
+		_renderProcess = new RenderProcess(_services, pid, _pluginDir, _pluginConfigDir, _dependencyManager);
+
+		// Create overlay manager
+		_overlayManager = new OverlayManager(_services, _renderProcess, _pluginDir);
+
+		// Load configuration
+		_config = _services.PluginInterface.GetPluginConfig() as Configuration ?? new Configuration();
+
+		// Create settings window
+		_settingsWindow = new SettingsWindow(
+			_services,
+			_overlayManager,
+			_config,
+			() => _actManager.IsRunning,
+			() => _overlayManager.GetActiveOverlayCount(),
+			_pluginDir);
+
+		_windowSystem.AddWindow(_settingsWindow);
+
+		// Create command handler
+		_commandHandler = new OverlayCommandHandler(
+			_services,
+			_overlayManager,
+			() => _config!,
+			() =>
+			{
+				_services.PluginInterface.SavePluginConfig(_config!);
+				_overlayManager.ReloadAllFromConfig(_config!, _actManager.IsRunning);
+				_settingsWindow.OnConfigChanged();
+			});
+
+		// Handle renderer ready event
 		_renderProcess.Rpc!.RendererReady += msg =>
 		{
 			if (!msg.HasDxSharedTexturesSupport)
 			{
-				Services.PluginLog.Error("Could not initialize shared textures transport. Browsingway will not work.");
+				_services.PluginLog.Error("Could not initialize shared textures transport. Browsingway will not work.");
 				return;
 			}
 
-			Services.Framework.RunOnFrameworkThread(() =>
+			_services.Framework.RunOnFrameworkThread(() =>
 			{
-				if (_settings is not null)
-				{
-					_settings.HydrateOverlays();
-				}
+				// Initial load of overlays from config
+				_overlayManager.ReloadAllFromConfig(_config!, _actManager.IsRunning);
 			});
 		};
-		_renderProcess.Rpc.SetCursor += msg =>
-		{
-			Services.Framework.RunOnFrameworkThread(() =>
-			{
-				Guid guid = new(msg.Guid.Span);
-				Overlay? overlay = _overlays.Values.FirstOrDefault(overlay => overlay.RenderGuid == guid);
-				overlay?.SetCursor(msg.Cursor);
-			});
-		};
-		_renderProcess.Rpc.UpdateTexture += msg =>
-		{
-			Services.Framework.RunOnFrameworkThread(() =>
-			{
-				Guid guid = new(msg.Guid.Span);
-				if (_overlays.TryGetValue(guid, out Overlay? overlay))
-				{
-					overlay.SetTexture((IntPtr)msg.TextureHandle);
-				}
-				else
-				{
-					Services.PluginLog.Error("Overlay Id not found");
-				}
-			});
-		};
+
 		_renderProcess.Start();
 
-		// Prep settings
-		_settings = new Settings();
-		if (_settings is not null)
-		{
-			_settings.OverlayAdded += OnOverlayAdded;
-			_settings.OverlayNavigated += OnOverlayNavigated;
-			_settings.OverlayDebugged += OnOverlayDebugged;
-			_settings.OverlayRemoved += OnOverlayRemoved;
-			_settings.OverlayZoomed += OnOverlayZoomed;
-			_settings.OverlayMuted += OnOverlayMuted;
-			_actHandler.AvailabilityChanged += OnActAvailabilityChanged;
-			_settings.OverlayUserCssChanged += OnUserCssChanged;
-		}
+		// Handle ACT availability changes
+		_actManager.AvailabilityChanged += OnActAvailabilityChanged;
 
 		// Hook up the main BW command
-		Services.CommandManager.AddHandler(_command,
-			new CommandInfo(HandleCommand) {HelpMessage = "Control Browsingway from the chat line! Type '/bw config' or open the settings for more info.", ShowInHelp = true});
+		_services.CommandManager.AddHandler(_command,
+			new CommandInfo(HandleCommand) { HelpMessage = "Control Browsingway from the chat line! Type '/bw config' or open the settings for more info.", ShowInHelp = true });
 	}
 
-	private (bool, long) OnWndProc(WindowsMessage msg, ulong wParam, long lParam)
+	private WndProcResult OnWndProc(WindowsMessage msg, ulong wParam, long lParam)
 	{
-		// Notify all the overlays of the wndproc, respond with the first capturing response (if any)
-		// TODO: Yeah this ain't great but realistically only one will capture at any one time for now.
-		IEnumerable<(bool, long)> responses = _overlays.Select(pair => pair.Value.WndProcMessage(msg, wParam, lParam));
-		return responses.FirstOrDefault(pair => pair.Item1);
+		return _overlayManager?.HandleWndProc(msg, wParam, lParam) ?? WndProcResult.NotHandled;
 	}
 
 	private void OnActAvailabilityChanged(object? sender, bool e)
 	{
-		_settings?.OnActAvailabilityChanged(e);
-	}
-
-	private void OnOverlayAdded(object? sender, InlayConfiguration overlayConfig)
-	{
-		if (_renderProcess is null || _settings is null)
-		{
-			return;
-		}
-
-		Overlay overlay = new(_renderProcess, overlayConfig, _pluginDir);
-		_overlays.TryAdd(overlayConfig.Guid, overlay);
-	}
-
-	private void OnOverlayNavigated(object? sender, InlayConfiguration config)
-	{
-		if (_overlays.TryGetValue(config.Guid, out var overlay))
-			overlay.Navigate(config.Url);
-	}
-
-	private void OnOverlayDebugged(object? sender, InlayConfiguration config)
-	{
-		if (_overlays.TryGetValue(config.Guid, out var overlay))
-			overlay.Debug();
-	}
-
-	private void OnOverlayRemoved(object? sender, InlayConfiguration config)
-	{
-		if (_overlays.Remove(config.Guid, out var overlay))
-		{
-			overlay.Dispose();
-		}
-	}
-
-	private void OnOverlayZoomed(object? sender, InlayConfiguration config)
-	{
-		if (_overlays.TryGetValue(config.Guid, out var overlay))
-			overlay.Zoom(config.Zoom);
-	}
-
-	private void OnOverlayMuted(object? sender, InlayConfiguration config)
-	{
-		if (_overlays.TryGetValue(config.Guid, out var overlay))
-			overlay.Mute(config.Muted);
-	}
-
-	private void OnUserCssChanged(object? sender, InlayConfiguration config)
-	{
-		Overlay overlay = _overlays[config.Guid];
-		overlay.InjectUserCss(config.CustomCss);
+		_settingsWindow?.OnActAvailabilityChanged();
 	}
 
 	private void Render()
 	{
-		_dependencyManager.Render();
-		_settings?.Render();
+		// _dependencyManager.Render(); // Removed as handled by WindowSystem
+		_windowSystem.Draw();
 
 		ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, new Vector2(0, 0));
 
 		_renderProcess?.EnsureRenderProcessIsAlive();
-		_actHandler.Check();
+		_actManager.Check();
 
-		foreach (Overlay overlay in _overlays.Values) { overlay.Render(); }
+		_overlayManager?.RenderAll();
 
 		ImGui.PopStyleVar();
 	}
 
 	private void HandleCommand(string command, string rawArgs)
 	{
-		// Docs complain about perf of multiple splits.
-		// I'm not convinced this is a sufficiently perf-critical path to care.
 		string[] args = rawArgs.Split(null as char[], 2, StringSplitOptions.RemoveEmptyEntries);
 
 		if (args.Length == 0)
 		{
-			Services.Chat.PrintError(
-				"No subcommand specified. Valid subcommands are: config,overlay.");
+			_services.Chat.PrintError("No subcommand specified. Valid subcommands are: config,overlay.");
 			return;
 		}
 
@@ -239,17 +185,14 @@ public class Plugin : IDalamudPlugin
 		switch (args[0])
 		{
 			case "config":
-				_settings?.HandleConfigCommand(subcommandArgs);
+				_settingsWindow?.Open();
 				break;
 			case "inlay":
-				_settings?.HandleOverlayCommand(subcommandArgs);
-				break;
 			case "overlay":
-				_settings?.HandleOverlayCommand(subcommandArgs);
+				_commandHandler?.Handle(subcommandArgs);
 				break;
 			default:
-				Services.Chat.PrintError(
-					$"Unknown subcommand '{args[0]}'. Valid subcommands are: config,overlay,inlay.");
+				_services.Chat.PrintError($"Unknown subcommand '{args[0]}'. Valid subcommands are: config,overlay,inlay.");
 				break;
 		}
 	}

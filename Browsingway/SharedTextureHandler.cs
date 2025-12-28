@@ -5,7 +5,7 @@ using TerraFX.Interop.Windows;
 
 namespace Browsingway;
 
-internal unsafe class SharedTextureHandler : IDisposable
+internal sealed unsafe class SharedTextureHandler : IDisposable
 {
 	private readonly ID3D11ShaderResourceView* _view;
 	private readonly ID3D11Texture2D* _texture;

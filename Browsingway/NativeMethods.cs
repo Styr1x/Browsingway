@@ -26,22 +26,19 @@ internal enum VirtualKey
 	Control = 0x11
 }
 
-internal class NativeMethods
+internal static partial class NativeMethods
 {
-	public static bool IsKeyActive(VirtualKey key)
-	{
-		return (GetKeyState((int)key) & 1) == 1;
-	}
+	public static bool IsKeyActive(VirtualKey key) => (GetKeyState((int)key) & 1) == 1;
 
-	[DllImport("user32.dll", EntryPoint = "GetWindowLongPtrW")]
-	public static extern IntPtr GetWindowLongPtr(IntPtr hWnd, WindowLongType nIndex);
+	[LibraryImport("user32.dll", EntryPoint = "GetWindowLongPtrW")]
+	public static partial IntPtr GetWindowLongPtr(IntPtr hWnd, WindowLongType nIndex);
 
-	[DllImport("user32.dll", EntryPoint = "SetWindowLongPtrW")]
-	public static extern IntPtr SetWindowLongPtr(IntPtr hWnd, WindowLongType nIndex, IntPtr dwNewLong);
+	[LibraryImport("user32.dll", EntryPoint = "SetWindowLongPtrW")]
+	public static partial IntPtr SetWindowLongPtr(IntPtr hWnd, WindowLongType nIndex, IntPtr dwNewLong);
 
-	[DllImport("user32.dll", EntryPoint = "CallWindowProcW")]
-	public static extern long CallWindowProc(IntPtr lpPrevWndFunc, IntPtr hWnd, uint msg, ulong wParam, long lParam);
+	[LibraryImport("user32.dll", EntryPoint = "CallWindowProcW")]
+	public static partial long CallWindowProc(IntPtr lpPrevWndFunc, IntPtr hWnd, uint msg, ulong wParam, long lParam);
 
-	[DllImport("user32.dll")]
-	private static extern short GetKeyState(int nVirtKey);
+	[LibraryImport("user32.dll")]
+	private static partial short GetKeyState(int nVirtKey);
 }

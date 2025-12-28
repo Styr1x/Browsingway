@@ -1,18 +1,18 @@
-﻿using System.Runtime.InteropServices;
+using Browsingway.Models;
+using System.Runtime.InteropServices;
 
 namespace Browsingway;
 
-internal class WndProcHandler
+internal static class WndProcHandler
 {
 	public delegate long WndProcDelegate(IntPtr hWnd, uint msg, ulong wParam, long lParam);
-
-	public delegate (bool, long) WndProcMessageDelegate(WindowsMessage msg, ulong wParam, long lParam);
+	public delegate WndProcResult WndProcMessageDelegate(WindowsMessage msg, ulong wParam, long lParam);
 
 	private static WndProcDelegate? _wndProcDelegate;
-
 	private static IntPtr _hWnd;
 	private static IntPtr _oldWndProcPtr;
 	private static IntPtr _detourPtr;
+
 	public static event WndProcMessageDelegate? WndProcMessage;
 
 	public static void Initialise(IntPtr hWnd)
@@ -42,12 +42,11 @@ internal class WndProcHandler
 		// Ignore things not targeting the current window handle
 		if (hWnd == _hWnd)
 		{
-			(bool, long)? resp = WndProcMessage?.Invoke((WindowsMessage)msg, wParam, lParam);
+			WndProcResult? result = WndProcMessage?.Invoke((WindowsMessage)msg, wParam, lParam);
 
-			// Item1 is a bool, where true == capture event. If false, we're falling through default handling.
-			if (resp is { Item1: true })
+			if (result is { Handled: true })
 			{
-				return resp.Value.Item2;
+				return result.Value.ReturnValue;
 			}
 		}
 

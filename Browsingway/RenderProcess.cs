@@ -1,6 +1,6 @@
 using Browsingway.Common;
 using Browsingway.Common.Ipc;
-using Dalamud.Plugin.Services;
+using Browsingway.Services;
 using System.Diagnostics;
 
 namespace Browsingway;
@@ -12,30 +12,29 @@ internal class RenderProcess : IDisposable
 
 	private readonly string _configDir;
 	private readonly DependencyManager _dependencyManager;
-
 	private readonly string _ipcChannelName;
-
 	private readonly string _keepAliveHandleName;
 	private readonly int _parentPid;
 	private readonly string _pluginDir;
-
-	private DateTime _lastRenderCheck = DateTime.MinValue;
-	private uint _restartCount = 0;
+	private readonly IServiceContainer _services;
 
 	private const uint _maxRestarts = 5;
 	private const uint _checkDelaySeconds = 1;
 	private const uint _processOkAfterSeconds = 5;
 
+	private DateTime _lastRenderCheck = DateTime.MinValue;
+	private uint _restartCount;
 	private Process _process;
 	private bool _running;
 
-	public RenderProcess(int pid,
+	public RenderProcess(
+		IServiceContainer services,
+		int pid,
 		string pluginDir,
 		string configDir,
-		DependencyManager dependencyManager,
-		IPluginLog pluginLog
-	)
+		DependencyManager dependencyManager)
 	{
+		_services = services;
 		_keepAliveHandleName = $"BrowsingwayRendererKeepAlive{pid}";
 		_ipcChannelName = $"BrowsingwayRendererIpcChannel{pid}";
 		_dependencyManager = dependencyManager;
@@ -100,7 +99,7 @@ internal class RenderProcess : IDisposable
 
 		if (_restartCount >= _maxRestarts)
 		{
-			Services.PluginLog.Error("Render process is crashing in a loop - please check the logs. No further restarts will be attempted until Browsingway is restarted.");
+			_services.PluginLog.Error("Render process is crashing in a loop - please check the logs. No further restarts will be attempted until Browsingway is restarted.");
 			Stop();
 			Rpc?.Dispose();
 			Rpc = null;
@@ -116,7 +115,7 @@ internal class RenderProcess : IDisposable
 				{
 					// process crashed, restart
 					_restartCount++;
-					Services.PluginLog.Error($"Render process crashed - will restart asap (attempt {_restartCount}/{_maxRestarts}).");
+					_services.PluginLog.Error($"Render process crashed - will restart asap (attempt {_restartCount}/{_maxRestarts}).");
 					_process = SetupProcess();
 					_process.Start();
 					_process.BeginOutputReadLine();
@@ -130,7 +129,7 @@ internal class RenderProcess : IDisposable
 				}
 				catch (Exception e)
 				{
-					Services.PluginLog.Error(e, "Failed to restart render process");
+					_services.PluginLog.Error(e, "Failed to restart render process");
 				}
 				finally
 				{
@@ -176,7 +175,7 @@ internal class RenderProcess : IDisposable
 				}
 				catch (Exception e)
 				{
-					Services.PluginLog.Error(e, "Failed to get process exit status");
+					_services.PluginLog.Error(e, "Failed to get process exit status");
 				}
 				finally
 				{
@@ -195,7 +194,7 @@ internal class RenderProcess : IDisposable
 		RenderParams processArgs = new()
 		{
 			ParentPid = _parentPid,
-			DalamudAssemblyDir = Path.GetDirectoryName(typeof(IPluginLog).Assembly.Location)!,
+			DalamudAssemblyDir = Path.GetDirectoryName(_services.PluginLog.GetType().Assembly.Location)!,
 			CefAssemblyDir = cefAssemblyDir,
 			CefCacheDir = Path.Combine(_configDir, "cef-cache"),
 			DxgiAdapterLuidLow = DxHandler.AdapterLuid.LowPart,
@@ -215,8 +214,8 @@ internal class RenderProcess : IDisposable
 			RedirectStandardError = true
 		};
 
-		process.OutputDataReceived += (_, args) => Services.PluginLog.Info($"[Render]: {args.Data}");
-		process.ErrorDataReceived += (_, args) => Services.PluginLog.Error($"[Render]: {args.Data}");
+		process.OutputDataReceived += (_, args) => _services.PluginLog.Info($"[Render]: {args.Data}");
+		process.ErrorDataReceived += (_, args) => _services.PluginLog.Error($"[Render]: {args.Data}");
 
 		return process;
 	}

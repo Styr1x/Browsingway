@@ -1,4 +1,7 @@
 using Browsingway.Common.Ipc;
+using Browsingway.Extensions;
+using Browsingway.Models;
+using Browsingway.Services;
 using Dalamud.Game.ClientState.Objects.Enums;
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface.Textures;
@@ -10,24 +13,24 @@ namespace Browsingway;
 internal class Overlay : IDisposable
 {
 	private readonly InlayConfiguration _overlayConfig;
-
 	private readonly RenderProcess _renderProcess;
+	private readonly IServiceContainer _services;
+	private readonly ISharedImmediateTexture? _texErrorIcon;
+
 	private bool _captureCursor;
 	private ImGuiMouseCursor _cursor;
-
 	private bool _mouseInWindow;
-
 	private bool _resizing;
 	private Vector2 _size;
-	private bool _hasRenderError = false;
+	private bool _hasRenderError;
 	private SharedTextureHandler? _textureHandler;
 	private Exception? _textureRenderException;
 	private bool _windowFocused;
 	private long _timeLastInCombat;
-	private ISharedImmediateTexture? _texErrorIcon;
 
-	public Overlay(RenderProcess renderProcess, InlayConfiguration overlayConfig, string pluginDir)
+	public Overlay(IServiceContainer services, RenderProcess renderProcess, InlayConfiguration overlayConfig, string pluginDir)
 	{
+		_services = services;
 		_renderProcess = renderProcess;
 		// TODO: handle that the correct way
 		_renderProcess.Crashed += (_, _) =>
@@ -37,7 +40,7 @@ internal class Overlay : IDisposable
 		};
 
 		_overlayConfig = overlayConfig;
-		_texErrorIcon = Services.TextureProvider.GetFromFile(Path.Combine(pluginDir, "dead.png"));
+		_texErrorIcon = _services.TextureProvider.GetFromFile(Path.Combine(pluginDir, "dead.png"));
 	}
 
 	public Guid RenderGuid => _overlayConfig.Guid;
@@ -45,32 +48,32 @@ internal class Overlay : IDisposable
 	public void Dispose()
 	{
 		_textureHandler?.Dispose();
-		_ = _renderProcess.Rpc?.RemoveOverlay(RenderGuid);
+		_renderProcess.Rpc?.RemoveOverlay(RenderGuid).FireAndForget(_services.PluginLog);
 	}
 
 	public void Navigate(string newUrl)
 	{
-		_ = _renderProcess.Rpc?.Navigate(RenderGuid, newUrl);
+		_renderProcess.Rpc?.Navigate(RenderGuid, newUrl).FireAndForget(_services.PluginLog);
 	}
 
 	public void InjectUserCss(string css)
 	{
-		_ = _renderProcess.Rpc?.InjectUserCss(RenderGuid, css);
+		_renderProcess.Rpc?.InjectUserCss(RenderGuid, css).FireAndForget(_services.PluginLog);
 	}
 
 	public void Zoom(float zoom)
 	{
-		_ = _renderProcess.Rpc?.Zoom(RenderGuid, zoom);
+		_renderProcess.Rpc?.Zoom(RenderGuid, zoom).FireAndForget(_services.PluginLog);
 	}
 
 	public void Mute(bool mute)
 	{
-		_ = _renderProcess.Rpc?.Mute(RenderGuid, mute);
+		_renderProcess.Rpc?.Mute(RenderGuid, mute).FireAndForget(_services.PluginLog);
 	}
 
 	public void Debug()
 	{
-		_ = _renderProcess.Rpc?.Debug(RenderGuid);
+		_renderProcess.Rpc?.Debug(RenderGuid).FireAndForget(_services.PluginLog);
 	}
 
 	public void SetCursor(Cursor cursor)
@@ -79,42 +82,45 @@ internal class Overlay : IDisposable
 		_cursor = DecodeCursor(cursor);
 	}
 
-	public (bool, long) WndProcMessage(WindowsMessage msg, ulong wParam, long lParam)
+	public WndProcResult WndProcMessage(WindowsMessage msg, ulong wParam, long lParam)
 	{
 		if (msg == WindowsMessage.WM_LBUTTONDOWN)
 		{
-			// this message is only generated when someone clicked on an non ImGui window, meaning we want to loose focus here
+			// this message is only generated when someone clicked on a non-ImGui window, meaning we want to lose focus here
 			_windowFocused = false;
 		}
 
 		// Bail if we're not focused or we're typethrough
 		// TODO: Revisit the focus check for UI stuff, might not hold
-		if (!_windowFocused || _overlayConfig.TypeThrough) { return (false, 0); }
+		if (!_windowFocused || _overlayConfig.TypeThrough)
+		{
+			return WndProcResult.NotHandled;
+		}
 
 		KeyEventType? eventType = msg switch
 		{
-			WindowsMessage.WM_KEYDOWN => KeyEventType.KeyDown,
-			WindowsMessage.WM_SYSKEYDOWN => KeyEventType.KeyDown,
-			WindowsMessage.WM_KEYUP => KeyEventType.KeyUp,
-			WindowsMessage.WM_SYSKEYUP => KeyEventType.KeyUp,
-			WindowsMessage.WM_CHAR => KeyEventType.Character,
-			WindowsMessage.WM_SYSCHAR => KeyEventType.Character,
+			WindowsMessage.WM_KEYDOWN or WindowsMessage.WM_SYSKEYDOWN => KeyEventType.KeyDown,
+			WindowsMessage.WM_KEYUP or WindowsMessage.WM_SYSKEYUP => KeyEventType.KeyUp,
+			WindowsMessage.WM_CHAR or WindowsMessage.WM_SYSCHAR => KeyEventType.Character,
 			_ => null
 		};
 
 		// If the event isn't something we're tracking, bail early with no capture
-		if (eventType == null) { return (false, 0); }
+		if (eventType == null)
+		{
+			return WndProcResult.NotHandled;
+		}
 
-		_ = _renderProcess.Rpc?.KeyEvent(RenderGuid, (int)msg, (int)wParam, (int)lParam);
+		_renderProcess.Rpc?.KeyEvent(RenderGuid, (int)msg, (int)wParam, (int)lParam).FireAndForget(_services.PluginLog);
 
 		// We've handled the input, signal. For these message types, `0` signals a capture.
-		return (true, 0);
+		return WndProcResult.HandledWith(0);
 	}
 
 	public void Render()
 	{
 		if (_overlayConfig.Hidden || _overlayConfig.Disabled || HiddenByCombatFlags() ||
-		    (_overlayConfig.HideInPvP && Services.ClientState.IsPvP))
+		    (_overlayConfig.HideInPvP && _services.ClientState.IsPvP))
 		{
 			_mouseInWindow = false;
 			return;
@@ -265,7 +271,8 @@ internal class Overlay : IDisposable
 			if (_mouseInWindow)
 			{
 				_mouseInWindow = false;
-				_ = _renderProcess.Rpc?.MouseButton(new MouseButtonMessage() {Guid = RenderGuid.ToByteArray(), X = (int)mousePos.X, Y = (int)mousePos.Y, Leaving = true});
+				_renderProcess.Rpc?.MouseButton(new MouseButtonMessage { Guid = RenderGuid.ToByteArray(), X = (int)mousePos.X, Y = (int)mousePos.Y, Leaving = true })
+					.FireAndForget(_services.PluginLog);
 			}
 
 			return;
@@ -288,8 +295,7 @@ internal class Overlay : IDisposable
 
 		if (io.KeyAlt) { modifier |= InputModifier.Alt; }
 
-		// TODO: Either this or the entire handler function should be asynchronous so we're not blocking the entire draw thread
-		_ = _renderProcess.Rpc?.MouseButton(new MouseButtonMessage()
+		_renderProcess.Rpc?.MouseButton(new MouseButtonMessage
 		{
 			Guid = RenderGuid.ToByteArray(),
 			X = mousePos.X,
@@ -300,7 +306,7 @@ internal class Overlay : IDisposable
 			WheelX = wheelX,
 			WheelY = wheelY,
 			Modifier = modifier
-		});
+		}).FireAndForget(_services.PluginLog);
 	}
 
 	private void HandleWindowSize()
@@ -310,7 +316,7 @@ internal class Overlay : IDisposable
 
 		if (_size == Vector2.Zero)
 		{
-			_ = _renderProcess.Rpc?.NewOverlay(new NewOverlayMessage()
+			_renderProcess.Rpc?.NewOverlay(new NewOverlayMessage
 			{
 				Guid = RenderGuid.ToByteArray(),
 				Id = _overlayConfig.Name,
@@ -321,11 +327,12 @@ internal class Overlay : IDisposable
 				Framerate = _overlayConfig.Framerate,
 				Muted = _overlayConfig.Muted,
 				CustomCss = _overlayConfig.CustomCss
-			});
+			}).FireAndForget(_services.PluginLog);
 		}
 		else
 		{
-			_ = _renderProcess.Rpc?.ResizeOverlay(RenderGuid, (int)currentSize.X, (int)currentSize.Y);
+			_renderProcess.Rpc?.ResizeOverlay(RenderGuid, (int)currentSize.X, (int)currentSize.Y)
+				.FireAndForget(_services.PluginLog);
 		}
 
 		_resizing = true;
@@ -334,58 +341,29 @@ internal class Overlay : IDisposable
 
 	#region serde
 
-	private MouseButton EncodeMouseButtons(Span<bool> buttons)
+	private static MouseButton EncodeMouseButtons(Span<bool> buttons)
 	{
 		MouseButton result = MouseButton.None;
-		if (buttons[0]) { result |= MouseButton.Primary; }
-
-		if (buttons[1]) { result |= MouseButton.Secondary; }
-
-		if (buttons[2]) { result |= MouseButton.Tertiary; }
-
-		if (buttons[3]) { result |= MouseButton.Fourth; }
-
-		if (buttons[4]) { result |= MouseButton.Fifth; }
-
+		if (buttons[0]) result |= MouseButton.Primary;
+		if (buttons[1]) result |= MouseButton.Secondary;
+		if (buttons[2]) result |= MouseButton.Tertiary;
+		if (buttons[3]) result |= MouseButton.Fourth;
+		if (buttons[4]) result |= MouseButton.Fifth;
 		return result;
 	}
 
-	private ImGuiMouseCursor DecodeCursor(Cursor cursor)
+	private static ImGuiMouseCursor DecodeCursor(Cursor cursor) => cursor switch
 	{
-		// ngl kinda disappointed at the lack of options here
-		switch (cursor)
-		{
-			case Cursor.Default: return ImGuiMouseCursor.Arrow;
-			case Cursor.None: return ImGuiMouseCursor.None;
-			case Cursor.Pointer: return ImGuiMouseCursor.Hand;
-
-			case Cursor.Text:
-			case Cursor.VerticalText:
-				return ImGuiMouseCursor.TextInput;
-
-			case Cursor.NResize:
-			case Cursor.SResize:
-			case Cursor.NsResize:
-				return ImGuiMouseCursor.ResizeNs;
-
-			case Cursor.EResize:
-			case Cursor.WResize:
-			case Cursor.EwResize:
-				return ImGuiMouseCursor.ResizeEw;
-
-			case Cursor.NeResize:
-			case Cursor.SwResize:
-			case Cursor.NeswResize:
-				return ImGuiMouseCursor.ResizeNesw;
-
-			case Cursor.NwResize:
-			case Cursor.SeResize:
-			case Cursor.NwseResize:
-				return ImGuiMouseCursor.ResizeNwse;
-		}
-
-		return ImGuiMouseCursor.Arrow;
-	}
+		Cursor.Default => ImGuiMouseCursor.Arrow,
+		Cursor.None => ImGuiMouseCursor.None,
+		Cursor.Pointer => ImGuiMouseCursor.Hand,
+		Cursor.Text or Cursor.VerticalText => ImGuiMouseCursor.TextInput,
+		Cursor.NResize or Cursor.SResize or Cursor.NsResize => ImGuiMouseCursor.ResizeNs,
+		Cursor.EResize or Cursor.WResize or Cursor.EwResize => ImGuiMouseCursor.ResizeEw,
+		Cursor.NeResize or Cursor.SwResize or Cursor.NeswResize => ImGuiMouseCursor.ResizeNesw,
+		Cursor.NwResize or Cursor.SeResize or Cursor.NwseResize => ImGuiMouseCursor.ResizeNwse,
+		_ => ImGuiMouseCursor.Arrow
+	};
 
 	private bool HiddenByCombatFlags()
 	{
@@ -394,18 +372,18 @@ internal class Overlay : IDisposable
 			return false;
 		}
 
-		if (Services.ObjectTable.LocalPlayer == null)
+		if (_services.ObjectTable.LocalPlayer == null)
 		{
 			return true;
 		}
 
-		if (Services.ObjectTable.LocalPlayer.StatusFlags.HasFlag(StatusFlags.InCombat))
+		if (_services.ObjectTable.LocalPlayer.StatusFlags.HasFlag(StatusFlags.InCombat))
 		{
 			_timeLastInCombat = DateTimeOffset.Now.ToUnixTimeMilliseconds();
 			return false;
 		}
 
-		if (!Services.ObjectTable.LocalPlayer.StatusFlags.HasFlag(StatusFlags.InCombat) && _overlayConfig.HideDelay > 0)
+		if (!_services.ObjectTable.LocalPlayer.StatusFlags.HasFlag(StatusFlags.InCombat) && _overlayConfig.HideDelay > 0)
 		{
 			return DateTimeOffset.Now.ToUnixTimeMilliseconds() >= _timeLastInCombat + (_overlayConfig.HideDelay * 1000);
 		}

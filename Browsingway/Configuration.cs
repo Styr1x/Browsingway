@@ -1,34 +1,45 @@
-﻿using Browsingway.Common.Ipc;
 using Dalamud.Configuration;
 
 namespace Browsingway;
 
 [Serializable]
-internal class Configuration : IPluginConfiguration
+internal sealed class Configuration : IPluginConfiguration
 {
-	public List<InlayConfiguration> Inlays = new();
-	public int Version { get; set; } = 0;
+	public int Version { get; set; }
+	public List<InlayConfiguration> Inlays { get; init; } = [];
 }
 
+/// <summary>
+/// Configuration for a single overlay.
+/// Note: Fields are used instead of properties because ImGui bindings require ref parameters.
+/// </summary>
 [Serializable]
-internal class InlayConfiguration
+internal sealed class InlayConfiguration
 {
-	public bool ClickThrough;
+	public Guid Guid = Guid.NewGuid();
+	public string Name = "New overlay";
+	public string Url = "about:blank";
+
+	// Rendering
+	public float Zoom = 100f;
+	public float Opacity = 100f;
 	public int Framerate = 60;
-	public Guid Guid;
+
+	// Behavior flags
+	public bool Disabled;
 	public bool Hidden;
 	public bool Locked;
-	public string Name = null!;
-	public float Opacity = 100f;
-	public bool TypeThrough;
-	public string Url = null!;
-	public float Zoom = 100f;
-	public bool Disabled;
-	public string CustomCss = "";
 	public bool Muted;
-	public bool ActOptimizations;
+	public bool TypeThrough;
+	public bool ClickThrough;
 	public bool Fullscreen;
+
+	// Combat/PvP visibility
+	public bool ActOptimizations;
 	public bool HideOutOfCombat;
 	public bool HideInPvP;
-	public int HideDelay = 0;
+	public int HideDelay;
+
+	// Advanced
+	public string CustomCss = "";
 }
