@@ -9,7 +9,7 @@ internal interface IOverlayManager
 	/// <summary>
 	/// Creates or updates an overlay from configuration.
 	/// </summary>
-	void AddOrUpdateOverlay(InlayConfiguration config);
+	void AddOrUpdateOverlay(OverlayConfiguration config);
 
 	/// <summary>
 	/// Gets the count of currently active overlays.
@@ -52,8 +52,31 @@ internal interface IOverlayManager
 	/// </summary>
 	void ReloadAllFromConfig(Configuration config, bool actAvailable);
 
+	#region Ephemeral Overlays
+
 	/// <summary>
-	/// Renders all active overlays.
+	/// Creates an ephemeral overlay that is not persisted in settings.
+	/// Ephemeral overlays cannot be edited via the settings UI.
 	/// </summary>
-	void RenderAll();
+	/// <param name="config">The overlay configuration.</param>
+	/// <returns>The GUID of the created ephemeral overlay.</returns>
+	Guid AddEphemeralOverlay(OverlayConfiguration config);
+
+	/// <summary>
+	/// Removes an ephemeral overlay by its GUID.
+	/// Has no effect if the overlay is not ephemeral.
+	/// </summary>
+	void RemoveEphemeralOverlay(Guid guid);
+
+	/// <summary>
+	/// Checks if an overlay is ephemeral (not persisted in settings).
+	/// </summary>
+	bool IsEphemeral(Guid guid);
+
+	/// <summary>
+	/// Gets all ephemeral overlay GUIDs.
+	/// </summary>
+	IReadOnlyCollection<Guid> GetEphemeralGuids();
+
+	#endregion
 }

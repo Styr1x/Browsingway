@@ -1,11 +1,11 @@
 using Browsingway.Common;
 using Browsingway.Common.Ipc;
-using Browsingway.Services;
+using Browsingway.UI;
 using System.Diagnostics;
 
-namespace Browsingway;
+namespace Browsingway.Services;
 
-internal class RenderProcess : IDisposable
+internal class RenderProcessManager : IDisposable
 {
 	public event EventHandler? Crashed;
 	public BrowsingwayRpc? Rpc { get; private set; }
@@ -27,7 +27,7 @@ internal class RenderProcess : IDisposable
 	private Process _process;
 	private bool _running;
 
-	public RenderProcess(
+	public RenderProcessManager(
 		IServiceContainer services,
 		int pid,
 		string pluginDir,

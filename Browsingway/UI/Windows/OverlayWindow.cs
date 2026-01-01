@@ -1,19 +1,23 @@
+using Browsingway;
 using Browsingway.Common.Ipc;
 using Browsingway.Extensions;
-using Browsingway.Models;
+using Browsingway.Interop;
 using Browsingway.Services;
-using Dalamud.Game.ClientState.Objects.Enums;
 using Dalamud.Bindings.ImGui;
+using Dalamud.Game.ClientState.Objects.Enums;
 using Dalamud.Interface.Textures;
 using Dalamud.Interface.Utility;
+using Dalamud.Interface.Utility.Raii;
+using Dalamud.Interface.Windowing;
 using System.Numerics;
+using TerraFX.Interop.Windows;
 
-namespace Browsingway;
+namespace Browsingway.UI.Windows;
 
-internal class Overlay : IDisposable
+internal class OverlayWindow : Window, IDisposable
 {
-	private readonly InlayConfiguration _overlayConfig;
-	private readonly RenderProcess _renderProcess;
+	private readonly OverlayConfiguration _overlayConfig;
+	private readonly RenderProcessManager _renderProcessManager;
 	private readonly IServiceContainer _services;
 	private readonly ISharedImmediateTexture? _texErrorIcon;
 
@@ -23,17 +27,23 @@ internal class Overlay : IDisposable
 	private bool _resizing;
 	private Vector2 _size;
 	private bool _hasRenderError;
-	private SharedTextureHandler? _textureHandler;
+	private ImGuiSharedTexture? _textureHandler;
 	private Exception? _textureRenderException;
 	private bool _windowFocused;
-	private long _timeLastInCombat;
+	private BaseVisibility _computedVisibility;
 
-	public Overlay(IServiceContainer services, RenderProcess renderProcess, InlayConfiguration overlayConfig, string pluginDir)
+	public OverlayWindow(IServiceContainer services, RenderProcessManager renderProcessManager, OverlayConfiguration overlayConfig, string pluginDir)
+		: base($"{overlayConfig.Name}###{overlayConfig.Guid}",
+			ImGuiWindowFlags.NoTitleBar
+			| ImGuiWindowFlags.NoCollapse
+			| ImGuiWindowFlags.NoScrollbar
+			| ImGuiWindowFlags.NoScrollWithMouse
+			| ImGuiWindowFlags.NoBringToFrontOnFocus
+			| ImGuiWindowFlags.NoFocusOnAppearing)
 	{
 		_services = services;
-		_renderProcess = renderProcess;
-		// TODO: handle that the correct way
-		_renderProcess.Crashed += (_, _) =>
+		_renderProcessManager = renderProcessManager;
+		_renderProcessManager.Crashed += (_, _) =>
 		{
 			_size = Vector2.Zero;
 			_hasRenderError = true;
@@ -41,6 +51,15 @@ internal class Overlay : IDisposable
 
 		_overlayConfig = overlayConfig;
 		_texErrorIcon = _services.TextureProvider.GetFromFile(Path.Combine(pluginDir, "dead.png"));
+
+		// Configure window for borderless appearance
+		Size = new Vector2(640, 480);
+		SizeCondition = ImGuiCond.FirstUseEver;
+		RespectCloseHotkey = false;
+		DisableWindowSounds = true;
+
+		// Start open
+		IsOpen = true;
 	}
 
 	public Guid RenderGuid => _overlayConfig.Guid;
@@ -48,32 +67,32 @@ internal class Overlay : IDisposable
 	public void Dispose()
 	{
 		_textureHandler?.Dispose();
-		_renderProcess.Rpc?.RemoveOverlay(RenderGuid).FireAndForget(_services.PluginLog);
+		_renderProcessManager.Rpc?.RemoveOverlay(RenderGuid).FireAndForget(_services.PluginLog);
 	}
 
 	public void Navigate(string newUrl)
 	{
-		_renderProcess.Rpc?.Navigate(RenderGuid, newUrl).FireAndForget(_services.PluginLog);
+		_renderProcessManager.Rpc?.Navigate(RenderGuid, newUrl).FireAndForget(_services.PluginLog);
 	}
 
 	public void InjectUserCss(string css)
 	{
-		_renderProcess.Rpc?.InjectUserCss(RenderGuid, css).FireAndForget(_services.PluginLog);
+		_renderProcessManager.Rpc?.InjectUserCss(RenderGuid, css).FireAndForget(_services.PluginLog);
 	}
 
 	public void Zoom(float zoom)
 	{
-		_renderProcess.Rpc?.Zoom(RenderGuid, zoom).FireAndForget(_services.PluginLog);
+		_renderProcessManager.Rpc?.Zoom(RenderGuid, zoom).FireAndForget(_services.PluginLog);
 	}
 
 	public void Mute(bool mute)
 	{
-		_renderProcess.Rpc?.Mute(RenderGuid, mute).FireAndForget(_services.PluginLog);
+		_renderProcessManager.Rpc?.Mute(RenderGuid, mute).FireAndForget(_services.PluginLog);
 	}
 
 	public void Debug()
 	{
-		_renderProcess.Rpc?.Debug(RenderGuid).FireAndForget(_services.PluginLog);
+		_renderProcessManager.Rpc?.Debug(RenderGuid).FireAndForget(_services.PluginLog);
 	}
 
 	public void SetCursor(Cursor cursor)
@@ -111,24 +130,44 @@ internal class Overlay : IDisposable
 			return WndProcResult.NotHandled;
 		}
 
-		_renderProcess.Rpc?.KeyEvent(RenderGuid, (int)msg, (int)wParam, (int)lParam).FireAndForget(_services.PluginLog);
+		_renderProcessManager.Rpc?.KeyEvent(RenderGuid, (int)msg, (int)wParam, (int)lParam).FireAndForget(_services.PluginLog);
 
 		// We've handled the input, signal. For these message types, `0` signals a capture.
 		return WndProcResult.HandledWith(0);
 	}
 
-	public void Render()
+	public override bool DrawConditions()
 	{
-		if (_overlayConfig.Hidden || _overlayConfig.Disabled || HiddenByCombatFlags() ||
-		    (_overlayConfig.HideInPvP && _services.ClientState.IsPvP))
+		// Check computed visibility (which factors in base visibility + rules)
+		if (_computedVisibility != BaseVisibility.Visible)
 		{
 			_mouseInWindow = false;
-			return;
+			return false;
 		}
+		return true;
+	}
 
-		ImGui.SetNextWindowSize(new Vector2(640, 480), ImGuiCond.FirstUseEver);
-		ImGui.Begin($"{_overlayConfig.Name}###{_overlayConfig.Guid}", GetWindowFlags());
+	/// <summary>
+	/// Updates the computed visibility based on the current environment.
+	/// Called by OverlayManager when visibility environment changes.
+	/// </summary>
+	public void UpdateVisibility(GameEnvironment environment)
+	{
+		_computedVisibility = VisibilityEvaluator.ComputeVisibility(
+			_overlayConfig.BaseVisibility,
+			_overlayConfig.VisibilityRules,
+			environment);
+	}
 
+	public override void PreDraw()
+	{
+		// Disable window padding
+		ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, new Vector2(0, 0));
+		
+		// Update flags dynamically based on config state
+		Flags = GetWindowFlags();
+		
+		// Handle fullscreen positioning
 		if (_overlayConfig.Fullscreen)
 		{
 			var screen = ImGui.GetMainViewport();
@@ -137,17 +176,21 @@ internal class Overlay : IDisposable
 			var fsPos = new Vector2(screen.WorkPos.X - 1, screen.WorkPos.Y - 1);
 			var fsSize = new Vector2(screen.Size.X + 2 - fsPos.X, screen.Size.Y + 2 - fsPos.Y);
 
-			if (ImGui.GetWindowPos() != fsPos)
-			{
-				ImGui.SetWindowPos(fsPos, ImGuiCond.Always);
-			}
-
-			if (_size.X != fsSize.X || _size.Y != fsSize.Y)
-			{
-				ImGui.SetWindowSize(fsSize, ImGuiCond.Always);
-			}
+			Position = fsPos;
+			PositionCondition = ImGuiCond.Always;
+			Size = fsSize;
+			SizeCondition = ImGuiCond.Always;
 		}
-
+		else
+		{
+			// Reset conditions so user can move/resize
+			PositionCondition = ImGuiCond.FirstUseEver;
+			SizeCondition = ImGuiCond.FirstUseEver;
+		}
+	}
+	
+	public override void Draw()
+	{
 		HandleWindowSize();
 
 		// TODO: Browsingway.Renderer can take some time to spin up properly, should add a loading state.
@@ -183,19 +226,22 @@ internal class Overlay : IDisposable
 				ImGui.PopStyleColor();
 			}
 		}
-
-		ImGui.End();
+	}
+	
+	public override void PostDraw()
+	{
+		ImGui.PopStyleVar();
 	}
 
 	private ImGuiWindowFlags GetWindowFlags()
 	{
 		ImGuiWindowFlags flags = ImGuiWindowFlags.None
-		                         | ImGuiWindowFlags.NoTitleBar
-		                         | ImGuiWindowFlags.NoCollapse
-		                         | ImGuiWindowFlags.NoScrollbar
-		                         | ImGuiWindowFlags.NoScrollWithMouse
-		                         | ImGuiWindowFlags.NoBringToFrontOnFocus
-		                         | ImGuiWindowFlags.NoFocusOnAppearing;
+								 | ImGuiWindowFlags.NoTitleBar
+								 | ImGuiWindowFlags.NoCollapse
+								 | ImGuiWindowFlags.NoScrollbar
+								 | ImGuiWindowFlags.NoScrollWithMouse
+								 | ImGuiWindowFlags.NoBringToFrontOnFocus
+								 | ImGuiWindowFlags.NoFocusOnAppearing;
 
 		// ClickThrough / fullscreen is implicitly locked
 		bool locked = _overlayConfig.Locked || _overlayConfig.ClickThrough || _overlayConfig.Fullscreen;
@@ -203,9 +249,9 @@ internal class Overlay : IDisposable
 		if (locked)
 		{
 			flags |= ImGuiWindowFlags.None
-			         | ImGuiWindowFlags.NoMove
-			         | ImGuiWindowFlags.NoResize
-			         | ImGuiWindowFlags.NoBackground;
+					 | ImGuiWindowFlags.NoMove
+					 | ImGuiWindowFlags.NoResize
+					 | ImGuiWindowFlags.NoBackground;
 		}
 
 		if (_overlayConfig.ClickThrough || (!_captureCursor && locked))
@@ -220,15 +266,15 @@ internal class Overlay : IDisposable
 		return flags;
 	}
 
-	public void SetTexture(IntPtr handle)
+	public void SetTexture(HANDLE handle)
 	{
 		_resizing = false;
 		_hasRenderError = false;
 
-		SharedTextureHandler? oldTextureHandler = _textureHandler;
+		ImGuiSharedTexture? oldTextureHandler = _textureHandler;
 		try
 		{
-			_textureHandler = new SharedTextureHandler(handle);
+			_textureHandler = new ImGuiSharedTexture(handle);
 		}
 		catch (Exception e) { _textureRenderException = e; }
 
@@ -239,7 +285,7 @@ internal class Overlay : IDisposable
 	{
 		// Render proc won't be ready on first boot
 		// Totally skip mouse handling for click through overlays, as well
-		if (_renderProcess == null || _overlayConfig.ClickThrough) { return; }
+		if (_renderProcessManager == null || _overlayConfig.ClickThrough) { return; }
 
 		ImGuiIOPtr io = ImGui.GetIO();
 		Vector2 windowPos = ImGui.GetWindowPos();
@@ -271,7 +317,7 @@ internal class Overlay : IDisposable
 			if (_mouseInWindow)
 			{
 				_mouseInWindow = false;
-				_renderProcess.Rpc?.MouseButton(new MouseButtonMessage { Guid = RenderGuid.ToByteArray(), X = (int)mousePos.X, Y = (int)mousePos.Y, Leaving = true })
+				_renderProcessManager.Rpc?.MouseButton(new MouseButtonMessage { Guid = RenderGuid.ToByteArray(), X = (int)mousePos.X, Y = (int)mousePos.Y, Leaving = true })
 					.FireAndForget(_services.PluginLog);
 			}
 
@@ -295,7 +341,7 @@ internal class Overlay : IDisposable
 
 		if (io.KeyAlt) { modifier |= InputModifier.Alt; }
 
-		_renderProcess.Rpc?.MouseButton(new MouseButtonMessage
+		_renderProcessManager.Rpc?.MouseButton(new MouseButtonMessage
 		{
 			Guid = RenderGuid.ToByteArray(),
 			X = mousePos.X,
@@ -316,7 +362,7 @@ internal class Overlay : IDisposable
 
 		if (_size == Vector2.Zero)
 		{
-			_renderProcess.Rpc?.NewOverlay(new NewOverlayMessage
+			_renderProcessManager.Rpc?.NewOverlay(new NewOverlayMessage
 			{
 				Guid = RenderGuid.ToByteArray(),
 				Id = _overlayConfig.Name,
@@ -331,7 +377,7 @@ internal class Overlay : IDisposable
 		}
 		else
 		{
-			_renderProcess.Rpc?.ResizeOverlay(RenderGuid, (int)currentSize.X, (int)currentSize.Y)
+			_renderProcessManager.Rpc?.ResizeOverlay(RenderGuid, (int)currentSize.X, (int)currentSize.Y)
 				.FireAndForget(_services.PluginLog);
 		}
 
@@ -365,31 +411,7 @@ internal class Overlay : IDisposable
 		_ => ImGuiMouseCursor.Arrow
 	};
 
-	private bool HiddenByCombatFlags()
-	{
-		if (!_overlayConfig.HideOutOfCombat)
-		{
-			return false;
-		}
 
-		if (_services.ObjectTable.LocalPlayer == null)
-		{
-			return true;
-		}
-
-		if (_services.ObjectTable.LocalPlayer.StatusFlags.HasFlag(StatusFlags.InCombat))
-		{
-			_timeLastInCombat = DateTimeOffset.Now.ToUnixTimeMilliseconds();
-			return false;
-		}
-
-		if (!_services.ObjectTable.LocalPlayer.StatusFlags.HasFlag(StatusFlags.InCombat) && _overlayConfig.HideDelay > 0)
-		{
-			return DateTimeOffset.Now.ToUnixTimeMilliseconds() >= _timeLastInCombat + (_overlayConfig.HideDelay * 1000);
-		}
-
-		return true;
-	}
 
 	#endregion
 }

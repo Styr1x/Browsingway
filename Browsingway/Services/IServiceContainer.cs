@@ -17,4 +17,6 @@ public interface IServiceContainer
 	IFramework Framework { get; }
 	IClientState ClientState { get; }
 	IObjectTable ObjectTable { get; }
+	ICondition Condition { get; }
 }
+

@@ -3,16 +3,16 @@ using System.Numerics;
 using TerraFX.Interop.DirectX;
 using TerraFX.Interop.Windows;
 
-namespace Browsingway;
+namespace Browsingway.UI;
 
-internal sealed unsafe class SharedTextureHandler : IDisposable
+internal sealed unsafe class ImGuiSharedTexture : IDisposable
 {
 	private readonly ID3D11ShaderResourceView* _view;
 	private readonly ID3D11Texture2D* _texture;
 	private readonly Vector2 _size;
 	private readonly ImTextureID _textureId;
 
-	public SharedTextureHandler(IntPtr handle)
+	public ImGuiSharedTexture(HANDLE handle)
 	{
 		ID3D11Device* device = DxHandler.Device;
 		if (device == null)
@@ -23,7 +23,7 @@ internal sealed unsafe class SharedTextureHandler : IDisposable
 		// Open the shared resource
 		Guid texture2DGuid = typeof(ID3D11Texture2D).GUID;
 		void* texturePtr;
-		HRESULT hr = device->OpenSharedResource((HANDLE)handle, &texture2DGuid, &texturePtr);
+		HRESULT hr = device->OpenSharedResource(handle, &texture2DGuid, &texturePtr);
 		if (hr.FAILED)
 		{
 			throw new Exception($"Could not open shared resource: {hr}");

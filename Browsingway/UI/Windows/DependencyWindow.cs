@@ -1,7 +1,8 @@
-using Browsingway;
 using Browsingway.Services;
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface.Textures;
+using Dalamud.Interface.Utility;
+using Dalamud.Interface.Utility.Raii;
 using Dalamud.Interface.Windowing;
 using System.Numerics;
 
@@ -22,9 +23,7 @@ internal sealed class DependencyWindow : Window
 		_dependencyManager = dependencyManager;
 		_texIcon = services.TextureProvider.GetFromFile(Path.Combine(pluginDir, "icon.png"));
 
-		Size = new Vector2(1300, 350);
-		SizeCondition = ImGuiCond.Always;
-		Flags = ImGuiWindowFlags.NoCollapse | ImGuiWindowFlags.NoResize;
+		Flags = ImGuiWindowFlags.NoCollapse | ImGuiWindowFlags.AlwaysAutoResize;
 
 		// Subscribe to manager events to control visibility
 		_dependencyManager.StateChanged += OnStateChanged;
@@ -40,10 +39,17 @@ internal sealed class DependencyWindow : Window
 		IsOpen = _dependencyManager.State != DependencyManager.ViewMode.Hidden;
 	}
 
+	public override void PreDraw()
+	{
+		// Center window on screen
+		var center = ImGui.GetMainViewport().GetCenter();
+		ImGui.SetNextWindowPos(center, ImGuiCond.Appearing, new Vector2(0.5f, 0.5f));
+	}
+
 	public override void Draw()
 	{
 		if (_texIcon is not null)
-			ImGui.Image(_texIcon.GetWrapOrEmpty().Handle, new Vector2(256, 256));
+			ImGui.Image(_texIcon.GetWrapOrEmpty().Handle, ImGuiHelpers.ScaledVector2(128, 128));
 
 		ImGui.SameLine();
 
@@ -95,7 +101,7 @@ internal sealed class DependencyWindow : Window
 		ImGui.SameLine();
 		RenderDownloadProgress();
 		ImGui.SameLine();
-		if (ImGui.Button("Close", new Vector2(100, 0))) { _dependencyManager.CheckDependencies(); }
+		if (ImGui.Button("Close", ImGuiHelpers.ScaledVector2(100, 0))) { _dependencyManager.CheckDependencies(); }
 	}
 
 	private void RenderFailed()
@@ -104,12 +110,12 @@ internal sealed class DependencyWindow : Window
 		ImGui.SameLine();
 		RenderDownloadProgress();
 		ImGui.SameLine();
-		if (ImGui.Button("Retry", new Vector2(100, 0))) { _dependencyManager.CheckDependencies(); }
+		if (ImGui.Button("Retry", ImGuiHelpers.ScaledVector2(100, 0))) { _dependencyManager.CheckDependencies(); }
 	}
 
 	private void RenderDownloadProgress()
 	{
-		Vector2 progressSize = new(875, 0);
+		Vector2 progressSize = ImGuiHelpers.ScaledVector2(400, 0);
 
 		foreach (var progress in _dependencyManager.InstallProgress)
 		{
@@ -140,12 +146,14 @@ internal sealed class DependencyWindow : Window
 					break;
 			}
 
-			ImGui.PushStyleColor(ImGuiCol.PlotHistogram, color);
-			if (label != null)
-				ImGui.ProgressBar(value, progressSize, label);
-			else
-				ImGui.ProgressBar(value, progressSize);
-			ImGui.PopStyleColor();
+			using (ImRaii.PushColor(ImGuiCol.PlotHistogram, color))
+			{
+				if (label != null)
+					ImGui.ProgressBar(value, progressSize, label);
+				else
+					ImGui.ProgressBar(value, progressSize);
+			}
 		}
 	}
 }
+

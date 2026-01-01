@@ -16,27 +16,23 @@ internal sealed class OverlayEditState
 	public int Framerate;
 
 	// Behavior flags
-	public bool Disabled;
-	public bool Hidden;
+	public BaseVisibility BaseVisibility;
 	public bool Locked;
 	public bool Muted;
 	public bool TypeThrough;
 	public bool ClickThrough;
 	public bool Fullscreen;
 
-	// Combat/PvP visibility
-	public bool ActOptimizations;
-	public bool HideOutOfCombat;
-	public bool HideInPvP;
-	public int HideDelay;
-
 	// Advanced
 	public string CustomCss = "";
+	public string CustomJs = "";
+
+	public List<VisibilityRule> VisibilityRules = [];
 
 	/// <summary>
 	/// Creates an edit state from an existing configuration.
 	/// </summary>
-	public static OverlayEditState FromConfig(InlayConfiguration config) => new()
+	public static OverlayEditState FromConfig(OverlayConfiguration config) => new()
 	{
 		Guid = config.Guid,
 		Name = config.Name,
@@ -44,63 +40,73 @@ internal sealed class OverlayEditState
 		Zoom = config.Zoom,
 		Opacity = config.Opacity,
 		Framerate = config.Framerate,
-		Disabled = config.Disabled,
-		Hidden = config.Hidden,
+		BaseVisibility = config.BaseVisibility,
 		Locked = config.Locked,
 		Muted = config.Muted,
 		TypeThrough = config.TypeThrough,
 		ClickThrough = config.ClickThrough,
 		Fullscreen = config.Fullscreen,
-		ActOptimizations = config.ActOptimizations,
-		HideOutOfCombat = config.HideOutOfCombat,
-		HideInPvP = config.HideInPvP,
-		HideDelay = config.HideDelay,
-		CustomCss = config.CustomCss
+		CustomCss = config.CustomCss,
+		CustomJs = config.CustomJs,
+		VisibilityRules = config.VisibilityRules.Select(r => new VisibilityRule { Enabled = r.Enabled, Negated = r.Negated, Trigger = r.Trigger, Action = r.Action, DelaySeconds = r.DelaySeconds }).ToList()
 	};
 
 	/// <summary>
 	/// Applies the edit state back to a configuration.
 	/// </summary>
-	public void ApplyTo(InlayConfiguration config)
+	public void ApplyTo(OverlayConfiguration config)
 	{
 		config.Name = Name;
 		config.Url = Url;
 		config.Zoom = Zoom;
 		config.Opacity = Opacity;
 		config.Framerate = Framerate;
-		config.Disabled = Disabled;
-		config.Hidden = Hidden;
+		config.BaseVisibility = BaseVisibility;
 		config.Locked = Locked;
 		config.Muted = Muted;
 		config.TypeThrough = TypeThrough;
 		config.ClickThrough = ClickThrough;
 		config.Fullscreen = Fullscreen;
-		config.ActOptimizations = ActOptimizations;
-		config.HideOutOfCombat = HideOutOfCombat;
-		config.HideInPvP = HideInPvP;
-		config.HideDelay = HideDelay;
 		config.CustomCss = CustomCss;
+		config.CustomJs = CustomJs;
+		config.VisibilityRules = VisibilityRules.Select(r => new VisibilityRule { Enabled = r.Enabled, Negated = r.Negated, Trigger = r.Trigger, Action = r.Action, DelaySeconds = r.DelaySeconds }).ToList();
 	}
 
 	/// <summary>
 	/// Checks if the edit state differs from the original configuration.
 	/// </summary>
-	public bool IsDifferentFrom(InlayConfiguration config) =>
-		Name != config.Name ||
-		Url != config.Url ||
-		Math.Abs(Zoom - config.Zoom) > 0.01f ||
-		Math.Abs(Opacity - config.Opacity) > 0.01f ||
-		Framerate != config.Framerate ||
-		Disabled != config.Disabled ||
-		Hidden != config.Hidden ||
-		Locked != config.Locked ||
-		Muted != config.Muted ||
-		TypeThrough != config.TypeThrough ||
-		ClickThrough != config.ClickThrough ||
-		Fullscreen != config.Fullscreen ||
-		ActOptimizations != config.ActOptimizations ||
-		HideOutOfCombat != config.HideOutOfCombat ||
-		HideInPvP != config.HideInPvP ||
-		HideDelay != config.HideDelay ||
-		CustomCss != config.CustomCss;
+	public bool IsDifferentFrom(OverlayConfiguration config)
+	{
+		if (Name != config.Name ||
+			Url != config.Url ||
+			Math.Abs(Zoom - config.Zoom) > 0.01f ||
+			Math.Abs(Opacity - config.Opacity) > 0.01f ||
+			Framerate != config.Framerate ||
+			BaseVisibility != config.BaseVisibility ||
+			Locked != config.Locked ||
+			Muted != config.Muted ||
+			TypeThrough != config.TypeThrough ||
+			ClickThrough != config.ClickThrough ||
+			Fullscreen != config.Fullscreen ||
+			CustomCss != config.CustomCss ||
+			CustomJs != config.CustomJs)
+		{
+			return true;
+		}
+
+		if (VisibilityRules.Count != config.VisibilityRules.Count)
+			return true;
+
+		for (int i = 0; i < VisibilityRules.Count; i++)
+		{
+			if (VisibilityRules[i].Enabled != config.VisibilityRules[i].Enabled ||
+				VisibilityRules[i].Negated != config.VisibilityRules[i].Negated ||
+				VisibilityRules[i].Trigger != config.VisibilityRules[i].Trigger ||
+				VisibilityRules[i].Action != config.VisibilityRules[i].Action ||
+				VisibilityRules[i].DelaySeconds != config.VisibilityRules[i].DelaySeconds)
+				return true;
+		}
+
+		return false;
+	}
 }

@@ -43,7 +43,7 @@ internal sealed partial class OverlayCommandHandler
 
 		var config = _getConfig();
 		string commandName = args[0];
-		var targetConfig = config.Inlays.Find(o =>
+		var targetConfig = config.Overlays.Find(o =>
 			WhitespaceRegex().Replace(o.Name, "").Equals(commandName, StringComparison.OrdinalIgnoreCase));
 
 		if (targetConfig == null)
@@ -64,8 +64,8 @@ internal sealed partial class OverlayCommandHandler
 			case "locked":
 				handled = TrySetBoolean(args[2], ref targetConfig.Locked);
 				break;
-			case "hidden":
-				handled = TrySetBoolean(args[2], ref targetConfig.Hidden);
+			case "visibility":
+				handled = TrySetVisibility(args[2], targetConfig, out needsReload);
 				break;
 			case "typethrough":
 				handled = TrySetBoolean(args[2], ref targetConfig.TypeThrough);
@@ -81,20 +81,12 @@ internal sealed partial class OverlayCommandHandler
 				if (handled)
 					_overlayManager.SetMuted(targetConfig.Guid, targetConfig.Muted);
 				break;
-			case "disabled":
-				handled = TrySetBoolean(args[2], ref targetConfig.Disabled);
-				needsReload = handled;
-				break;
-			case "act":
-				handled = TrySetBoolean(args[2], ref targetConfig.ActOptimizations);
-				needsReload = handled;
-				break;
 			case "reload":
 				_overlayManager.NavigateOverlay(targetConfig.Guid, targetConfig.Url);
 				return; // Don't save for reload
 			default:
 				_services.Chat.PrintError(
-					$"Unknown setting '{args[1]}'. Valid settings are: url,hidden,locked,fullscreen,clickthrough,typethrough,muted,disabled,act.");
+					$"Unknown setting '{args[1]}'. Valid settings are: url,visibility,locked,fullscreen,clickthrough,typethrough,muted.");
 				return;
 		}
 
@@ -124,6 +116,27 @@ internal sealed partial class OverlayCommandHandler
 				return true;
 			default:
 				_services.Chat.PrintError($"Unknown boolean value '{value}'. Valid values are: on,off,toggle.");
+				return false;
+		}
+	}
+
+	private bool TrySetVisibility(string value, OverlayConfiguration config, out bool needsReload)
+	{
+		needsReload = true;
+		switch (value.ToLowerInvariant())
+		{
+			case "visible":
+				config.BaseVisibility = BaseVisibility.Visible;
+				return true;
+			case "hidden":
+				config.BaseVisibility = BaseVisibility.Hidden;
+				return true;
+			case "disabled":
+				config.BaseVisibility = BaseVisibility.Disabled;
+				return true;
+			default:
+				_services.Chat.PrintError($"Unknown visibility value '{value}'. Valid values are: visible,hidden,disabled.");
+				needsReload = false;
 				return false;
 		}
 	}

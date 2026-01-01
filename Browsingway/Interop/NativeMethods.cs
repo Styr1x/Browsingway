@@ -1,6 +1,6 @@
-﻿using System.Runtime.InteropServices;
+using System.Runtime.InteropServices;
 
-namespace Browsingway;
+namespace Browsingway.Interop;
 
 // Enums are not comprehensive for the sake of omitting stuff I won't use.
 internal enum WindowLongType

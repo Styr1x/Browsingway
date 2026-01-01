@@ -1,6 +1,7 @@
 using Browsingway.Commands;
-using Browsingway.Models;
+using Browsingway.Interop;
 using Browsingway.Services;
+using Browsingway.UI;
 using Browsingway.UI.Windows;
 using Dalamud.Bindings.ImGui;
 using Dalamud.Game.Command;
@@ -21,8 +22,9 @@ public class Plugin : IDalamudPlugin
 	private readonly IServiceContainer _services;
 	private readonly ActManager _actManager;
 
-	private RenderProcess? _renderProcess;
+	private RenderProcessManager? _renderProcess;
 	private OverlayManager? _overlayManager;
+	private GameEnvTracker? _visibilityTracker;
 	private SettingsWindow? _settingsWindow;
 	private DependencyWindow? _dependencyWindow;
 	private OverlayCommandHandler? _commandHandler;
@@ -62,6 +64,7 @@ public class Plugin : IDalamudPlugin
 
 	public void Dispose()
 	{
+		_visibilityTracker?.Dispose();
 		_overlayManager?.Dispose();
 		_renderProcess?.Dispose();
 		_settingsWindow?.Dispose();
@@ -88,13 +91,23 @@ public class Plugin : IDalamudPlugin
 
 		// Boot the render process
 		int pid = Environment.ProcessId;
-		_renderProcess = new RenderProcess(_services, pid, _pluginDir, _pluginConfigDir, _dependencyManager);
+		_renderProcess = new RenderProcessManager(_services, pid, _pluginDir, _pluginConfigDir, _dependencyManager);
+
+		// Create visibility tracker
+		_visibilityTracker = new GameEnvTracker(_services, _actManager);
 
 		// Create overlay manager
-		_overlayManager = new OverlayManager(_services, _renderProcess, _pluginDir);
+		_overlayManager = new OverlayManager(_services, _renderProcess, _pluginDir, _windowSystem, _visibilityTracker);
 
 		// Load configuration
 		_config = _services.PluginInterface.GetPluginConfig() as Configuration ?? new Configuration();
+
+		// Migrate legacy configuration if needed
+		if (_config.Migrate())
+		{
+			_services.PluginInterface.SavePluginConfig(_config);
+			_services.PluginLog.Info("Migrated configuration from legacy format");
+		}
 
 		// Create settings window
 		_settingsWindow = new SettingsWindow(
@@ -157,17 +170,12 @@ public class Plugin : IDalamudPlugin
 
 	private void Render()
 	{
-		// _dependencyManager.Render(); // Removed as handled by WindowSystem
-		_windowSystem.Draw();
-
-		ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, new Vector2(0, 0));
-
 		_renderProcess?.EnsureRenderProcessIsAlive();
 		_actManager.Check();
 
-		_overlayManager?.RenderAll();
-
-		ImGui.PopStyleVar();
+		// Push style before WindowSystem draws overlays
+		_windowSystem.Draw();
+		
 	}
 
 	private void HandleCommand(string command, string rawArgs)

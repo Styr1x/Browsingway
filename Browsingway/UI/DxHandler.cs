@@ -2,18 +2,17 @@ using Dalamud.Plugin;
 using TerraFX.Interop.DirectX;
 using TerraFX.Interop.Windows;
 
-namespace Browsingway;
+namespace Browsingway.UI;
 
 internal static class DxHandler
 {
-	private static unsafe ID3D11Device* _device;
-	public static unsafe ID3D11Device* Device => _device;
+	public static unsafe ID3D11Device* Device { get; private set; }
 	public static IntPtr WindowHandle { get; private set; }
 	public static LUID AdapterLuid { get; private set; }
 
 	public static unsafe void Initialise(IDalamudPluginInterface pluginInterface)
 	{
-		_device = (ID3D11Device*)pluginInterface.UiBuilder.DeviceHandle;
+		Device = (ID3D11Device*)pluginInterface.UiBuilder.DeviceHandle;
 
 		// Grab the window handle, we'll use this for setting up our wndproc hook
 		WindowHandle = pluginInterface.UiBuilder.WindowHandlePtr;
@@ -21,7 +20,7 @@ internal static class DxHandler
 		// Get the game's device adapter, we'll need that as a reference for the render process.
 		IDXGIDevice* dxgiDevice;
 		Guid dxgiDeviceGuid = typeof(IDXGIDevice).GUID;
-		HRESULT hr = _device->QueryInterface(&dxgiDeviceGuid, (void**)&dxgiDevice);
+		HRESULT hr = Device->QueryInterface(&dxgiDeviceGuid, (void**)&dxgiDevice);
 		if (hr.FAILED)
 		{
 			throw new Exception($"Failed to query IDXGIDevice: {hr}");
@@ -53,6 +52,6 @@ internal static class DxHandler
 	public static void Shutdown()
 	{
 		// Device is owned by Dalamud, don't release it
-		unsafe { _device = null; }
+		unsafe { Device = null; }
 	}
 }

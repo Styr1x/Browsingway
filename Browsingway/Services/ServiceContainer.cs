@@ -18,4 +18,6 @@ public sealed class ServiceContainer : IServiceContainer
 	[PluginService] public IFramework Framework { get; init; } = null!;
 	[PluginService] public IClientState ClientState { get; init; } = null!;
 	[PluginService] public IObjectTable ObjectTable { get; init; } = null!;
+	[PluginService] public ICondition Condition { get; init; } = null!;
 }
+
