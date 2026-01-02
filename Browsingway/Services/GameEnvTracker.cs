@@ -37,12 +37,6 @@ internal sealed class GameEnvTracker : IDisposable
 		_services = services;
 		_actManager = actManager;
 
-		// Initialize timestamps
-		long now = DateTime.UtcNow.Ticks;
-		_actChangedAt = now;
-		_combatChangedAt = now;
-		_pvpChangedAt = now;
-
 		// Subscribe to Framework.Update for periodic checks
 		_services.Framework.Update += OnFrameworkUpdate;
 	}

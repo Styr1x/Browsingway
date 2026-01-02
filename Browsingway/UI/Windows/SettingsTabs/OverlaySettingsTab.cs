@@ -220,7 +220,7 @@ internal partial class OverlaySettingsTab
 				continue;
 			}
 
-			bool open = editor.IsOpen;
+			bool open = true;
 			editor.PreDraw();
 			ImGui.SetNextWindowSize(editor.SizeConstraints!.Value.MinimumSize, ImGuiCond.FirstUseEver);
 			if (ImGui.Begin(editor.WindowName, ref open, editor.Flags))
@@ -228,7 +228,10 @@ internal partial class OverlaySettingsTab
 				editor.Draw();
 			}
 			ImGui.End();
-			editor.IsOpen = open;
+
+			// Close if X button was clicked (open became false) or editor closed itself
+			if (!open)
+				editor.IsOpen = false;
 		}
 	}
 

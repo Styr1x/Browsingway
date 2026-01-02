@@ -214,8 +214,16 @@ internal class RenderProcessManager : IDisposable
 			RedirectStandardError = true
 		};
 
-		process.OutputDataReceived += (_, args) => _services.PluginLog.Info($"[Render]: {args.Data}");
-		process.ErrorDataReceived += (_, args) => _services.PluginLog.Error($"[Render]: {args.Data}");
+		process.OutputDataReceived += (_, args) =>
+		{
+			if ( args.Data?.Length > 0 )
+				_services.PluginLog.Info($"[Render]: {args.Data}");
+		};
+		process.ErrorDataReceived += (_, args) =>
+		{
+			if ( args.Data?.Length > 0 )
+				_services.PluginLog.Error($"[Render]: {args.Data}");
+		};
 
 		return process;
 	}

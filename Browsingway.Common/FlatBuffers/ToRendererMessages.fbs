@@ -15,6 +15,7 @@ table OverlayState (fs_serializer) {
     Zoom: float;
     Muted: bool;
     CustomCss: string (required);
+    CustomJs: string (required);
 }
 
 // Sync all overlay states at once (declarative)

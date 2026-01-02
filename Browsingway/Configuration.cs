@@ -101,23 +101,22 @@ internal sealed class Configuration : IPluginConfiguration
 				}
 
 				// Visibility rules
+				if (inlay.ActOptimizations)
+				{
+					cfg.BaseVisibility = BaseVisibility.Disabled;
+					cfg.VisibilityRules.Add(new VisibilityRule {Trigger = VisibilityTrigger.ActAvailable, Action = VisibilityAction.Enable});
+				}
+				
 				if (inlay.HideOutOfCombat)
 				{
-					cfg.BaseVisibility = BaseVisibility.Hidden;
-					cfg.VisibilityRules.Add(new VisibilityRule {Negated = true, Trigger = VisibilityTrigger.InCombat, Action = VisibilityAction.Show, DelaySeconds = 5});
+					cfg.VisibilityRules.Add(new VisibilityRule {Negated = true, Trigger = VisibilityTrigger.InCombat, Action = VisibilityAction.Hide, DelaySeconds = 5});
 				}
 
 				if (inlay.HideInPvP)
 				{
 					cfg.VisibilityRules.Add(new VisibilityRule {Trigger = VisibilityTrigger.InPvp, Action = VisibilityAction.Hide});
 				}
-
-				if (inlay.ActOptimizations)
-				{
-					cfg.BaseVisibility = BaseVisibility.Disabled;
-					cfg.VisibilityRules.Add(new VisibilityRule {Trigger = VisibilityTrigger.ActAvailable, Action = VisibilityAction.Enable});
-				}
-
+				
 				config.Overlays.Add(cfg);
 			}
 

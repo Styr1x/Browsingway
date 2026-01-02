@@ -177,7 +177,11 @@ internal sealed class OverlayManager : IDisposable
 		overlay.UpdateVisibility(_visibilityTracker.CurrentEnvironment);
 	}
 
-	public int GetActiveOverlayCount() => _overlays.Count;
+	public int GetOverlayCount() => _overlays.Count;
+
+	public int GetEnabledCount() => _overlays.Values.Count(o => o.ComputedVisibility != BaseVisibility.Disabled);
+
+	public int GetVisibleCount() => _overlays.Values.Count(o => o.ComputedVisibility == BaseVisibility.Visible);
 
 	public void RemoveOverlay(Guid guid)
 	{
@@ -247,24 +251,21 @@ internal sealed class OverlayManager : IDisposable
 
 	public void ReloadAllFromConfig(Configuration config, bool actAvailable)
 	{
-		// Determine which overlays should be active based on config
-		HashSet<Guid> desiredOverlays = [];
+		// Track which overlays should exist based on config
+		HashSet<Guid> configuredOverlays = [];
 
 		foreach (var overlayConfig in config.Overlays)
 		{
-			bool shouldBeActive = overlayConfig.BaseVisibility != BaseVisibility.Disabled;
-
-			if (shouldBeActive)
-			{
-				desiredOverlays.Add(overlayConfig.Guid);
-				AddOrUpdateOverlay(overlayConfig);
-			}
+			configuredOverlays.Add(overlayConfig.Guid);
+			// Create all overlays - visibility rules may enable disabled ones
+			// GetState() handles not syncing disabled overlays to renderer
+			AddOrUpdateOverlay(overlayConfig);
 		}
 
-		// Remove overlays that are no longer in config or should be disabled
+		// Remove overlays that are no longer in config
 		// Preserve ephemeral overlays - they are not managed by config
 		var toRemove = _overlays.Keys
-			.Where(guid => !desiredOverlays.Contains(guid) && !_ephemeralOverlays.Contains(guid))
+			.Where(guid => !configuredOverlays.Contains(guid) && !_ephemeralOverlays.Contains(guid))
 			.ToList();
 		foreach (var guid in toRemove)
 		{

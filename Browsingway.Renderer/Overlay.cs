@@ -20,8 +20,9 @@ internal class Overlay : IDisposable
 	private float _zoom;
 	private bool _muted;
 	private string _customCss;
+	private string _customJs;
 
-	public Overlay(string id, string url, float zoom, bool muted, int framerate, string customCss,
+	public Overlay(string id, string url, float zoom, bool muted, int framerate, string customCss, string customJs,
 		TextureRenderHandler renderHandler)
 	{
 		_id = id;
@@ -30,6 +31,7 @@ internal class Overlay : IDisposable
 		_framerate = framerate;
 		_muted = muted;
 		_customCss = customCss;
+		_customJs = customJs;
 		RenderHandler = renderHandler;
 	}
 
@@ -85,16 +87,18 @@ internal class Overlay : IDisposable
 			InjectUserCss(state.CustomCss);
 		}
 
+		// Handle JS change
+		if (state.CustomJs != _customJs)
+		{
+			InjectUserJs(state.CustomJs);
+		}
+
 		return resized;
 	}
 
 	public void Initialise()
 	{
-		var requestContextSettings = new RequestContextSettings
-		{
-			CachePath = Path.Combine(CefHandler.RootCachePath, _id),
-			PersistSessionCookies = true
-		};
+		var requestContextSettings = new RequestContextSettings {CachePath = Path.Combine(CefHandler.RootCachePath, _id), PersistSessionCookies = true};
 		var rc = new RequestContext(requestContextSettings);
 
 		_browser = new ChromiumWebBrowser(_url, automaticallyCreateBrowser: false, requestContext: rc);
@@ -119,6 +123,7 @@ internal class Overlay : IDisposable
 			{
 				_browser.SetZoomLevel(ScaleZoomLevel(_zoom));
 				InjectUserCss(_customCss);
+				InjectUserJs(_customJs);
 			}
 		};
 
@@ -150,6 +155,15 @@ internal class Overlay : IDisposable
 		_browser.GetMainFrame().ExecuteJavaScriptAsync(
 			"(()=>{const style = document.getElementById('user-css') ?? document.createElement('style');"
 			+ "style.id = 'user-css'; style.textContent =`" + css + " `;document.head.append(style);})()");
+	}
+
+	public void InjectUserJs(string js)
+	{
+		if (js.Length == 0 && _customJs.Length == 0)
+			return; // nothing to do
+
+		_customCss = js; // to reapply correctly on load
+		_browser.GetMainFrame().ExecuteJavaScriptAsync(js);
 	}
 
 	public void Navigate(string newUrl)

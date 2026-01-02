@@ -64,6 +64,7 @@ internal class OverlayWindow : Window, IDisposable
 	}
 
 	public Guid RenderGuid => _overlayConfig.Guid;
+	public BaseVisibility ComputedVisibility => _computedVisibility;
 
 	/// <summary>
 	/// Gets the current overlay state for sync to renderer.
@@ -89,7 +90,8 @@ internal class OverlayWindow : Window, IDisposable
 			Framerate = _overlayConfig.Framerate,
 			Zoom = _overlayConfig.Zoom,
 			Muted = _overlayConfig.Muted,
-			CustomCss = _overlayConfig.CustomCss ?? ""
+			CustomCss = _overlayConfig.CustomCss ?? "",
+			CustomJs = _overlayConfig.CustomJs ?? ""
 		};
 	}
 

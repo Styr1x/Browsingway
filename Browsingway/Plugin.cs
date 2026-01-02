@@ -116,7 +116,6 @@ public class Plugin : IDalamudPlugin
 			_overlayManager,
 			_config,
 			() => _actManager.IsRunning,
-			() => _overlayManager.GetActiveOverlayCount(),
 			_pluginDir);
 
 		_windowSystem.AddWindow(_settingsWindow);

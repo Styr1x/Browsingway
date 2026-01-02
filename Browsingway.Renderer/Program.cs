@@ -149,13 +149,13 @@ internal static class Program
 		Size size = new(state.Width, state.Height);
 		var renderHandler = new TextureRenderHandler(size);
 
-		Overlay overlay = new(state.Id, state.Url, state.Zoom, state.Muted, state.Framerate, state.CustomCss, renderHandler);
+		Overlay overlay = new(state.Id, state.Url, state.Zoom, state.Muted, state.Framerate, state.CustomCss, state.CustomJs, renderHandler);
 		overlay.Initialise();
 		_overlays.Add(guid, overlay);
 
 		renderHandler.CursorChanged += (o, cursor) =>
 		{
-			_ = _rpc.SetCursor(new SetCursorMessage() { Guid = guid.ToByteArray(), Cursor = cursor });
+			_ = _rpc.SetCursor(new SetCursorMessage() {Guid = guid.ToByteArray(), Cursor = cursor});
 		};
 
 		_ = _rpc.UpdateTexture(guid, renderHandler.SharedTextureHandle);

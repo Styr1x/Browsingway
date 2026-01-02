@@ -23,7 +23,6 @@ internal sealed partial class SettingsWindow : Window, IDisposable
 	private readonly IServiceContainer _services;
 	private readonly OverlayManager _overlayManager;
 	private readonly Func<bool> _getActAvailable;
-	private readonly Func<int> _getOverlayCount;
 	private readonly ISharedImmediateTexture? _logoTexture;
 	private readonly string _version;
 
@@ -46,7 +45,6 @@ internal sealed partial class SettingsWindow : Window, IDisposable
 		OverlayManager overlayManager,
 		Configuration config,
 		Func<bool> getActAvailable,
-		Func<int> getOverlayCount,
 		string pluginDir)
 		: base("Browsingway Settings###BrowsingwaySettings")
 	{
@@ -54,7 +52,6 @@ internal sealed partial class SettingsWindow : Window, IDisposable
 		_overlayManager = overlayManager;
 		_config = config;
 		_getActAvailable = getActAvailable;
-		_getOverlayCount = getOverlayCount;
 
 		// Load textures
 		_logoTexture = _services.TextureProvider.GetFromFile(Path.Combine(pluginDir, "icon.png"));
@@ -138,11 +135,9 @@ internal sealed partial class SettingsWindow : Window, IDisposable
 		// Stats
 		ImGui.TextColored(new Vector4(0.7f, 0.7f, 0.7f, 1f), "Stats");
 
-		int overlayCount = _getOverlayCount();
-		ImGui.Text($"Overlays: {overlayCount}");
-
-		int activeCount = _config.Overlays.Count(o => o.BaseVisibility != BaseVisibility.Disabled);
-		ImGui.Text($"Active: {activeCount}");
+		ImGui.Text($"Overlays: {_overlayManager.GetOverlayCount()}");
+		ImGui.Text($"Enabled: {_overlayManager.GetEnabledCount()}");
+		ImGui.Text($"Visible: {_overlayManager.GetVisibleCount()}");
 
 		bool actRunning = _getActAvailable();
 		ImGui.TextColored(
