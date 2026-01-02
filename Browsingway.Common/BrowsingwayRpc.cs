@@ -1,55 +1,33 @@
 ﻿using Browsingway.Common.Ipc;
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace Browsingway.Common;
 
 public class BrowsingwayRpc(string name) : IpcBase(name)
 {
-	// calls from the renderer
+	// Events from the renderer
 	public event Action<SetCursorMessage>? SetCursor;
 	public event Action<RendererReadyMessage>? RendererReady;
 	public event Action<UpdateTextureMessage>? UpdateTexture;
 
-	// calls to the renderer
-	public async Task NewOverlay(NewOverlayMessage msg)
+	// Declarative state sync - sends all overlay states to renderer
+	public async Task SyncOverlays(IReadOnlyList<OverlayState> overlays)
 	{
-		await SendCall(new RpcCall() { NewOverlay = msg });
+		await SendCall(new RpcCall() { SyncOverlays = new SyncOverlaysMessage() { Overlays = overlays.ToList() } });
 	}
 
+	// Imperative actions (user-triggered, not state)
 	public async Task Navigate(Guid id, string url)
 	{
 		await SendCall(new RpcCall() { Navigate = new NavigateMessage() { Guid = id.ToByteArray(), Url = url } });
 	}
 
-	public async Task ResizeOverlay(Guid id, int width, int height)
-	{
-		await SendCall(new RpcCall() { ResizeOverlay = new ResizeOverlayMessage() { Guid = id.ToByteArray(), Width = width, Height = height } });
-	}
-
-	public async Task InjectUserCss(Guid id, string css)
-	{
-		await SendCall(new RpcCall() { InjectUserCss = new InjectUserCssMessage() { Guid = id.ToByteArray(), Css = css } });
-	}
-
-	public async Task Zoom(Guid id, float zoom)
-	{
-		await SendCall(new RpcCall() { Zoom = new ZoomMessage() { Guid = id.ToByteArray(), Zoom = zoom } });
-	}
-
-	public async Task Mute(Guid id, bool mute)
-	{
-		await SendCall(new RpcCall() { Mute = new MuteMessage() { Guid = id.ToByteArray(), Mute = mute } });
-	}
-
 	public async Task Debug(Guid id)
 	{
 		await SendCall(new RpcCall() { Debug = new DebugMessage() { Guid = id.ToByteArray() } });
-	}
-
-	public async Task RemoveOverlay(Guid id)
-	{
-		await SendCall(new RpcCall() { RemoveOverlay = new RemoveOverlayMessage() { Guid = id.ToByteArray() } });
 	}
 
 	public async Task MouseButton(MouseButtonMessage msg)

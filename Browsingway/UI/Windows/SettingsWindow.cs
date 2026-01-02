@@ -21,7 +21,7 @@ internal sealed partial class SettingsWindow : Window, IDisposable
 	private static partial Regex WhitespaceRegex();
 
 	private readonly IServiceContainer _services;
-	private readonly IOverlayManager _overlayManager;
+	private readonly OverlayManager _overlayManager;
 	private readonly Func<bool> _getActAvailable;
 	private readonly Func<int> _getOverlayCount;
 	private readonly ISharedImmediateTexture? _logoTexture;
@@ -43,7 +43,7 @@ internal sealed partial class SettingsWindow : Window, IDisposable
 
 	public SettingsWindow(
 		IServiceContainer services,
-		IOverlayManager overlayManager,
+		OverlayManager overlayManager,
 		Configuration config,
 		Func<bool> getActAvailable,
 		Func<int> getOverlayCount,

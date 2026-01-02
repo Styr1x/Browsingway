@@ -33,6 +33,8 @@ internal class Overlay : IDisposable
 		RenderHandler = renderHandler;
 	}
 
+	public int Framerate => _framerate;
+
 	public void Dispose()
 	{
 		RenderHandler.Dispose();
@@ -42,6 +44,48 @@ internal class Overlay : IDisposable
 			_browser.RenderHandler = null;
 			_browser.Dispose();
 		}
+	}
+
+	/// <summary>
+	/// Updates the overlay with new state. Returns true if resize occurred (texture changed).
+	/// </summary>
+	public bool Update(OverlayState state)
+	{
+		bool resized = false;
+
+		// Handle resize
+		var newSize = new Size(state.Width, state.Height);
+		if (newSize != RenderHandler.Size)
+		{
+			Resize(newSize);
+			resized = true;
+		}
+
+		// Handle URL change
+		if (state.Url != _url)
+		{
+			Navigate(state.Url);
+		}
+
+		// Handle zoom change
+		if (Math.Abs(state.Zoom - _zoom) > 0.01f)
+		{
+			Zoom(state.Zoom);
+		}
+
+		// Handle mute change
+		if (state.Muted != _muted)
+		{
+			Mute(state.Muted);
+		}
+
+		// Handle CSS change
+		if (state.CustomCss != _customCss)
+		{
+			InjectUserCss(state.CustomCss);
+		}
+
+		return resized;
 	}
 
 	public void Initialise()

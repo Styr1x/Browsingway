@@ -12,13 +12,13 @@ internal sealed partial class OverlayCommandHandler
 	private static partial Regex WhitespaceRegex();
 
 	private readonly IServiceContainer _services;
-	private readonly IOverlayManager _overlayManager;
+	private readonly OverlayManager _overlayManager;
 	private readonly Func<Configuration> _getConfig;
 	private readonly Action _saveConfig;
 
 	public OverlayCommandHandler(
 		IServiceContainer services,
-		IOverlayManager overlayManager,
+		OverlayManager overlayManager,
 		Func<Configuration> getConfig,
 		Action saveConfig)
 	{
@@ -78,8 +78,6 @@ internal sealed partial class OverlayCommandHandler
 				break;
 			case "muted":
 				handled = TrySetBoolean(args[2], ref targetConfig.Muted);
-				if (handled)
-					_overlayManager.SetMuted(targetConfig.Guid, targetConfig.Muted);
 				break;
 			case "reload":
 				_overlayManager.NavigateOverlay(targetConfig.Guid, targetConfig.Url);

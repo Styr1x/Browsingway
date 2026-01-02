@@ -67,6 +67,16 @@ internal unsafe class TextureRenderHandler : IRenderHandler
 		}
 	}
 
+	public Size Size
+	{
+		get
+		{
+			D3D11_TEXTURE2D_DESC texDesc;
+			_sharedTexture->GetDesc(&texDesc);
+			return new Size((int)texDesc.Width, (int)texDesc.Height);
+		}
+	}
+
 	public event EventHandler<Cursor>? CursorChanged;
 
 	public void Dispose()

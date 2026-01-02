@@ -4,49 +4,31 @@ attribute "fs_serializer";
 
 namespace Browsingway.Common.Ipc;
 
-table NewOverlayMessage (fs_serializer) {
-	Framerate: int;
-	Guid: [ubyte] (required);
-	Id: string (required);
-	Height: int;
-	Url: string (required);
-	Width: int;
-	Zoom: float;
-	Muted: bool;
-	CustomCss: string (required);
+// Overlay state for declarative sync
+table OverlayState (fs_serializer) {
+    Guid: [ubyte] (required);
+    Id: string (required);
+    Url: string (required);
+    Width: int;
+    Height: int;
+    Framerate: int;
+    Zoom: float;
+    Muted: bool;
+    CustomCss: string (required);
 }
 
+// Sync all overlay states at once (declarative)
+table SyncOverlaysMessage (fs_serializer) {
+    Overlays: [OverlayState] (required);
+}
+
+// Imperative actions (user-triggered, not state)
 table NavigateMessage (fs_serializer) {
     Guid : [ubyte] (required);
     Url : string (required);
 }
 
-table ResizeOverlayMessage(fs_serializer) {
-    Guid: [ubyte] (required);
-    Height: int;
-    Width: int;
-}
-
-table InjectUserCssMessage (fs_serializer) {
-    Guid : [ubyte] (required);
-    Css : string (required);
-}
-
-table ZoomMessage (fs_serializer) {
-    Guid : [ubyte] (required);
-    Zoom : float;
-}
-
-table MuteMessage (fs_serializer) {
-    Guid : [ubyte] (required);
-    Mute : bool;
-}
-
 table DebugMessage (fs_serializer) {
-    Guid : [ubyte] (required);
-}
-
-table RemoveOverlayMessage (fs_serializer) {
     Guid : [ubyte] (required);
 }
 

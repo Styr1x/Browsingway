@@ -20,11 +20,11 @@ internal class OverlayWindow : Window, IDisposable
 	private readonly RenderProcessManager _renderProcessManager;
 	private readonly IServiceContainer _services;
 	private readonly ISharedImmediateTexture? _texErrorIcon;
+	private readonly Action? _onSizeChanged;
 
 	private bool _captureCursor;
 	private ImGuiMouseCursor _cursor;
 	private bool _mouseInWindow;
-	private bool _resizing;
 	private Vector2 _size;
 	private bool _hasRenderError;
 	private ImGuiSharedTexture? _textureHandler;
@@ -32,7 +32,7 @@ internal class OverlayWindow : Window, IDisposable
 	private bool _windowFocused;
 	private BaseVisibility _computedVisibility;
 
-	public OverlayWindow(IServiceContainer services, RenderProcessManager renderProcessManager, OverlayConfiguration overlayConfig, string pluginDir)
+	public OverlayWindow(IServiceContainer services, RenderProcessManager renderProcessManager, OverlayConfiguration overlayConfig, string pluginDir, Action? onSizeChanged = null)
 		: base($"{overlayConfig.Name}###{overlayConfig.Guid}",
 			ImGuiWindowFlags.NoTitleBar
 			| ImGuiWindowFlags.NoCollapse
@@ -43,6 +43,7 @@ internal class OverlayWindow : Window, IDisposable
 	{
 		_services = services;
 		_renderProcessManager = renderProcessManager;
+		_onSizeChanged = onSizeChanged;
 		_renderProcessManager.Crashed += (_, _) =>
 		{
 			_size = Vector2.Zero;
@@ -64,32 +65,52 @@ internal class OverlayWindow : Window, IDisposable
 
 	public Guid RenderGuid => _overlayConfig.Guid;
 
+	/// <summary>
+	/// Gets the current overlay state for sync to renderer.
+	/// Returns null if:
+	/// - The overlay hasn't been sized yet (size is zero)
+	/// - The computed visibility is Disabled (browser should not exist)
+	/// </summary>
+	public OverlayState? GetState()
+	{
+		// Don't sync if not yet sized
+		if (_size == Vector2.Zero) return null;
+
+		// Disabled = browser should not exist in renderer
+		if (_computedVisibility == BaseVisibility.Disabled) return null;
+
+		return new OverlayState
+		{
+			Guid = RenderGuid.ToByteArray(),
+			Id = _overlayConfig.Name,
+			Url = _overlayConfig.Url,
+			Width = (int)_size.X,
+			Height = (int)_size.Y,
+			Framerate = _overlayConfig.Framerate,
+			Zoom = _overlayConfig.Zoom,
+			Muted = _overlayConfig.Muted,
+			CustomCss = _overlayConfig.CustomCss ?? ""
+		};
+	}
+
 	public void Dispose()
 	{
 		_textureHandler?.Dispose();
-		_renderProcessManager.Rpc?.RemoveOverlay(RenderGuid).FireAndForget(_services.PluginLog);
+		// Overlay removal is handled by sync - when overlay is removed from manager,
+		// next sync will not include it, and renderer will remove it
 	}
 
+	/// <summary>
+	/// Imperatively navigate to a new URL (user action).
+	/// </summary>
 	public void Navigate(string newUrl)
 	{
 		_renderProcessManager.Rpc?.Navigate(RenderGuid, newUrl).FireAndForget(_services.PluginLog);
 	}
 
-	public void InjectUserCss(string css)
-	{
-		_renderProcessManager.Rpc?.InjectUserCss(RenderGuid, css).FireAndForget(_services.PluginLog);
-	}
-
-	public void Zoom(float zoom)
-	{
-		_renderProcessManager.Rpc?.Zoom(RenderGuid, zoom).FireAndForget(_services.PluginLog);
-	}
-
-	public void Mute(bool mute)
-	{
-		_renderProcessManager.Rpc?.Mute(RenderGuid, mute).FireAndForget(_services.PluginLog);
-	}
-
+	/// <summary>
+	/// Imperatively open DevTools (user action).
+	/// </summary>
 	public void Debug()
 	{
 		_renderProcessManager.Rpc?.Debug(RenderGuid).FireAndForget(_services.PluginLog);
@@ -268,7 +289,6 @@ internal class OverlayWindow : Window, IDisposable
 
 	public void SetTexture(HANDLE handle)
 	{
-		_resizing = false;
 		_hasRenderError = false;
 
 		ImGuiSharedTexture? oldTextureHandler = _textureHandler;
@@ -358,31 +378,12 @@ internal class OverlayWindow : Window, IDisposable
 	private void HandleWindowSize()
 	{
 		Vector2 currentSize = ImGui.GetWindowContentRegionMax() - ImGui.GetWindowContentRegionMin();
-		if (currentSize == _size || _resizing) { return; }
+		if (currentSize == _size) { return; }
 
-		if (_size == Vector2.Zero)
-		{
-			_renderProcessManager.Rpc?.NewOverlay(new NewOverlayMessage
-			{
-				Guid = RenderGuid.ToByteArray(),
-				Id = _overlayConfig.Name,
-				Url = _overlayConfig.Url,
-				Width = (int)currentSize.X,
-				Height = (int)currentSize.Y,
-				Zoom = _overlayConfig.Zoom,
-				Framerate = _overlayConfig.Framerate,
-				Muted = _overlayConfig.Muted,
-				CustomCss = _overlayConfig.CustomCss
-			}).FireAndForget(_services.PluginLog);
-		}
-		else
-		{
-			_renderProcessManager.Rpc?.ResizeOverlay(RenderGuid, (int)currentSize.X, (int)currentSize.Y)
-				.FireAndForget(_services.PluginLog);
-		}
-
-		_resizing = true;
 		_size = currentSize;
+
+		// Notify that size changed - OverlayManager will trigger sync
+		_onSizeChanged?.Invoke();
 	}
 
 	#region serde

@@ -79,7 +79,7 @@ internal partial class OverlaySettingsTab
 	];
 
 	private readonly Configuration _config;
-	private readonly IOverlayManager _overlayManager;
+	private readonly OverlayManager _overlayManager;
 	private readonly Func<bool> _getActAvailable;
 	private readonly ISharedImmediateTexture? _texWarningIcon;
 
@@ -88,7 +88,7 @@ internal partial class OverlaySettingsTab
 	private Guid? _selectedOverlayGuid;
 	private readonly HashSet<Guid> _newOverlays = [];
 
-	public OverlaySettingsTab(Configuration config, IOverlayManager overlayManager, Func<bool> getActAvailable, ISharedImmediateTexture? warningIcon)
+	public OverlaySettingsTab(Configuration config, OverlayManager overlayManager, Func<bool> getActAvailable, ISharedImmediateTexture? warningIcon)
 	{
 		_config = config;
 		_texWarningIcon = warningIcon;

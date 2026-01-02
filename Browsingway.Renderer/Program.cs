@@ -74,23 +74,98 @@ internal static class Program
 		CefHandler.Shutdown();
 	}
 
-	// TODO: move RPC stuff away
 	private static void InitializeIpc(string channelName)
 	{
 		_rpc = new RendererRpc(channelName);
-		_rpc.Debug += RpcOnDebug;
-		_rpc.Mute += RpcOnMute;
+
+		// Declarative state sync
+		_rpc.SyncOverlays += RpcOnSyncOverlays;
+
+		// Imperative actions (user-triggered, not state)
 		_rpc.Navigate += RpcOnNavigate;
-		_rpc.Zoom += RpcOnZoom;
-		_rpc.KeyEvent += RpcOnKeyEvent;
+		_rpc.Debug += RpcOnDebug;
 		_rpc.MouseButton += RpcOnMouseButton;
-		_rpc.NewOverlay += RpcOnNewOverlay;
-		_rpc.RemoveOverlay += RpcOnRemoveOverlay;
-		_rpc.ResizeOverlay += RpcOnResizeOverlay;
-		_rpc.InjectUserCss += RpcOnInjectUserCss;
+		_rpc.KeyEvent += RpcOnKeyEvent;
 	}
 
-	private static void RpcOnInjectUserCss(InjectUserCssMessage msg)
+	#region Declarative State Sync
+
+	private static void RpcOnSyncOverlays(SyncOverlaysMessage msg)
+	{
+		lock (_lockIpc)
+		{
+			if (_isShuttingDown)
+				return;
+
+			var desiredGuids = new HashSet<Guid>();
+
+			// Build set of desired overlays and create/update each
+			foreach (var state in msg.Overlays)
+			{
+				var guid = new Guid(state.Guid.Span);
+				desiredGuids.Add(guid);
+
+				if (_overlays.TryGetValue(guid, out var existing))
+				{
+					// Overlay exists - check if framerate changed (requires recreation)
+					if (existing.Framerate != state.Framerate)
+					{
+						// Recreate overlay with new framerate
+						existing.Dispose();
+						_overlays.Remove(guid);
+						CreateOverlay(guid, state);
+					}
+					else
+					{
+						// Update existing overlay
+						bool resized = existing.Update(state);
+						if (resized)
+						{
+							_ = _rpc.UpdateTexture(guid, existing.RenderHandler.SharedTextureHandle);
+						}
+					}
+				}
+				else
+				{
+					// Create new overlay
+					CreateOverlay(guid, state);
+				}
+			}
+
+			// Remove overlays not in desired state
+			var toRemove = _overlays.Keys.Where(g => !desiredGuids.Contains(g)).ToList();
+			foreach (var guid in toRemove)
+			{
+				if (_overlays.Remove(guid, out var overlay))
+				{
+					overlay.Dispose();
+				}
+			}
+		}
+	}
+
+	private static void CreateOverlay(Guid guid, OverlayState state)
+	{
+		Size size = new(state.Width, state.Height);
+		var renderHandler = new TextureRenderHandler(size);
+
+		Overlay overlay = new(state.Id, state.Url, state.Zoom, state.Muted, state.Framerate, state.CustomCss, renderHandler);
+		overlay.Initialise();
+		_overlays.Add(guid, overlay);
+
+		renderHandler.CursorChanged += (o, cursor) =>
+		{
+			_ = _rpc.SetCursor(new SetCursorMessage() { Guid = guid.ToByteArray(), Cursor = cursor });
+		};
+
+		_ = _rpc.UpdateTexture(guid, renderHandler.SharedTextureHandle);
+	}
+
+	#endregion
+
+	#region Imperative Actions
+
+	private static void RpcOnNavigate(NavigateMessage msg)
 	{
 		lock (_lockIpc)
 		{
@@ -99,11 +174,11 @@ internal static class Program
 
 			var guid = new Guid(msg.Guid.Span);
 			if (_overlays.TryGetValue(guid, out var overlay))
-				overlay.InjectUserCss(msg.Css);
+				overlay.Navigate(msg.Url);
 		}
 	}
 
-	private static void RpcOnResizeOverlay(ResizeOverlayMessage msg)
+	private static void RpcOnDebug(DebugMessage msg)
 	{
 		lock (_lockIpc)
 		{
@@ -112,55 +187,7 @@ internal static class Program
 
 			var guid = new Guid(msg.Guid.Span);
 			if (_overlays.TryGetValue(guid, out var overlay))
-			{
-				overlay.Resize(new Size(msg.Width, msg.Height));
-				_ = _rpc.UpdateTexture(guid, overlay.RenderHandler.SharedTextureHandle);
-			}
-		}
-	}
-
-	private static void RpcOnRemoveOverlay(RemoveOverlayMessage msg)
-	{
-		lock (_lockIpc)
-		{
-			if (_isShuttingDown)
-				return;
-
-			var guid = new Guid(msg.Guid.Span);
-			if (_overlays.Remove(guid, out var overlay))
-			{
-				overlay.Dispose();
-			}
-		}
-	}
-
-	private static void RpcOnNewOverlay(NewOverlayMessage msg)
-	{
-		lock (_lockIpc)
-		{
-			if (_isShuttingDown)
-				return;
-
-			Size size = new(msg.Width, msg.Height);
-
-			var renderHandler = new TextureRenderHandler(size);
-			var guid = new Guid(msg.Guid.Span);
-			if (_overlays.TryGetValue(guid, out Overlay? value))
-			{
-				value.Dispose();
-				_overlays.Remove(guid);
-			}
-
-			Overlay overlay = new(msg.Id, msg.Url, msg.Zoom, msg.Muted, msg.Framerate, msg.CustomCss, renderHandler);
-			overlay.Initialise();
-			_overlays.Add(guid, overlay);
-
-			renderHandler.CursorChanged += (o, cursor) =>
-			{
-				_ = _rpc.SetCursor(new SetCursorMessage() {Guid = msg.Guid, Cursor = cursor});
-			};
-
-			_ = _rpc.UpdateTexture(guid, renderHandler.SharedTextureHandle);
+				overlay.Debug();
 		}
 	}
 
@@ -190,57 +217,7 @@ internal static class Program
 		}
 	}
 
-	private static void RpcOnZoom(ZoomMessage msg)
-	{
-		lock (_lockIpc)
-		{
-			if (_isShuttingDown)
-				return;
-
-			var guid = new Guid(msg.Guid.Span);
-			if (_overlays.TryGetValue(guid, out var overlay))
-				overlay.Zoom(msg.Zoom);
-		}
-	}
-
-	private static void RpcOnNavigate(NavigateMessage msg)
-	{
-		lock (_lockIpc)
-		{
-			if (_isShuttingDown)
-				return;
-
-			var guid = new Guid(msg.Guid.Span);
-			if (_overlays.TryGetValue(guid, out var overlay))
-				overlay.Navigate(msg.Url);
-		}
-	}
-
-	private static void RpcOnMute(MuteMessage msg)
-	{
-		lock (_lockIpc)
-		{
-			if (_isShuttingDown)
-				return;
-
-			var guid = new Guid(msg.Guid.Span);
-			if (_overlays.TryGetValue(guid, out var overlay))
-				overlay.Mute(msg.Mute);
-		}
-	}
-
-	private static void RpcOnDebug(DebugMessage msg)
-	{
-		lock (_lockIpc)
-		{
-			if (_isShuttingDown)
-				return;
-
-			var guid = new Guid(msg.Guid.Span);
-			if (_overlays.TryGetValue(guid, out var overlay))
-				overlay.Debug();
-		}
-	}
+	#endregion
 
 	private static void WatchParentStatus(object? pid)
 	{

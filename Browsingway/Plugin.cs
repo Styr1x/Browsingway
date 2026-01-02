@@ -1,4 +1,5 @@
 using Browsingway.Commands;
+using Browsingway.Common.Ipc;
 using Browsingway.Interop;
 using Browsingway.Services;
 using Browsingway.UI;
@@ -133,20 +134,7 @@ public class Plugin : IDalamudPlugin
 			});
 
 		// Handle renderer ready event
-		_renderProcess.Rpc!.RendererReady += msg =>
-		{
-			if (!msg.HasDxSharedTexturesSupport)
-			{
-				_services.PluginLog.Error("Could not initialize shared textures transport. Browsingway will not work.");
-				return;
-			}
-
-			_services.Framework.RunOnFrameworkThread(() =>
-			{
-				// Initial load of overlays from config
-				_overlayManager.ReloadAllFromConfig(_config!, _actManager.IsRunning);
-			});
-		};
+		_renderProcess.Rpc!.RendererReady += OnRendererReady;
 
 		_renderProcess.Start();
 
@@ -156,6 +144,24 @@ public class Plugin : IDalamudPlugin
 		// Hook up the main BW command
 		_services.CommandManager.AddHandler(_command,
 			new CommandInfo(HandleCommand) { HelpMessage = "Control Browsingway from the chat line! Type '/bw config' or open the settings for more info.", ShowInHelp = true });
+	}
+
+	private void OnRendererReady(RendererReadyMessage msg)
+	{
+		if (!msg.HasDxSharedTexturesSupport)
+		{
+			_services.PluginLog.Error("Could not initialize shared textures transport. Browsingway will not work.");
+			return;
+		}
+
+		_services.Framework.RunOnFrameworkThread(() =>
+		{
+			// Initial load of overlays from config
+			_overlayManager?.ReloadAllFromConfig(_config!, _actManager.IsRunning);
+
+			// Sync all overlay state to renderer (self-healing on reconnect)
+			_overlayManager?.SyncNow();
+		});
 	}
 
 	private WndProcResult OnWndProc(WindowsMessage msg, ulong wParam, long lParam)
