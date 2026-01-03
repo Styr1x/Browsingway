@@ -90,7 +90,7 @@ internal sealed class Configuration : IPluginConfiguration
 					ClickThrough = inlay.ClickThrough,
 					Fullscreen = inlay.Fullscreen,
 					// Set Position based on Fullscreen flag
-					Position = inlay.Fullscreen ? ScreenPosition.Fullscreen : ScreenPosition.System,
+					PositionMode = inlay.Fullscreen ? ScreenPositionMode.Fullscreen : ScreenPositionMode.System,
 					CustomCss = inlay.CustomCss,
 				};
 
@@ -131,7 +131,7 @@ internal sealed class Configuration : IPluginConfiguration
 		{
 			if (overlay.Fullscreen)
 			{
-				overlay.Position = ScreenPosition.Fullscreen;
+				overlay.PositionMode = ScreenPositionMode.Fullscreen;
 			}
 			// Position defaults to System, and percentage values default to sensible values
 			// No pixel-to-percentage conversion needed since this feature wasn't implemented in v0
@@ -205,7 +205,7 @@ public enum BaseVisibility
 	Disabled
 }
 
-public enum ScreenPosition
+public enum ScreenPositionMode
 {
 	System,
 	Fullscreen,
@@ -255,7 +255,7 @@ internal sealed class OverlayConfiguration
 	public bool Fullscreen;
 
 	// Positioning
-	public ScreenPosition Position = ScreenPosition.System;
+	public ScreenPositionMode PositionMode = ScreenPositionMode.System;
 	/// <summary>X offset from anchor point as percentage of screen width (-100 to +100)</summary>
 	public float PositionX;
 	/// <summary>Y offset from anchor point as percentage of screen height (-100 to +100)</summary>

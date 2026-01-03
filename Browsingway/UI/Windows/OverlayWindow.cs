@@ -191,7 +191,7 @@ internal class OverlayWindow : Window, IDisposable
 		Flags = GetWindowFlags();
 		
 		// Handle positioning based on Position setting
-		if (_overlayConfig.Position == ScreenPosition.Fullscreen)
+		if (_overlayConfig.PositionMode == ScreenPositionMode.Fullscreen)
 		{
 			// Fullscreen: cover entire screen
 			var screen = ImGui.GetMainViewport();
@@ -207,7 +207,7 @@ internal class OverlayWindow : Window, IDisposable
 			Size = fsSize;
 			SizeCondition = ImGuiCond.Always;
 		}
-		else if (_overlayConfig.Position != ScreenPosition.System)
+		else if (_overlayConfig.PositionMode != ScreenPositionMode.System)
 		{
 			// Anchor-based positioning with percentage values
 			var screen = ImGui.GetMainViewport();
@@ -224,22 +224,22 @@ internal class OverlayWindow : Window, IDisposable
 			float offsetY = screenHeight * (_overlayConfig.PositionY / 100f);
 
 			// Get anchor point on screen (physical pixels)
-			var (anchorX, anchorY) = GetAnchorPoint(_overlayConfig.Position, screenWidth, screenHeight);
+			var (anchorX, anchorY) = GetAnchorPoint(_overlayConfig.PositionMode, screenWidth, screenHeight);
 
 			// Calculate overlay position based on anchor (physical pixels)
-			float overlayLeft = _overlayConfig.Position switch
+			float overlayLeft = _overlayConfig.PositionMode switch
 			{
-				ScreenPosition.TopLeft or ScreenPosition.CenterLeft or ScreenPosition.BottomLeft => anchorX + offsetX,
-				ScreenPosition.Top or ScreenPosition.Center or ScreenPosition.BottomCenter => anchorX + offsetX - overlayWidth / 2f,
-				ScreenPosition.TopRight or ScreenPosition.CenterRight or ScreenPosition.BottomRight => anchorX + offsetX - overlayWidth,
+				ScreenPositionMode.TopLeft or ScreenPositionMode.CenterLeft or ScreenPositionMode.BottomLeft => anchorX + offsetX,
+				ScreenPositionMode.Top or ScreenPositionMode.Center or ScreenPositionMode.BottomCenter => anchorX + offsetX - overlayWidth / 2f,
+				ScreenPositionMode.TopRight or ScreenPositionMode.CenterRight or ScreenPositionMode.BottomRight => anchorX + offsetX - overlayWidth,
 				_ => offsetX
 			};
 
-			float overlayTop = _overlayConfig.Position switch
+			float overlayTop = _overlayConfig.PositionMode switch
 			{
-				ScreenPosition.TopLeft or ScreenPosition.Top or ScreenPosition.TopRight => anchorY + offsetY,
-				ScreenPosition.CenterLeft or ScreenPosition.Center or ScreenPosition.CenterRight => anchorY + offsetY - overlayHeight / 2f,
-				ScreenPosition.BottomLeft or ScreenPosition.BottomCenter or ScreenPosition.BottomRight => anchorY + offsetY - overlayHeight,
+				ScreenPositionMode.TopLeft or ScreenPositionMode.Top or ScreenPositionMode.TopRight => anchorY + offsetY,
+				ScreenPositionMode.CenterLeft or ScreenPositionMode.Center or ScreenPositionMode.CenterRight => anchorY + offsetY - overlayHeight / 2f,
+				ScreenPositionMode.BottomLeft or ScreenPositionMode.BottomCenter or ScreenPositionMode.BottomRight => anchorY + offsetY - overlayHeight,
 				_ => offsetY
 			};
 			
@@ -261,19 +261,19 @@ internal class OverlayWindow : Window, IDisposable
 	/// <summary>
 	/// Gets the anchor point in screen coordinates for a given position.
 	/// </summary>
-	private static (float x, float y) GetAnchorPoint(ScreenPosition position, float screenWidth, float screenHeight)
+	private static (float x, float y) GetAnchorPoint(ScreenPositionMode positionMode, float screenWidth, float screenHeight)
 	{
-		return position switch
+		return positionMode switch
 		{
-			ScreenPosition.TopLeft => (0, 0),
-			ScreenPosition.Top => (screenWidth / 2f, 0),
-			ScreenPosition.TopRight => (screenWidth, 0),
-			ScreenPosition.CenterLeft => (0, screenHeight / 2f),
-			ScreenPosition.Center => (screenWidth / 2f, screenHeight / 2f),
-			ScreenPosition.CenterRight => (screenWidth, screenHeight / 2f),
-			ScreenPosition.BottomLeft => (0, screenHeight),
-			ScreenPosition.BottomCenter => (screenWidth / 2f, screenHeight),
-			ScreenPosition.BottomRight => (screenWidth, screenHeight),
+			ScreenPositionMode.TopLeft => (0, 0),
+			ScreenPositionMode.Top => (screenWidth / 2f, 0),
+			ScreenPositionMode.TopRight => (screenWidth, 0),
+			ScreenPositionMode.CenterLeft => (0, screenHeight / 2f),
+			ScreenPositionMode.Center => (screenWidth / 2f, screenHeight / 2f),
+			ScreenPositionMode.CenterRight => (screenWidth, screenHeight / 2f),
+			ScreenPositionMode.BottomLeft => (0, screenHeight),
+			ScreenPositionMode.BottomCenter => (screenWidth / 2f, screenHeight),
+			ScreenPositionMode.BottomRight => (screenWidth, screenHeight),
 			_ => (0, 0)
 		};
 	}
@@ -333,7 +333,7 @@ internal class OverlayWindow : Window, IDisposable
 								 | ImGuiWindowFlags.NoFocusOnAppearing;
 
 		// ClickThrough / fullscreen / anchor-based positioning is implicitly locked
-		bool isPositioned = _overlayConfig.Position != ScreenPosition.System;
+		bool isPositioned = _overlayConfig.PositionMode != ScreenPositionMode.System;
 		bool locked = _overlayConfig.Locked || _overlayConfig.ClickThrough || isPositioned;
 
 		if (locked)

@@ -12,30 +12,30 @@ namespace Browsingway.UI.Windows.SettingsTabs;
 internal static class PositionVisualizer
 {
 	// Anchor point grid indices (3x3 grid)
-	private static readonly Dictionary<ScreenPosition, (int col, int row)> AnchorPositions = new()
+	private static readonly Dictionary<ScreenPositionMode, (int col, int row)> AnchorPositions = new()
 	{
-		[ScreenPosition.TopLeft] = (0, 0),
-		[ScreenPosition.Top] = (1, 0),
-		[ScreenPosition.TopRight] = (2, 0),
-		[ScreenPosition.CenterLeft] = (0, 1),
-		[ScreenPosition.Center] = (1, 1),
-		[ScreenPosition.CenterRight] = (2, 1),
-		[ScreenPosition.BottomLeft] = (0, 2),
-		[ScreenPosition.BottomCenter] = (1, 2),
-		[ScreenPosition.BottomRight] = (2, 2),
+		[ScreenPositionMode.TopLeft] = (0, 0),
+		[ScreenPositionMode.Top] = (1, 0),
+		[ScreenPositionMode.TopRight] = (2, 0),
+		[ScreenPositionMode.CenterLeft] = (0, 1),
+		[ScreenPositionMode.Center] = (1, 1),
+		[ScreenPositionMode.CenterRight] = (2, 1),
+		[ScreenPositionMode.BottomLeft] = (0, 2),
+		[ScreenPositionMode.BottomCenter] = (1, 2),
+		[ScreenPositionMode.BottomRight] = (2, 2),
 	};
 
 	/// <summary>
 	/// Draws the position visualizer control.
 	/// </summary>
-	/// <param name="position">The current screen position anchor</param>
+	/// <param name="positionMode">The current screen position anchor</param>
 	/// <param name="offsetXPercent">X offset from anchor as percentage of screen width (-100 to +100)</param>
 	/// <param name="offsetYPercent">Y offset from anchor as percentage of screen height (-100 to +100)</param>
 	/// <param name="widthPercent">Overlay width as percentage of screen width (0 to 100)</param>
 	/// <param name="heightPercent">Overlay height as percentage of screen height (0 to 100)</param>
 	/// <param name="visualizerWidth">Width of the visualizer widget</param>
 	/// <returns>The clicked anchor position, or null if no anchor was clicked</returns>
-	public static ScreenPosition? Draw(ScreenPosition position, float offsetXPercent, float offsetYPercent, float widthPercent, float heightPercent, float visualizerWidth = 200f)
+	public static ScreenPositionMode? Draw(ScreenPositionMode positionMode, float offsetXPercent, float offsetYPercent, float widthPercent, float heightPercent, float visualizerWidth = 200f)
 	{
 		float scale = ImGuiHelpers.GlobalScale;
 		float vizWidth = visualizerWidth * scale;
@@ -62,15 +62,15 @@ internal static class PositionVisualizer
 
 		float anchorBoxSize = 10f * scale;
 
-		bool isFullscreen = position == ScreenPosition.Fullscreen;
+		bool isFullscreen = positionMode == ScreenPositionMode.Fullscreen;
 
 		// Draw overlay preview rectangle first (blue box showing where overlay will be)
 		// This is drawn before anchor points so anchors appear on top
-		if (position != ScreenPosition.System)
+		if (positionMode != ScreenPositionMode.System)
 		{
 			// Calculate overlay bounds in visualizer space
 			var (overlayMin, overlayMax) = CalculateOverlayBounds(
-				position, offsetXPercent, offsetYPercent, widthPercent, heightPercent,
+				positionMode, offsetXPercent, offsetYPercent, widthPercent, heightPercent,
 				cursorPos, vizWidth, vizHeight);
 
 			// Clamp to visualizer bounds for display
@@ -86,7 +86,7 @@ internal static class PositionVisualizer
 		}
 
 		// Track clicked anchor
-		ScreenPosition? clickedPosition = null;
+		ScreenPositionMode? clickedPosition = null;
 
 		// Draw anchor points (3x3 grid) - drawn after overlay so they appear on top
 		for (int row = 0; row < 3; row++)
@@ -115,7 +115,7 @@ internal static class PositionVisualizer
 
 				// Determine if this anchor is active
 				bool isActive = isFullscreen;
-				if (!isFullscreen && AnchorPositions.TryGetValue(position, out var anchorPos))
+				if (!isFullscreen && AnchorPositions.TryGetValue(positionMode, out var anchorPos))
 				{
 					isActive = anchorPos.col == col && anchorPos.row == row;
 				}
@@ -151,11 +151,11 @@ internal static class PositionVisualizer
 	/// All position/size values are percentages (0-100 or -100 to +100 for offsets).
 	/// </summary>
 	private static (Vector2 min, Vector2 max) CalculateOverlayBounds(
-		ScreenPosition position, float offsetXPercent, float offsetYPercent, float widthPercent, float heightPercent,
+		ScreenPositionMode positionMode, float offsetXPercent, float offsetYPercent, float widthPercent, float heightPercent,
 		Vector2 vizOrigin, float vizWidth, float vizHeight)
 	{
 		// Handle fullscreen
-		if (position == ScreenPosition.Fullscreen)
+		if (positionMode == ScreenPositionMode.Fullscreen)
 		{
 			return (vizOrigin, vizOrigin + new Vector2(vizWidth, vizHeight));
 		}
@@ -167,25 +167,25 @@ internal static class PositionVisualizer
 		float offsetY = vizHeight * (offsetYPercent / 100f);
 
 		// Get anchor point in visualizer coordinates (0-1 normalized)
-		var (anchorNormX, anchorNormY) = GetAnchorPointNormalized(position);
+		var (anchorNormX, anchorNormY) = GetAnchorPointNormalized(positionMode);
 		float anchorX = vizOrigin.X + vizWidth * anchorNormX;
 		float anchorY = vizOrigin.Y + vizHeight * anchorNormY;
 
 		// Calculate overlay top-left based on anchor
 		// The anchor point is where the overlay's corresponding corner/edge sits
-		float overlayLeft = position switch
+		float overlayLeft = positionMode switch
 		{
-			ScreenPosition.TopLeft or ScreenPosition.CenterLeft or ScreenPosition.BottomLeft => anchorX + offsetX,
-			ScreenPosition.Top or ScreenPosition.Center or ScreenPosition.BottomCenter => anchorX + offsetX - overlayWidth / 2f,
-			ScreenPosition.TopRight or ScreenPosition.CenterRight or ScreenPosition.BottomRight => anchorX + offsetX - overlayWidth,
+			ScreenPositionMode.TopLeft or ScreenPositionMode.CenterLeft or ScreenPositionMode.BottomLeft => anchorX + offsetX,
+			ScreenPositionMode.Top or ScreenPositionMode.Center or ScreenPositionMode.BottomCenter => anchorX + offsetX - overlayWidth / 2f,
+			ScreenPositionMode.TopRight or ScreenPositionMode.CenterRight or ScreenPositionMode.BottomRight => anchorX + offsetX - overlayWidth,
 			_ => vizOrigin.X + offsetX
 		};
 
-		float overlayTop = position switch
+		float overlayTop = positionMode switch
 		{
-			ScreenPosition.TopLeft or ScreenPosition.Top or ScreenPosition.TopRight => anchorY + offsetY,
-			ScreenPosition.CenterLeft or ScreenPosition.Center or ScreenPosition.CenterRight => anchorY + offsetY - overlayHeight / 2f,
-			ScreenPosition.BottomLeft or ScreenPosition.BottomCenter or ScreenPosition.BottomRight => anchorY + offsetY - overlayHeight,
+			ScreenPositionMode.TopLeft or ScreenPositionMode.Top or ScreenPositionMode.TopRight => anchorY + offsetY,
+			ScreenPositionMode.CenterLeft or ScreenPositionMode.Center or ScreenPositionMode.CenterRight => anchorY + offsetY - overlayHeight / 2f,
+			ScreenPositionMode.BottomLeft or ScreenPositionMode.BottomCenter or ScreenPositionMode.BottomRight => anchorY + offsetY - overlayHeight,
 			_ => vizOrigin.Y + offsetY
 		};
 
@@ -198,19 +198,19 @@ internal static class PositionVisualizer
 	/// <summary>
 	/// Gets the anchor point as normalized coordinates (0-1) for a given position.
 	/// </summary>
-	private static (float x, float y) GetAnchorPointNormalized(ScreenPosition position)
+	private static (float x, float y) GetAnchorPointNormalized(ScreenPositionMode positionMode)
 	{
-		return position switch
+		return positionMode switch
 		{
-			ScreenPosition.TopLeft => (0f, 0f),
-			ScreenPosition.Top => (0.5f, 0f),
-			ScreenPosition.TopRight => (1f, 0f),
-			ScreenPosition.CenterLeft => (0f, 0.5f),
-			ScreenPosition.Center => (0.5f, 0.5f),
-			ScreenPosition.CenterRight => (1f, 0.5f),
-			ScreenPosition.BottomLeft => (0f, 1f),
-			ScreenPosition.BottomCenter => (0.5f, 1f),
-			ScreenPosition.BottomRight => (1f, 1f),
+			ScreenPositionMode.TopLeft => (0f, 0f),
+			ScreenPositionMode.Top => (0.5f, 0f),
+			ScreenPositionMode.TopRight => (1f, 0f),
+			ScreenPositionMode.CenterLeft => (0f, 0.5f),
+			ScreenPositionMode.Center => (0.5f, 0.5f),
+			ScreenPositionMode.CenterRight => (1f, 0.5f),
+			ScreenPositionMode.BottomLeft => (0f, 1f),
+			ScreenPositionMode.BottomCenter => (0.5f, 1f),
+			ScreenPositionMode.BottomRight => (1f, 1f),
 			_ => (0f, 0f)
 		};
 	}

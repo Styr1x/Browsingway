@@ -24,7 +24,7 @@ internal sealed class OverlayEditState
 	public bool Fullscreen;
 
 	// Positioning (percentage-based)
-	public ScreenPosition Position;
+	public ScreenPositionMode PositionMode;
 	/// <summary>X offset from anchor point as percentage of screen width (-100 to +100)</summary>
 	public float PositionX;
 	/// <summary>Y offset from anchor point as percentage of screen height (-100 to +100)</summary>
@@ -57,7 +57,7 @@ internal sealed class OverlayEditState
 		TypeThrough = config.TypeThrough,
 		ClickThrough = config.ClickThrough,
 		Fullscreen = config.Fullscreen,
-		Position = config.Position,
+		PositionMode = config.PositionMode,
 		PositionX = config.PositionX,
 		PositionY = config.PositionY,
 		PositionWidth = config.PositionWidth,
@@ -83,7 +83,7 @@ internal sealed class OverlayEditState
 		config.TypeThrough = TypeThrough;
 		config.ClickThrough = ClickThrough;
 		config.Fullscreen = Fullscreen;
-		config.Position = Position;
+		config.PositionMode = PositionMode;
 		config.PositionX = PositionX;
 		config.PositionY = PositionY;
 		config.PositionWidth = PositionWidth;
@@ -109,7 +109,7 @@ internal sealed class OverlayEditState
 			TypeThrough != config.TypeThrough ||
 			ClickThrough != config.ClickThrough ||
 			Fullscreen != config.Fullscreen ||
-			Position != config.Position ||
+			PositionMode != config.PositionMode ||
 			Math.Abs(PositionX - config.PositionX) > 0.01f ||
 			Math.Abs(PositionY - config.PositionY) > 0.01f ||
 			Math.Abs(PositionWidth - config.PositionWidth) > 0.01f ||

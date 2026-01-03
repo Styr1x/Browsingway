@@ -1,4 +1,4 @@
-﻿using Browsingway.Common.Ipc;
+using Browsingway.Common.Ipc;
 using CefSharp;
 using CefSharp.OffScreen;
 using CefSharp.Structs;
@@ -152,7 +152,7 @@ internal class Overlay : IDisposable
 		css = css.Replace("${", @"\${");
 
 		// (()=>{...})() self executable function to prevent scope issues
-		_browser.GetMainFrame().ExecuteJavaScriptAsync(
+		_browser?.GetMainFrame()?.ExecuteJavaScriptAsync(
 			"(()=>{const style = document.getElementById('user-css') ?? document.createElement('style');"
 			+ "style.id = 'user-css'; style.textContent =`" + css + " `;document.head.append(style);})()");
 	}
@@ -162,8 +162,8 @@ internal class Overlay : IDisposable
 		if (js.Length == 0 && _customJs.Length == 0)
 			return; // nothing to do
 
-		_customCss = js; // to reapply correctly on load
-		_browser.GetMainFrame().ExecuteJavaScriptAsync(js);
+		_customJs = js; // to reapply correctly on load
+		_browser?.GetMainFrame()?.ExecuteJavaScriptAsync(js);
 	}
 
 	public void Navigate(string newUrl)
@@ -194,7 +194,7 @@ internal class Overlay : IDisposable
 
 	public void Debug()
 	{
-		_browser.ShowDevTools();
+		_browser?.ShowDevTools();
 	}
 
 	public void HandleMouseEvent(MouseButtonMessage msg)
@@ -227,7 +227,7 @@ internal class Overlay : IDisposable
 
 	public void HandleKeyEvent(KeyEventMessage request)
 	{
-		_browser.GetBrowserHost().SendKeyEvent(request.Msg, request.WParam, request.LParam);
+		_browser?.GetBrowserHost()?.SendKeyEvent(request.Msg, request.WParam, request.LParam);
 	}
 
 	public void Resize(Size size)
@@ -264,6 +264,12 @@ internal class Overlay : IDisposable
 		return result;
 	}
 
+	/// <summary>
+	/// Converts a percentage zoom level (e.g., 100 = 100%) to CEF's logarithmic zoom level.
+	/// CEF uses a logarithmic scale where 0 = 100%, positive = zoom in, negative = zoom out.
+	/// Formula derived from CEF's zoom level calculation: level = log(percent/100) / log(1.2)
+	/// See: https://magpcss.org/ceforum/viewtopic.php?f=6&t=11491
+	/// </summary>
 	private double ScaleZoomLevel(float zoom)
 	{
 		if (Math.Abs(zoom - 100f) < 0.5f)
@@ -271,6 +277,7 @@ internal class Overlay : IDisposable
 			return 0;
 		}
 
+		// Constants: 5.46149645 ≈ 1/log(1.2), and 25.12 ≈ log(100)/log(1.2)
 		return (5.46149645 * Math.Log(_zoom)) - 25.12;
 	}
 }

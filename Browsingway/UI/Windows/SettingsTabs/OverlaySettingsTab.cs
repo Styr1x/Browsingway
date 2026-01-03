@@ -345,16 +345,16 @@ internal partial class OverlaySettingsTab
 		ImGui.Indent();
 		ImGuiHelpers.ScaledDummy(5);
 
-		// Screen Position dropdown
-		ImGui.Text("Screen Position");
+		// Mode dropdown
+		ImGui.Text("Mode");
 		ImGui.SetNextItemWidth(UIConstants.ComboWidth);
-		if (ImGui.BeginCombo("##ScreenPosition", GetScreenPositionDisplayName(state.Position)))
+		if (ImGui.BeginCombo("##Mode", GetPositionModeDisplayName(state.PositionMode)))
 		{
-			foreach (var position in Enum.GetValues<ScreenPosition>())
+			foreach (var position in Enum.GetValues<ScreenPositionMode>())
 			{
-				if (ImGui.Selectable(GetScreenPositionDisplayName(position), state.Position == position))
+				if (ImGui.Selectable(GetPositionModeDisplayName(position), state.PositionMode == position))
 				{
-					state.Position = position;
+					state.PositionMode = position;
 				}
 			}
 			ImGui.EndCombo();
@@ -365,8 +365,8 @@ internal partial class OverlaySettingsTab
 		ImGuiHelpers.ScaledDummy(5);
 
 		// Determine if controls should be disabled
-		bool isSystem = state.Position == ScreenPosition.System;
-		bool isFullscreen = state.Position == ScreenPosition.Fullscreen;
+		bool isSystem = state.PositionMode == ScreenPositionMode.System;
+		bool isFullscreen = state.PositionMode == ScreenPositionMode.Fullscreen;
 		bool disableControls = isSystem || isFullscreen;
 
 		// Side-by-side layout: Position/Size controls on left, Preview on right
@@ -394,14 +394,14 @@ internal partial class OverlaySettingsTab
 		// Draw position visualizer (hidden for System, shown for all others including Fullscreen)
 		if (!isSystem)
 		{
-			ScreenPosition? clickedPosition;
+			ScreenPositionMode? clickedPosition;
 			if (useSideBySide)
 			{
 				ImGui.BeginGroup();
 				ImGui.Text("Preview");
 				ImGuiHelpers.ScaledDummy(2);
 				clickedPosition = PositionVisualizer.Draw(
-					state.Position,
+					state.PositionMode,
 					state.PositionX,
 					state.PositionY,
 					state.PositionWidth,
@@ -415,7 +415,7 @@ internal partial class OverlaySettingsTab
 				ImGui.Text("Preview");
 				ImGuiHelpers.ScaledDummy(2);
 				clickedPosition = PositionVisualizer.Draw(
-					state.Position,
+					state.PositionMode,
 					state.PositionX,
 					state.PositionY,
 					state.PositionWidth,
@@ -425,13 +425,13 @@ internal partial class OverlaySettingsTab
 			// Handle anchor click - update dropdown selection
 			if (clickedPosition.HasValue)
 			{
-				state.Position = clickedPosition.Value;
+				state.PositionMode = clickedPosition.Value;
 			}
 		}
 
 		// Sync legacy fullscreen flag with Position enum
 		// This ensures backward compatibility with old config format
-		state.Fullscreen = state.Position == ScreenPosition.Fullscreen;
+		state.Fullscreen = state.PositionMode == ScreenPositionMode.Fullscreen;
 
 		ImGuiHelpers.ScaledDummy(5);
 
@@ -622,22 +622,22 @@ internal partial class OverlaySettingsTab
 		return false;
 	}
 
-	private static string GetScreenPositionDisplayName(ScreenPosition position)
+	private static string GetPositionModeDisplayName(ScreenPositionMode positionMode)
 	{
-		return position switch
+		return positionMode switch
 		{
-			ScreenPosition.System => "System",
-			ScreenPosition.Fullscreen => "Fullscreen",
-			ScreenPosition.TopLeft => "Top Left",
-			ScreenPosition.Top => "Top",
-			ScreenPosition.TopRight => "Top Right",
-			ScreenPosition.CenterLeft => "Center Left",
-			ScreenPosition.Center => "Center",
-			ScreenPosition.CenterRight => "Center Right",
-			ScreenPosition.BottomLeft => "Bottom Left",
-			ScreenPosition.BottomCenter => "Bottom Center",
-			ScreenPosition.BottomRight => "Bottom Right",
-			_ => position.ToString()
+			ScreenPositionMode.System => "System",
+			ScreenPositionMode.Fullscreen => "Fullscreen",
+			ScreenPositionMode.TopLeft => "Top Left",
+			ScreenPositionMode.Top => "Top",
+			ScreenPositionMode.TopRight => "Top Right",
+			ScreenPositionMode.CenterLeft => "Center Left",
+			ScreenPositionMode.Center => "Center",
+			ScreenPositionMode.CenterRight => "Center Right",
+			ScreenPositionMode.BottomLeft => "Bottom Left",
+			ScreenPositionMode.BottomCenter => "Bottom Center",
+			ScreenPositionMode.BottomRight => "Bottom Right",
+			_ => positionMode.ToString()
 		};
 	}
 
