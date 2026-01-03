@@ -1,82 +1,37 @@
 using Browsingway.Services;
-using Browsingway.UI.Windows;
 using Dalamud.Bindings.ImGui;
-using Dalamud.Interface;
 using Dalamud.Interface.Textures;
 using Dalamud.Interface.Utility;
-using Dalamud.Interface.Utility.Raii;
 using System.Numerics;
-using System.Text.RegularExpressions;
 
 namespace Browsingway.UI.Windows.SettingsTabs;
 
 internal partial class OverlaySettingsTab
 {
+	// UI Constants
+	private static class UIConstants
+	{
+		public static readonly Vector4 SectionHeaderColor = new(0.4f, 0.8f, 1f, 1f);
+		public static readonly Vector4 DisabledTextColor = new(0.6f, 0.6f, 0.6f, 1f);
+		public static readonly Vector4 WarningColor = new(1f, 0.8f, 0f, 1f);
+		public static readonly Vector4 EnabledIndicatorColor = new(1f, 0.3f, 0.3f, 1f);
+		public static readonly Vector4 DisabledIndicatorColor = new(0.3f, 0.8f, 0.3f, 1f);
+		public static readonly Vector4 HelpTextColor = new(0.4f, 0.4f, 0.4f, 1f);
+		public static readonly Vector4 SubtleTextColor = new(0.5f, 0.5f, 0.5f, 1f);
+		public static readonly Vector4 ModalSubtextColor = new(0.7f, 0.7f, 0.7f, 1f);
+
+		public static float ComboWidth => 150 * ImGuiHelpers.GlobalScale;
+		public static float ButtonWidth => 80 * ImGuiHelpers.GlobalScale;
+		public static float SmallButtonWidth => 60 * ImGuiHelpers.GlobalScale;
+		public static float LargeButtonWidth => 100 * ImGuiHelpers.GlobalScale;
+		public static float CheckboxColumnWidth => 120 * ImGuiHelpers.GlobalScale;
+		public static float StandardPadding => 10 * ImGuiHelpers.GlobalScale;
+		public static float SmallPadding => 5 * ImGuiHelpers.GlobalScale;
+	}
+
 	private readonly List<TextEditorWindow> _activeEditors = [];
 	private Guid? _pendingDeleteGuid;
 	private string? _pendingDeleteName;
-
-	private void OpenEditor(string title, string currentCode, Action<string> onSave)
-	{
-		var window = new TextEditorWindow(title, currentCode, onSave, () => { });
-		_activeEditors.Add(window);
-	}
-
-	private static string SplitCamelCase(string input)
-	{
-		return System.Text.RegularExpressions.Regex.Replace(input, "(\\B[A-Z])", " $1");
-	}
-
-	public void CloseEditors()
-	{
-		foreach (var editor in _activeEditors)
-		{
-			editor.IsOpen = false;
-		}
-		_activeEditors.Clear();
-	}
-	[GeneratedRegex(@"\s+")]
-	private static partial Regex WhitespaceRegex();
-
-	private static string GetRuleSummary(VisibilityRule rule)
-	{
-		string condition = rule.Negated ? "If NOT" : "If";
-		string trigger = SplitCamelCase(rule.Trigger.ToString()).ToLower();
-		string action = rule.Action.ToString().ToLower();
-		string delay = rule.DelaySeconds > 0 ? $" after {rule.DelaySeconds}s" : "";
-		return $"{condition} {trigger}, {action} overlay{delay}";
-	}
-
-	private static (bool hasConflict, string message) CheckForConflicts(List<VisibilityRule> rules, int currentIndex)
-	{
-		var current = rules[currentIndex];
-		for (int i = 0; i < rules.Count; i++)
-		{
-			if (i == currentIndex) continue;
-			var other = rules[i];
-
-			// Same trigger and negation, but different actions
-			if (other.Trigger == current.Trigger && other.Negated == current.Negated)
-			{
-				bool isOpposite = (current.Action == VisibilityAction.Show && other.Action == VisibilityAction.Hide) ||
-								  (current.Action == VisibilityAction.Hide && other.Action == VisibilityAction.Show) ||
-								  (current.Action == VisibilityAction.Enable && other.Action == VisibilityAction.Disable) ||
-								  (current.Action == VisibilityAction.Disable && other.Action == VisibilityAction.Enable);
-				if (isOpposite)
-					return (true, $"Conflicts with rule {i + 1}: same condition but opposite action");
-			}
-		}
-		return (false, "");
-	}
-
-	private static readonly (string Name, VisibilityRule Rule)[] RulePresets =
-	[
-		("Show in combat", new VisibilityRule { Trigger = VisibilityTrigger.InCombat, Action = VisibilityAction.Show }),
-		("Hide out of combat", new VisibilityRule { Negated = true, Trigger = VisibilityTrigger.InCombat, Action = VisibilityAction.Hide }),
-		("Show when ACT available", new VisibilityRule { Trigger = VisibilityTrigger.ActAvailable, Action = VisibilityAction.Show }),
-		("Hide in PvP", new VisibilityRule { Trigger = VisibilityTrigger.InPvp, Action = VisibilityAction.Hide }),
-		("Disable in PvP", new VisibilityRule { Trigger = VisibilityTrigger.InPvp, Action = VisibilityAction.Disable }),
-	];
 
 	private readonly Configuration _config;
 	private readonly OverlayManager _overlayManager;
@@ -96,6 +51,8 @@ internal partial class OverlaySettingsTab
 		_getActAvailable = getActAvailable;
 		RefreshEditStates();
 	}
+
+	#region Public API
 
 	public void RefreshEditStates()
 	{
@@ -141,6 +98,19 @@ internal partial class OverlaySettingsTab
 		_newOverlays.Clear();
 		RefreshEditStates();
 	}
+
+	public void CloseEditors()
+	{
+		foreach (var editor in _activeEditors)
+		{
+			editor.IsOpen = false;
+		}
+		_activeEditors.Clear();
+	}
+
+	#endregion
+
+	#region Main Draw
 
 	public void Draw()
 	{
@@ -207,32 +177,11 @@ internal partial class OverlaySettingsTab
 		if (_config.Overlays.Count == 0)
 		{
 			ImGuiHelpers.ScaledDummy(20);
-			ImGui.TextColored(new Vector4(0.6f, 0.6f, 0.6f, 1f), "Click + to create your first overlay.");
+			ImGui.TextColored(UIConstants.DisabledTextColor, "Click + to create your first overlay.");
 		}
 
 		// Draw active editor windows
-		for (int i = _activeEditors.Count - 1; i >= 0; i--)
-		{
-			var editor = _activeEditors[i];
-			if (!editor.IsOpen)
-			{
-				_activeEditors.RemoveAt(i);
-				continue;
-			}
-
-			bool open = true;
-			editor.PreDraw();
-			ImGui.SetNextWindowSize(editor.SizeConstraints!.Value.MinimumSize, ImGuiCond.FirstUseEver);
-			if (ImGui.Begin(editor.WindowName, ref open, editor.Flags))
-			{
-				editor.Draw();
-			}
-			ImGui.End();
-
-			// Close if X button was clicked (open became false) or editor closed itself
-			if (!open)
-				editor.IsOpen = false;
-		}
+		DrawActiveEditors();
 	}
 
 	private void RenderOverlaySettings(OverlayEditState state)
@@ -241,9 +190,24 @@ internal partial class OverlaySettingsTab
 
 		ImGuiHelpers.ScaledDummy(5);
 
-		// General settings
+		RenderGeneralSection(state);
+		RenderRenderingSection(state);
+		RenderBehaviorSection(state);
+		RenderVisibilitySection(state);
+		RenderPositioningSection(state);
+		RenderAdvancedSection(state);
+
+		ImGui.PopID();
+	}
+
+	#endregion
+
+	#region Section Renderers
+
+	private static void RenderGeneralSection(OverlayEditState state)
+	{
 		ImGui.Separator();
-		ImGui.TextColored(new Vector4(0.4f, 0.8f, 1f, 1f), "General");
+		ImGui.TextColored(UIConstants.SectionHeaderColor, "General");
 		ImGui.Spacing();
 
 		ImGui.Indent();
@@ -262,10 +226,12 @@ internal partial class OverlaySettingsTab
 		ImGuiHelpers.ScaledDummy(5);
 
 		ImGui.Unindent();
+	}
 
-		// Rendering settings
+	private static void RenderRenderingSection(OverlayEditState state)
+	{
 		ImGui.Separator();
-		ImGui.TextColored(new Vector4(0.4f, 0.8f, 1f, 1f), "Rendering");
+		ImGui.TextColored(UIConstants.SectionHeaderColor, "Rendering");
 		ImGui.Spacing();
 
 		ImGui.Indent();
@@ -278,18 +244,19 @@ internal partial class OverlaySettingsTab
 		ImGuiHelpers.ScaledDummy(5);
 
 		ImGui.Unindent();
+	}
 
-		// Behavior settings
+	private static void RenderBehaviorSection(OverlayEditState state)
+	{
 		ImGui.Separator();
-		ImGui.TextColored(new Vector4(0.4f, 0.8f, 1f, 1f), "Behavior");
+		ImGui.TextColored(UIConstants.SectionHeaderColor, "Behavior");
 		ImGui.Spacing();
 
 		ImGui.Indent();
 		ImGuiHelpers.ScaledDummy(5);
 
 		float availWidth = ImGui.GetContentRegionAvail().X;
-		float checkboxWidth = 120 * ImGuiHelpers.GlobalScale;
-		bool useColumns = availWidth > checkboxWidth * 2 + 20 * ImGuiHelpers.GlobalScale;
+		bool useColumns = availWidth > UIConstants.CheckboxColumnWidth * 2 + 20 * ImGuiHelpers.GlobalScale;
 		float columnOffset = useColumns ? availWidth / 2 : 0;
 
 		ImGui.Checkbox("Muted", ref state.Muted);
@@ -331,10 +298,12 @@ internal partial class OverlaySettingsTab
 		ImGuiHelpers.ScaledDummy(5);
 
 		ImGui.Unindent();
+	}
 
-		// Visibility settings
+	private static void RenderVisibilitySection(OverlayEditState state)
+	{
 		ImGui.Separator();
-		ImGui.TextColored(new Vector4(0.4f, 0.8f, 1f, 1f), "Visibility");
+		ImGui.TextColored(UIConstants.SectionHeaderColor, "Visibility");
 		ImGui.Spacing();
 
 		ImGui.Indent();
@@ -342,7 +311,7 @@ internal partial class OverlaySettingsTab
 
 		// Base Visibility dropdown
 		ImGui.Text("Base Visibility");
-		ImGui.SetNextItemWidth(150 * ImGuiHelpers.GlobalScale);
+		ImGui.SetNextItemWidth(UIConstants.ComboWidth);
 		if (ImGui.BeginCombo("##BaseVisibility", state.BaseVisibility.ToString()))
 		{
 			foreach (var visibility in Enum.GetValues<BaseVisibility>())
@@ -359,213 +328,228 @@ internal partial class OverlaySettingsTab
 
 		ImGuiHelpers.ScaledDummy(5);
 
-		ImGui.Text("Visibility Rules:");
-		ImGuiHelpers.ScaledDummy(2);
-
-		// Rules List
-		for (int i = 0; i < state.VisibilityRules.Count; i++)
-		{
-			var rule = state.VisibilityRules[i];
-			ImGui.PushID($"Rule{i}");
-
-			// Check for conflicts
-			var (hasConflict, conflictMessage) = CheckForConflicts(state.VisibilityRules, i);
-
-			ImGui.AlignTextToFramePadding();
-
-			// Reorder buttons at the start
-			if ( i <= 0 )
-				ImGui.BeginDisabled();
-			if (ImGui.ArrowButton("##Up", ImGuiDir.Up))
-			{
-				(state.VisibilityRules[i], state.VisibilityRules[i - 1]) = (state.VisibilityRules[i - 1], state.VisibilityRules[i]);
-			}
-			if (ImGui.IsItemHovered())
-				ImGui.SetTooltip("Move up");
-			if ( i <= 0 )
-				ImGui.EndDisabled();
-			
-			ImGui.SameLine();
-			
-			if ( i >= state.VisibilityRules.Count - 1)
-				ImGui.BeginDisabled();
-			if (ImGui.ArrowButton("##Down", ImGuiDir.Down))
-			{
-				(state.VisibilityRules[i], state.VisibilityRules[i + 1]) = (state.VisibilityRules[i + 1], state.VisibilityRules[i]);
-			}
-			if (ImGui.IsItemHovered())
-				ImGui.SetTooltip("Move down");
-			if ( i >= state.VisibilityRules.Count - 1)
-				ImGui.EndDisabled();
-			
-			ImGui.SameLine();
-
-			// Enabled checkbox
-			ImGui.Checkbox("##Enabled", ref rule.Enabled);
-			if (ImGui.IsItemHovered())
-				ImGui.SetTooltip(rule.Enabled ? "Click to disable this rule" : "Click to enable this rule");
-
-			ImGui.SameLine();
-
-			// Dim the row if disabled
-			if (!rule.Enabled)
-				ImGui.PushStyleVar(ImGuiStyleVar.Alpha, 0.5f);
-
-			// Conflict warning icon
-			if (hasConflict)
-			{
-				ImGui.TextColored(new Vector4(1f, 0.8f, 0f, 1f), "!");
-				if (ImGui.IsItemHovered())
-					ImGui.SetTooltip(conflictMessage);
-				ImGui.SameLine();
-			}
-
-			// Combined If/If NOT dropdown
-			ImGui.SetNextItemWidth(70 * ImGuiHelpers.GlobalScale);
-			string ifLabel = rule.Negated ? "If NOT" : "If";
-			if (ImGui.BeginCombo("##IfNot", ifLabel))
-			{
-				if (ImGui.Selectable("If", !rule.Negated))
-					rule.Negated = false;
-				if (ImGui.Selectable("If NOT", rule.Negated))
-					rule.Negated = true;
-				ImGui.EndCombo();
-			}
-
-			ImGui.SameLine();
-
-			// Trigger Dropdown
-			ImGui.SetNextItemWidth(120 * ImGuiHelpers.GlobalScale);
-			if (ImGui.BeginCombo("##Trigger", SplitCamelCase(rule.Trigger.ToString())))
-			{
-				foreach (var trigger in Enum.GetValues<VisibilityTrigger>())
-				{
-					if (ImGui.Selectable(SplitCamelCase(trigger.ToString()), rule.Trigger == trigger))
-					{
-						rule.Trigger = trigger;
-					}
-				}
-				ImGui.EndCombo();
-			}
-
-			ImGui.SameLine();
-			ImGui.Text("then");
-			ImGui.SameLine();
-
-			// Action Dropdown
-			ImGui.SetNextItemWidth(80 * ImGuiHelpers.GlobalScale);
-			if (ImGui.BeginCombo("##Action", rule.Action.ToString()))
-			{
-				foreach (var action in Enum.GetValues<VisibilityAction>())
-				{
-					if (ImGui.Selectable(action.ToString(), rule.Action == action))
-					{
-						rule.Action = action;
-					}
-				}
-				ImGui.EndCombo();
-			}
-
-			ImGui.SameLine();
-
-			// Delay - show compact toggle or full input
-			if (rule.DelaySeconds > 0)
-			{
-				ImGui.Text("after");
-				ImGui.SameLine();
-				ImGui.SetNextItemWidth(35 * ImGuiHelpers.GlobalScale);
-				ImGui.InputInt("##Delay", ref rule.DelaySeconds, 0, 0);
-				if (rule.DelaySeconds < 0) rule.DelaySeconds = 0;
-				ImGui.SameLine();
-				ImGui.Text("sec");
-			}
-			else
-			{
-				ImGui.TextColored(new Vector4(0.5f, 0.5f, 0.5f, 1f), "(+delay)");
-				if (ImGui.IsItemHovered())
-					ImGui.SetTooltip("Click to add a delay");
-				if (ImGui.IsItemClicked())
-					rule.DelaySeconds = 5;
-			}
-
-			if (!rule.Enabled)
-				ImGui.PopStyleVar();
-
-			ImGui.SameLine();
-
-			// Remove Button
-			if (ImGui.SmallButton("X"))
-			{
-				state.VisibilityRules.RemoveAt(i);
-				i--;
-				ImGui.PopID();
-				continue;
-			}
-			if (ImGui.IsItemHovered())
-				ImGui.SetTooltip("Remove rule");
-
-			// Summary tooltip for the whole row
-			ImGui.SameLine();
-			ImGui.TextColored(new Vector4(0.4f, 0.4f, 0.4f, 1f), "?");
-			if (ImGui.IsItemHovered())
-				ImGui.SetTooltip(GetRuleSummary(rule));
-
-			ImGui.PopID();
-		}
-
-		// Add Rule section
-		if (ImGui.Button("Add Rule"))
-		{
-			state.VisibilityRules.Add(new VisibilityRule
-			{
-				Trigger = VisibilityTrigger.InCombat,
-				Action = VisibilityAction.Show,
-				DelaySeconds = 0
-			});
-		}
-
-		ImGui.SameLine();
-
-		ImGui.SetNextItemWidth(160 * ImGuiHelpers.GlobalScale);
-		if (ImGui.BeginCombo("##Presets", "Add from preset..."))
-		{
-			foreach (var (name, preset) in RulePresets)
-			{
-				if (ImGui.Selectable(name))
-				{
-					state.VisibilityRules.Add(new VisibilityRule
-					{
-						Enabled = preset.Enabled,
-						Negated = preset.Negated,
-						Trigger = preset.Trigger,
-						Action = preset.Action,
-						DelaySeconds = preset.DelaySeconds
-					});
-				}
-			}
-			ImGui.EndCombo();
-		}
+		// Delegate to the dedicated rules editor
+		VisibilityRulesEditor.Draw(state.VisibilityRules);
 
 		ImGuiHelpers.ScaledDummy(5);
 
 		ImGui.Unindent();
+	}
 
-		// Advanced settings
+	private static void RenderPositioningSection(OverlayEditState state)
+	{
 		ImGui.Separator();
-		ImGui.TextColored(new Vector4(0.4f, 0.8f, 1f, 1f), "Advanced");
+		ImGui.TextColored(UIConstants.SectionHeaderColor, "Positioning");
 		ImGui.Spacing();
 
 		ImGui.Indent();
 		ImGuiHelpers.ScaledDummy(5);
 
-		ImGui.Checkbox("Fullscreen", ref state.Fullscreen);
+		// Screen Position dropdown
+		ImGui.Text("Screen Position");
+		ImGui.SetNextItemWidth(UIConstants.ComboWidth);
+		if (ImGui.BeginCombo("##ScreenPosition", GetScreenPositionDisplayName(state.Position)))
+		{
+			foreach (var position in Enum.GetValues<ScreenPosition>())
+			{
+				if (ImGui.Selectable(GetScreenPositionDisplayName(position), state.Position == position))
+				{
+					state.Position = position;
+				}
+			}
+			ImGui.EndCombo();
+		}
 		if (ImGui.IsItemHovered())
-			ImGui.SetTooltip("Make overlay cover the entire screen");
+			ImGui.SetTooltip("System: Positioned by Dalamud window system\nFullscreen: Cover entire screen");
 
+		ImGuiHelpers.ScaledDummy(5);
+
+		// Determine if controls should be disabled
+		bool isSystem = state.Position == ScreenPosition.System;
+		bool isFullscreen = state.Position == ScreenPosition.Fullscreen;
+		bool disableControls = isSystem || isFullscreen;
+
+		// Side-by-side layout: Position/Size controls on left, Preview on right
+		float posAvailWidth = ImGui.GetContentRegionAvail().X;
+		float controlsWidth = 260 * ImGuiHelpers.GlobalScale;
+		float previewWidth = 200 * ImGuiHelpers.GlobalScale;
+		bool useSideBySide = posAvailWidth > (controlsWidth + previewWidth + 20 * ImGuiHelpers.GlobalScale);
+
+		if (useSideBySide && !isSystem)
+		{
+			ImGui.BeginGroup();
+		}
+
+		// Position and Size controls (always visible, disabled when System or Fullscreen)
+		RenderPositionSizeControls(state, disableControls);
+
+		if (useSideBySide && !isSystem)
+		{
+			ImGui.EndGroup();
+			ImGui.SameLine();
+			ImGuiHelpers.ScaledDummy(10, 0);
+			ImGui.SameLine();
+		}
+
+		// Draw position visualizer (hidden for System, shown for all others including Fullscreen)
+		if (!isSystem)
+		{
+			ScreenPosition? clickedPosition;
+			if (useSideBySide)
+			{
+				ImGui.BeginGroup();
+				ImGui.Text("Preview");
+				ImGuiHelpers.ScaledDummy(2);
+				clickedPosition = PositionVisualizer.Draw(
+					state.Position,
+					state.PositionX,
+					state.PositionY,
+					state.PositionWidth,
+					state.PositionHeight,
+					previewWidth / ImGuiHelpers.GlobalScale);
+				ImGui.EndGroup();
+			}
+			else
+			{
+				ImGuiHelpers.ScaledDummy(10);
+				ImGui.Text("Preview");
+				ImGuiHelpers.ScaledDummy(2);
+				clickedPosition = PositionVisualizer.Draw(
+					state.Position,
+					state.PositionX,
+					state.PositionY,
+					state.PositionWidth,
+					state.PositionHeight);
+			}
+
+			// Handle anchor click - update dropdown selection
+			if (clickedPosition.HasValue)
+			{
+				state.Position = clickedPosition.Value;
+			}
+		}
+
+		// Sync legacy fullscreen flag with Position enum
+		// This ensures backward compatibility with old config format
+		state.Fullscreen = state.Position == ScreenPosition.Fullscreen;
+
+		ImGuiHelpers.ScaledDummy(5);
+
+		ImGui.Unindent();
+	}
+
+	private static void RenderPositionSizeControls(OverlayEditState state, bool disabled)
+	{
+		ImGui.Text("Position and Size");
+		ImGuiHelpers.ScaledDummy(2);
+
+		if (disabled)
+			ImGui.BeginDisabled();
+
+		float posLabelWidth = 80 * ImGuiHelpers.GlobalScale;
+		float posInputWidth = 100 * ImGuiHelpers.GlobalScale;
+		float posBtnWidth = 24 * ImGuiHelpers.GlobalScale;
+		float stepSize = 1f;
+
+		// X Offset
+		ImGui.Text("X Offset:");
+		ImGui.SameLine(posLabelWidth);
+		ImGui.SetNextItemWidth(posInputWidth);
+		ImGui.InputFloat("##PositionX", ref state.PositionX, 0f, 0f, "%.1f%%");
+		state.PositionX = Math.Clamp(state.PositionX, -100f, 100f);
+		if (ImGui.IsItemHovered())
+			ImGui.SetTooltip("Horizontal offset from anchor point (% of screen width)");
+		ImGui.SameLine();
+		if (ImGui.Button("-##PosX", new Vector2(posBtnWidth, 0)) || (ImGui.IsItemActive() && ImGui.IsMouseDown(ImGuiMouseButton.Left)))
+		{
+			if (ShouldRepeatTrigger())
+				state.PositionX = Math.Max(-100f, state.PositionX - stepSize);
+		}
+		ImGui.SameLine();
+		if (ImGui.Button("+##PosX", new Vector2(posBtnWidth, 0)) || (ImGui.IsItemActive() && ImGui.IsMouseDown(ImGuiMouseButton.Left)))
+		{
+			if (ShouldRepeatTrigger())
+				state.PositionX = Math.Min(100f, state.PositionX + stepSize);
+		}
+
+		// Y Offset
+		ImGui.Text("Y Offset:");
+		ImGui.SameLine(posLabelWidth);
+		ImGui.SetNextItemWidth(posInputWidth);
+		ImGui.InputFloat("##PositionY", ref state.PositionY, 0f, 0f, "%.1f%%");
+		state.PositionY = Math.Clamp(state.PositionY, -100f, 100f);
+		if (ImGui.IsItemHovered())
+			ImGui.SetTooltip("Vertical offset from anchor point (% of screen height)");
+		ImGui.SameLine();
+		if (ImGui.Button("-##PosY", new Vector2(posBtnWidth, 0)) || (ImGui.IsItemActive() && ImGui.IsMouseDown(ImGuiMouseButton.Left)))
+		{
+			if (ShouldRepeatTrigger())
+				state.PositionY = Math.Max(-100f, state.PositionY - stepSize);
+		}
+		ImGui.SameLine();
+		if (ImGui.Button("+##PosY", new Vector2(posBtnWidth, 0)) || (ImGui.IsItemActive() && ImGui.IsMouseDown(ImGuiMouseButton.Left)))
+		{
+			if (ShouldRepeatTrigger())
+				state.PositionY = Math.Min(100f, state.PositionY + stepSize);
+		}
+
+		// Width
+		ImGui.Text("Width:");
+		ImGui.SameLine(posLabelWidth);
+		ImGui.SetNextItemWidth(posInputWidth);
+		ImGui.InputFloat("##PositionWidth", ref state.PositionWidth, 0f, 0f, "%.1f%%");
+		state.PositionWidth = Math.Clamp(state.PositionWidth, 1f, 100f);
+		if (ImGui.IsItemHovered())
+			ImGui.SetTooltip("Overlay width (% of screen width)");
+		ImGui.SameLine();
+		if (ImGui.Button("-##PosW", new Vector2(posBtnWidth, 0)) || (ImGui.IsItemActive() && ImGui.IsMouseDown(ImGuiMouseButton.Left)))
+		{
+			if (ShouldRepeatTrigger())
+				state.PositionWidth = Math.Max(1f, state.PositionWidth - stepSize);
+		}
+		ImGui.SameLine();
+		if (ImGui.Button("+##PosW", new Vector2(posBtnWidth, 0)) || (ImGui.IsItemActive() && ImGui.IsMouseDown(ImGuiMouseButton.Left)))
+		{
+			if (ShouldRepeatTrigger())
+				state.PositionWidth = Math.Min(100f, state.PositionWidth + stepSize);
+		}
+
+		// Height
+		ImGui.Text("Height:");
+		ImGui.SameLine(posLabelWidth);
+		ImGui.SetNextItemWidth(posInputWidth);
+		ImGui.InputFloat("##PositionHeight", ref state.PositionHeight, 0f, 0f, "%.1f%%");
+		state.PositionHeight = Math.Clamp(state.PositionHeight, 1f, 100f);
+		if (ImGui.IsItemHovered())
+			ImGui.SetTooltip("Overlay height (% of screen height)");
+		ImGui.SameLine();
+		if (ImGui.Button("-##PosH", new Vector2(posBtnWidth, 0)) || (ImGui.IsItemActive() && ImGui.IsMouseDown(ImGuiMouseButton.Left)))
+		{
+			if (ShouldRepeatTrigger())
+				state.PositionHeight = Math.Max(1f, state.PositionHeight - stepSize);
+		}
+		ImGui.SameLine();
+		if (ImGui.Button("+##PosH", new Vector2(posBtnWidth, 0)) || (ImGui.IsItemActive() && ImGui.IsMouseDown(ImGuiMouseButton.Left)))
+		{
+			if (ShouldRepeatTrigger())
+				state.PositionHeight = Math.Min(100f, state.PositionHeight + stepSize);
+		}
+
+		if (disabled)
+			ImGui.EndDisabled();
+	}
+
+	private void RenderAdvancedSection(OverlayEditState state)
+	{
+		ImGui.Separator();
+		ImGui.TextColored(UIConstants.SectionHeaderColor, "Advanced");
 		ImGui.Spacing();
 
+		ImGui.Indent();
+		ImGuiHelpers.ScaledDummy(5);
+
 		// Action buttons
-		if (ImGui.Button("Reload", new Vector2(80 * ImGuiHelpers.GlobalScale, 0)))
+		if (ImGui.Button("Reload", new Vector2(UIConstants.ButtonWidth, 0)))
 		{
 			_overlayManager.NavigateOverlay(state.Guid, state.Url);
 		}
@@ -574,7 +558,7 @@ internal partial class OverlaySettingsTab
 
 		ImGui.SameLine();
 
-		if (ImGui.Button("Dev Tools", new Vector2(100 * ImGuiHelpers.GlobalScale, 0)))
+		if (ImGui.Button("Dev Tools", new Vector2(UIConstants.LargeButtonWidth, 0)))
 		{
 			_overlayManager.OpenDevTools(state.Guid);
 		}
@@ -583,17 +567,16 @@ internal partial class OverlaySettingsTab
 
 		ImGuiHelpers.ScaledDummy(5);
 
-		float buttonWidth = 60 * ImGuiHelpers.GlobalScale;
 		float labelWidth = 160 * ImGuiHelpers.GlobalScale;
 
 		// Custom CSS
 		bool hasCss = !string.IsNullOrWhiteSpace(state.CustomCss);
 		ImGui.Text("Custom CSS:");
 		ImGui.SameLine();
-		ImGui.TextColored(hasCss ? new Vector4(1f, 0.3f, 0.3f, 1f) : new Vector4(0.3f, 0.8f, 0.3f, 1f),
+		ImGui.TextColored(hasCss ? UIConstants.EnabledIndicatorColor : UIConstants.DisabledIndicatorColor,
 			hasCss ? "enabled" : "disabled");
 		ImGui.SameLine(labelWidth);
-		if (ImGui.Button("Edit##CustomCss", new Vector2(buttonWidth, 0)))
+		if (ImGui.Button("Edit##CustomCss", new Vector2(UIConstants.SmallButtonWidth, 0)))
 		{
 			OpenEditor($"Editing Custom CSS for {state.Name}", state.CustomCss, code => state.CustomCss = code);
 		}
@@ -602,10 +585,10 @@ internal partial class OverlaySettingsTab
 		bool hasJs = !string.IsNullOrWhiteSpace(state.CustomJs);
 		ImGui.Text("Custom JS:");
 		ImGui.SameLine();
-		ImGui.TextColored(hasJs ? new Vector4(1f, 0.3f, 0.3f, 1f) : new Vector4(0.3f, 0.8f, 0.3f, 1f),
+		ImGui.TextColored(hasJs ? UIConstants.EnabledIndicatorColor : UIConstants.DisabledIndicatorColor,
 			hasJs ? "enabled" : "disabled");
 		ImGui.SameLine(labelWidth);
-		if (ImGui.Button("Edit##CustomJs", new Vector2(buttonWidth, 0)))
+		if (ImGui.Button("Edit##CustomJs", new Vector2(UIConstants.SmallButtonWidth, 0)))
 		{
 			OpenEditor($"Editing Custom JS for {state.Name}", state.CustomJs, code => state.CustomJs = code);
 		}
@@ -613,9 +596,86 @@ internal partial class OverlaySettingsTab
 		ImGuiHelpers.ScaledDummy(5);
 
 		ImGui.Unindent();
-
-		ImGui.PopID();
 	}
+
+	#endregion
+
+	#region Helper Methods
+
+	/// <summary>
+	/// Checks if a repeat button should trigger.
+	/// Initial click triggers immediately, then repeats after 0.5s hold with 0.1s interval.
+	/// </summary>
+	private static bool ShouldRepeatTrigger()
+	{
+		float holdDuration = ImGui.GetIO().MouseDownDuration[0];
+		if (ImGui.IsItemActivated())
+			return true;
+		if (holdDuration > 0.5f)
+		{
+			// Trigger every 0.1 seconds (reduced from every frame)
+			float repeatInterval = 0.1f;
+			float timeSinceStart = holdDuration - 0.5f;
+			float prevTime = timeSinceStart - ImGui.GetIO().DeltaTime;
+			return (int)(timeSinceStart / repeatInterval) > (int)(prevTime / repeatInterval);
+		}
+		return false;
+	}
+
+	private static string GetScreenPositionDisplayName(ScreenPosition position)
+	{
+		return position switch
+		{
+			ScreenPosition.System => "System",
+			ScreenPosition.Fullscreen => "Fullscreen",
+			ScreenPosition.TopLeft => "Top Left",
+			ScreenPosition.Top => "Top",
+			ScreenPosition.TopRight => "Top Right",
+			ScreenPosition.CenterLeft => "Center Left",
+			ScreenPosition.Center => "Center",
+			ScreenPosition.CenterRight => "Center Right",
+			ScreenPosition.BottomLeft => "Bottom Left",
+			ScreenPosition.BottomCenter => "Bottom Center",
+			ScreenPosition.BottomRight => "Bottom Right",
+			_ => position.ToString()
+		};
+	}
+
+	private void OpenEditor(string title, string currentCode, Action<string> onSave)
+	{
+		var window = new TextEditorWindow(title, currentCode, onSave, () => { });
+		_activeEditors.Add(window);
+	}
+
+	private void DrawActiveEditors()
+	{
+		for (int i = _activeEditors.Count - 1; i >= 0; i--)
+		{
+			var editor = _activeEditors[i];
+			if (!editor.IsOpen)
+			{
+				_activeEditors.RemoveAt(i);
+				continue;
+			}
+
+			bool open = true;
+			editor.PreDraw();
+			ImGui.SetNextWindowSize(editor.SizeConstraints!.Value.MinimumSize, ImGuiCond.FirstUseEver);
+			if (ImGui.Begin(editor.WindowName, ref open, editor.Flags))
+			{
+				editor.Draw();
+			}
+			ImGui.End();
+
+			// Close if X button was clicked (open became false) or editor closed itself
+			if (!open)
+				editor.IsOpen = false;
+		}
+	}
+
+	#endregion
+
+	#region Delete Confirmation
 
 	private void RenderDeleteConfirmationPopup()
 	{
@@ -624,7 +684,7 @@ internal partial class OverlaySettingsTab
 
 		if (ImGui.BeginPopupModal("Delete Overlay?", ImGuiWindowFlags.AlwaysAutoResize))
 		{
-			float padding = 10 * ImGuiHelpers.GlobalScale;
+			float padding = UIConstants.StandardPadding;
 			float iconSize = 64 * ImGuiHelpers.GlobalScale;
 
 			// Top padding
@@ -646,7 +706,7 @@ internal partial class OverlaySettingsTab
 			ImGuiHelpers.ScaledDummy(5);
 			ImGui.Text($"Are you sure you want to delete the overlay \"{_pendingDeleteName}\"?");
 			ImGui.Spacing();
-			ImGui.TextColored(new Vector4(0.7f, 0.7f, 0.7f, 1f), "This action cannot be undone.");
+			ImGui.TextColored(UIConstants.ModalSubtextColor, "This action cannot be undone.");
 			ImGui.EndGroup();
 
 			ImGui.SameLine();
@@ -656,12 +716,10 @@ internal partial class OverlaySettingsTab
 			ImGui.Separator();
 			ImGui.Dummy(new Vector2(0, padding / 2));
 
-			float buttonWidth = 80 * ImGuiHelpers.GlobalScale;
-
 			ImGui.Dummy(new Vector2(padding, 0));
 			ImGui.SameLine();
 
-			if (ImGui.Button("Delete", new Vector2(buttonWidth, 0)))
+			if (ImGui.Button("Delete", new Vector2(UIConstants.ButtonWidth, 0)))
 			{
 				if (_pendingDeleteGuid.HasValue)
 				{
@@ -681,7 +739,7 @@ internal partial class OverlaySettingsTab
 
 			ImGui.SameLine();
 
-			if (ImGui.Button("Cancel", new Vector2(buttonWidth, 0)))
+			if (ImGui.Button("Cancel", new Vector2(UIConstants.ButtonWidth, 0)))
 			{
 				_pendingDeleteGuid = null;
 				_pendingDeleteName = null;
@@ -693,4 +751,6 @@ internal partial class OverlaySettingsTab
 			ImGui.EndPopup();
 		}
 	}
+
+	#endregion
 }

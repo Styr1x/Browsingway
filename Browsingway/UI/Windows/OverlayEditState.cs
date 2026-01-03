@@ -23,6 +23,17 @@ internal sealed class OverlayEditState
 	public bool ClickThrough;
 	public bool Fullscreen;
 
+	// Positioning (percentage-based)
+	public ScreenPosition Position;
+	/// <summary>X offset from anchor point as percentage of screen width (-100 to +100)</summary>
+	public float PositionX;
+	/// <summary>Y offset from anchor point as percentage of screen height (-100 to +100)</summary>
+	public float PositionY;
+	/// <summary>Overlay width as percentage of screen width (0 to 100)</summary>
+	public float PositionWidth;
+	/// <summary>Overlay height as percentage of screen height (0 to 100)</summary>
+	public float PositionHeight;
+
 	// Advanced
 	public string CustomCss = "";
 	public string CustomJs = "";
@@ -46,6 +57,11 @@ internal sealed class OverlayEditState
 		TypeThrough = config.TypeThrough,
 		ClickThrough = config.ClickThrough,
 		Fullscreen = config.Fullscreen,
+		Position = config.Position,
+		PositionX = config.PositionX,
+		PositionY = config.PositionY,
+		PositionWidth = config.PositionWidth,
+		PositionHeight = config.PositionHeight,
 		CustomCss = config.CustomCss,
 		CustomJs = config.CustomJs,
 		VisibilityRules = config.VisibilityRules.Select(r => new VisibilityRule { Enabled = r.Enabled, Negated = r.Negated, Trigger = r.Trigger, Action = r.Action, DelaySeconds = r.DelaySeconds }).ToList()
@@ -67,6 +83,11 @@ internal sealed class OverlayEditState
 		config.TypeThrough = TypeThrough;
 		config.ClickThrough = ClickThrough;
 		config.Fullscreen = Fullscreen;
+		config.Position = Position;
+		config.PositionX = PositionX;
+		config.PositionY = PositionY;
+		config.PositionWidth = PositionWidth;
+		config.PositionHeight = PositionHeight;
 		config.CustomCss = CustomCss;
 		config.CustomJs = CustomJs;
 		config.VisibilityRules = VisibilityRules.Select(r => new VisibilityRule { Enabled = r.Enabled, Negated = r.Negated, Trigger = r.Trigger, Action = r.Action, DelaySeconds = r.DelaySeconds }).ToList();
@@ -88,6 +109,11 @@ internal sealed class OverlayEditState
 			TypeThrough != config.TypeThrough ||
 			ClickThrough != config.ClickThrough ||
 			Fullscreen != config.Fullscreen ||
+			Position != config.Position ||
+			Math.Abs(PositionX - config.PositionX) > 0.01f ||
+			Math.Abs(PositionY - config.PositionY) > 0.01f ||
+			Math.Abs(PositionWidth - config.PositionWidth) > 0.01f ||
+			Math.Abs(PositionHeight - config.PositionHeight) > 0.01f ||
 			CustomCss != config.CustomCss ||
 			CustomJs != config.CustomJs)
 		{

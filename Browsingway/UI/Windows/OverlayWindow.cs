@@ -190,26 +190,92 @@ internal class OverlayWindow : Window, IDisposable
 		// Update flags dynamically based on config state
 		Flags = GetWindowFlags();
 		
-		// Handle fullscreen positioning
-		if (_overlayConfig.Fullscreen)
+		// Handle positioning based on Position setting
+		if (_overlayConfig.Position == ScreenPosition.Fullscreen)
 		{
+			// Fullscreen: cover entire screen
 			var screen = ImGui.GetMainViewport();
+			float scale = ImGuiHelpers.GlobalScale;
 
 			// ImGui always leaves a 1px transparent border around the window, so we need to account for that.
+			// screen.Size is in physical pixels, Size property expects logical pixels
 			var fsPos = new Vector2(screen.WorkPos.X - 1, screen.WorkPos.Y - 1);
-			var fsSize = new Vector2(screen.Size.X + 2 - fsPos.X, screen.Size.Y + 2 - fsPos.Y);
+			var fsSize = new Vector2(screen.Size.X / scale + 2, screen.Size.Y / scale + 2);
 
 			Position = fsPos;
 			PositionCondition = ImGuiCond.Always;
 			Size = fsSize;
 			SizeCondition = ImGuiCond.Always;
 		}
+		else if (_overlayConfig.Position != ScreenPosition.System)
+		{
+			// Anchor-based positioning with percentage values
+			var screen = ImGui.GetMainViewport();
+			float scale = ImGuiHelpers.GlobalScale;
+
+			// screen.Size is in physical pixels
+			float screenWidth = screen.Size.X;
+			float screenHeight = screen.Size.Y;
+
+			// Convert percentage to physical pixels
+			float overlayWidth = screenWidth * (_overlayConfig.PositionWidth / 100f);
+			float overlayHeight = screenHeight * (_overlayConfig.PositionHeight / 100f);
+			float offsetX = screenWidth * (_overlayConfig.PositionX / 100f);
+			float offsetY = screenHeight * (_overlayConfig.PositionY / 100f);
+
+			// Get anchor point on screen (physical pixels)
+			var (anchorX, anchorY) = GetAnchorPoint(_overlayConfig.Position, screenWidth, screenHeight);
+
+			// Calculate overlay position based on anchor (physical pixels)
+			float overlayLeft = _overlayConfig.Position switch
+			{
+				ScreenPosition.TopLeft or ScreenPosition.CenterLeft or ScreenPosition.BottomLeft => anchorX + offsetX,
+				ScreenPosition.Top or ScreenPosition.Center or ScreenPosition.BottomCenter => anchorX + offsetX - overlayWidth / 2f,
+				ScreenPosition.TopRight or ScreenPosition.CenterRight or ScreenPosition.BottomRight => anchorX + offsetX - overlayWidth,
+				_ => offsetX
+			};
+
+			float overlayTop = _overlayConfig.Position switch
+			{
+				ScreenPosition.TopLeft or ScreenPosition.Top or ScreenPosition.TopRight => anchorY + offsetY,
+				ScreenPosition.CenterLeft or ScreenPosition.Center or ScreenPosition.CenterRight => anchorY + offsetY - overlayHeight / 2f,
+				ScreenPosition.BottomLeft or ScreenPosition.BottomCenter or ScreenPosition.BottomRight => anchorY + offsetY - overlayHeight,
+				_ => offsetY
+			};
+			
+			// Position: WorkPos is logical, overlayLeft/Top are physical - don't mix, just use physical directly
+			// Size: needs to be in logical pixels (divide by scale)
+			Position = new Vector2(overlayLeft, overlayTop);
+			PositionCondition = ImGuiCond.Always;
+			Size = new Vector2(overlayWidth / scale, overlayHeight / scale);
+			SizeCondition = ImGuiCond.Always;
+		}
 		else
 		{
-			// Reset conditions so user can move/resize
+			// System positioning: let Dalamud/ImGui handle it
 			PositionCondition = ImGuiCond.FirstUseEver;
 			SizeCondition = ImGuiCond.FirstUseEver;
 		}
+	}
+
+	/// <summary>
+	/// Gets the anchor point in screen coordinates for a given position.
+	/// </summary>
+	private static (float x, float y) GetAnchorPoint(ScreenPosition position, float screenWidth, float screenHeight)
+	{
+		return position switch
+		{
+			ScreenPosition.TopLeft => (0, 0),
+			ScreenPosition.Top => (screenWidth / 2f, 0),
+			ScreenPosition.TopRight => (screenWidth, 0),
+			ScreenPosition.CenterLeft => (0, screenHeight / 2f),
+			ScreenPosition.Center => (screenWidth / 2f, screenHeight / 2f),
+			ScreenPosition.CenterRight => (screenWidth, screenHeight / 2f),
+			ScreenPosition.BottomLeft => (0, screenHeight),
+			ScreenPosition.BottomCenter => (screenWidth / 2f, screenHeight),
+			ScreenPosition.BottomRight => (screenWidth, screenHeight),
+			_ => (0, 0)
+		};
 	}
 	
 	public override void Draw()
@@ -266,8 +332,9 @@ internal class OverlayWindow : Window, IDisposable
 								 | ImGuiWindowFlags.NoBringToFrontOnFocus
 								 | ImGuiWindowFlags.NoFocusOnAppearing;
 
-		// ClickThrough / fullscreen is implicitly locked
-		bool locked = _overlayConfig.Locked || _overlayConfig.ClickThrough || _overlayConfig.Fullscreen;
+		// ClickThrough / fullscreen / anchor-based positioning is implicitly locked
+		bool isPositioned = _overlayConfig.Position != ScreenPosition.System;
+		bool locked = _overlayConfig.Locked || _overlayConfig.ClickThrough || isPositioned;
 
 		if (locked)
 		{

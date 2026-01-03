@@ -27,11 +27,10 @@ internal sealed class Configuration : IPluginConfiguration
 	/// </summary>
 	private static readonly Dictionary<int, Func<Configuration, bool>> Migrations = new()
 	{
-		// Version 0 -> 1: Migrate Inlays to Overlays
+		// Version 0 -> 1: Migrate Inlays to Overlays, add Position enum, percentage-based positioning
 		[0] = config => MigrateV0ToV1(config),
 		// Future migrations can be added here:
 		// [1] = config => MigrateV1ToV2(config),
-		// [2] = config => MigrateV2ToV3(config),
 	};
 
 	/// <summary>
@@ -65,7 +64,9 @@ internal sealed class Configuration : IPluginConfiguration
 
 	/// <summary>
 	/// Migration from version 0 to version 1.
-	/// Converts legacy Inlay configurations to Overlay configurations.
+	/// - Converts legacy Inlay configurations to Overlay configurations
+	/// - Converts Fullscreen bool to Position enum
+	/// - Sets up percentage-based positioning defaults
 	/// </summary>
 	private static bool MigrateV0ToV1(Configuration config)
 	{
@@ -88,6 +89,8 @@ internal sealed class Configuration : IPluginConfiguration
 					TypeThrough = inlay.TypeThrough,
 					ClickThrough = inlay.ClickThrough,
 					Fullscreen = inlay.Fullscreen,
+					// Set Position based on Fullscreen flag
+					Position = inlay.Fullscreen ? ScreenPosition.Fullscreen : ScreenPosition.System,
 					CustomCss = inlay.CustomCss,
 				};
 
@@ -123,8 +126,19 @@ internal sealed class Configuration : IPluginConfiguration
 			config.Inlays.Clear();
 		}
 
+		// Migrate existing overlays: set Position based on Fullscreen flag
+		foreach (var overlay in config.Overlays)
+		{
+			if (overlay.Fullscreen)
+			{
+				overlay.Position = ScreenPosition.Fullscreen;
+			}
+			// Position defaults to System, and percentage values default to sensible values
+			// No pixel-to-percentage conversion needed since this feature wasn't implemented in v0
+		}
+
 		config.Version = 1;
-		return true; // Always return true to save the version bump
+		return true;
 	}
 }
 
@@ -191,6 +205,21 @@ public enum BaseVisibility
 	Disabled
 }
 
+public enum ScreenPosition
+{
+	System,
+	Fullscreen,
+	TopLeft,
+	Top,
+	TopRight,
+	CenterLeft,
+	Center,
+	CenterRight,
+	BottomLeft,
+	BottomCenter,
+	BottomRight
+}
+
 [Serializable]
 public sealed class VisibilityRule
 {
@@ -224,6 +253,17 @@ internal sealed class OverlayConfiguration
 	public bool TypeThrough;
 	public bool ClickThrough;
 	public bool Fullscreen;
+
+	// Positioning
+	public ScreenPosition Position = ScreenPosition.System;
+	/// <summary>X offset from anchor point as percentage of screen width (-100 to +100)</summary>
+	public float PositionX;
+	/// <summary>Y offset from anchor point as percentage of screen height (-100 to +100)</summary>
+	public float PositionY;
+	/// <summary>Overlay width as percentage of screen width (0 to 100)</summary>
+	public float PositionWidth = 50f;
+	/// <summary>Overlay height as percentage of screen height (0 to 100)</summary>
+	public float PositionHeight = 50f;
 
 	// Advanced
 	public string CustomCss = "";
