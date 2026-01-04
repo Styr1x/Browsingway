@@ -11,13 +11,13 @@ internal sealed partial class OverlayCommandHandler
 	[GeneratedRegex(@"\s+")]
 	private static partial Regex WhitespaceRegex();
 
-	private readonly IServiceContainer _services;
+	private readonly ServiceContainer _services;
 	private readonly OverlayManager _overlayManager;
 	private readonly Func<Configuration> _getConfig;
 	private readonly Action _saveConfig;
 
 	public OverlayCommandHandler(
-		IServiceContainer services,
+		ServiceContainer services,
 		OverlayManager overlayManager,
 		Func<Configuration> getConfig,
 		Action saveConfig)

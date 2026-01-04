@@ -12,7 +12,7 @@ internal sealed class ActManager
 	private int _ticksSinceCheck = 2000;
 	private bool? _pendingNotification;
 
-	public ActManager(IServiceContainer services)
+	public ActManager(ServiceContainer services)
 	{
 		_iinactIpc = services.PluginInterface.GetIpcSubscriber<bool>("IINACT.Server.Listening");
 	}

@@ -20,7 +20,7 @@ internal sealed partial class SettingsWindow : Window, IDisposable
 	[GeneratedRegex(@"\s+")]
 	private static partial Regex WhitespaceRegex();
 
-	private readonly IServiceContainer _services;
+	private readonly ServiceContainer _services;
 	private readonly OverlayManager _overlayManager;
 	private readonly Func<bool> _getActAvailable;
 	private readonly ISharedImmediateTexture? _logoTexture;
@@ -41,7 +41,7 @@ internal sealed partial class SettingsWindow : Window, IDisposable
 	private static float SidebarWidth => 120f * ImGuiHelpers.GlobalScale;
 
 	public SettingsWindow(
-		IServiceContainer services,
+		ServiceContainer services,
 		OverlayManager overlayManager,
 		Configuration config,
 		Func<bool> getActAvailable,

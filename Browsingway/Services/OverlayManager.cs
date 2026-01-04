@@ -18,7 +18,7 @@ internal sealed class OverlayManager : IDisposable
 	private readonly Dictionary<Guid, OverlayWindow> _overlays = [];
 	private readonly Dictionary<Guid, OverlayConfiguration> _activeConfigs = [];
 	private readonly HashSet<Guid> _ephemeralOverlays = [];
-	private readonly IServiceContainer _services;
+	private readonly ServiceContainer _services;
 	private readonly RenderProcessManager _renderProcessManager;
 	private readonly string _pluginDir;
 	private readonly WindowSystem _windowSystem;
@@ -29,7 +29,7 @@ internal sealed class OverlayManager : IDisposable
 	private bool _syncPending;
 
 	public OverlayManager(
-		IServiceContainer services,
+		ServiceContainer services,
 		RenderProcessManager renderProcessManager,
 		string pluginDir,
 		WindowSystem windowSystem,
@@ -109,11 +109,32 @@ internal sealed class OverlayManager : IDisposable
 	{
 		if (_renderProcessManager.Rpc == null) return;
 
-		var states = _overlays.Values
-			.Select(overlay => overlay.GetState())
-			.Where(state => state != null)
-			.Cast<OverlayState>()
-			.ToList();
+		var states = new List<OverlayState>();
+		foreach (var (guid, overlay) in _overlays)
+		{
+			// Disabled = browser should not exist in renderer
+			if (overlay.ComputedVisibility == BaseVisibility.Disabled) continue;
+
+			// Window not yet sized
+			var size = overlay.GetContentSize();
+			if (size == null) continue;
+
+			if (!_activeConfigs.TryGetValue(guid, out var config)) continue;
+
+			states.Add(new OverlayState
+			{
+				Guid = guid.ToByteArray(),
+				Id = config.Name,
+				Url = config.Url,
+				Width = (int)size.Value.X,
+				Height = (int)size.Value.Y,
+				Framerate = config.Framerate,
+				Zoom = config.Zoom,
+				Muted = config.Muted,
+				CustomCss = config.CustomCss ?? "",
+				CustomJs = config.CustomJs ?? ""
+			});
+		}
 
 		_renderProcessManager.Rpc.SyncOverlays(states).FireAndForget(_services.PluginLog);
 	}

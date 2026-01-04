@@ -17,7 +17,7 @@ internal sealed class DependencyWindow : Window
 	private readonly DependencyManager _dependencyManager;
 	private readonly ISharedImmediateTexture? _texIcon;
 
-	public DependencyWindow(DependencyManager dependencyManager, IServiceContainer services, string pluginDir)
+	public DependencyWindow(DependencyManager dependencyManager, ServiceContainer services, string pluginDir)
 		: base("Browsingway dependencies###BrowsingwayDependencies")
 	{
 		_dependencyManager = dependencyManager;

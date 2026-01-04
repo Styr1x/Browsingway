@@ -25,7 +25,7 @@ public sealed class DependencyManager : IDisposable
 	private readonly string _debugCheckDir;
 	private readonly string _dependencyDir;
 	private readonly ConcurrentDictionary<string, float> _installProgress = new();
-	private readonly IServiceContainer _services;
+	private readonly ServiceContainer _services;
 	private readonly HttpClient _httpClient = new();
 
 	private ViewMode _viewMode = ViewMode.Hidden;
@@ -36,7 +36,7 @@ public sealed class DependencyManager : IDisposable
 	public IReadOnlyDictionary<string, float> InstallProgress => _installProgress;
 	public ViewMode State => _viewMode;
 
-	public DependencyManager(IServiceContainer services, string pluginDir, string pluginConfigDir)
+	public DependencyManager(ServiceContainer services, string pluginDir, string pluginConfigDir)
 	{
 		_services = services;
 		_dependencyDir = Path.Join(pluginConfigDir, "dependencies");

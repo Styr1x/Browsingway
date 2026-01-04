@@ -12,7 +12,7 @@ internal sealed class GameEnvTracker : IDisposable
 {
 	private const int UpdateIntervalMs = 500;
 
-	private readonly IServiceContainer _services;
+	private readonly ServiceContainer _services;
 	private readonly ActManager _actManager;
 	private readonly Stopwatch _updateTimer = Stopwatch.StartNew();
 
@@ -32,7 +32,7 @@ internal sealed class GameEnvTracker : IDisposable
 	/// </summary>
 	public event EventHandler<GameEnvironment>? EnvironmentChanged;
 
-	public GameEnvTracker(IServiceContainer services, ActManager actManager)
+	public GameEnvTracker(ServiceContainer services, ActManager actManager)
 	{
 		_services = services;
 		_actManager = actManager;

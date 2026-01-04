@@ -8,7 +8,8 @@ namespace Browsingway.Services;
 /// Concrete service container populated via Dalamud IoC.
 /// Created once at plugin startup and passed to all components via constructor injection.
 /// </summary>
-public sealed class ServiceContainer : IServiceContainer
+// ReSharper disable once ClassNeverInstantiated.Global
+public sealed class ServiceContainer
 {
 	[PluginService] public ICommandManager CommandManager { get; init; } = null!;
 	[PluginService] public IChatGui Chat { get; init; } = null!;

@@ -16,7 +16,7 @@ internal class RenderProcessManager : IDisposable
 	private readonly string _keepAliveHandleName;
 	private readonly int _parentPid;
 	private readonly string _pluginDir;
-	private readonly IServiceContainer _services;
+	private readonly ServiceContainer _services;
 
 	private const uint _maxRestarts = 5;
 	private const uint _checkDelaySeconds = 1;
@@ -28,7 +28,7 @@ internal class RenderProcessManager : IDisposable
 	private bool _running;
 
 	public RenderProcessManager(
-		IServiceContainer services,
+		ServiceContainer services,
 		int pid,
 		string pluginDir,
 		string configDir,

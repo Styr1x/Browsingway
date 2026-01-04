@@ -18,7 +18,7 @@ internal class OverlayWindow : Window, IDisposable
 {
 	private readonly OverlayConfiguration _overlayConfig;
 	private readonly RenderProcessManager _renderProcessManager;
-	private readonly IServiceContainer _services;
+	private readonly ServiceContainer _services;
 	private readonly ISharedImmediateTexture? _texErrorIcon;
 	private readonly Action? _onSizeChanged;
 
@@ -32,7 +32,7 @@ internal class OverlayWindow : Window, IDisposable
 	private bool _windowFocused;
 	private BaseVisibility _computedVisibility;
 
-	public OverlayWindow(IServiceContainer services, RenderProcessManager renderProcessManager, OverlayConfiguration overlayConfig, string pluginDir, Action? onSizeChanged = null)
+	public OverlayWindow(ServiceContainer services, RenderProcessManager renderProcessManager, OverlayConfiguration overlayConfig, string pluginDir, Action? onSizeChanged = null)
 		: base($"{overlayConfig.Name}###{overlayConfig.Guid}",
 			ImGuiWindowFlags.NoTitleBar
 			| ImGuiWindowFlags.NoCollapse
@@ -67,32 +67,13 @@ internal class OverlayWindow : Window, IDisposable
 	public BaseVisibility ComputedVisibility => _computedVisibility;
 
 	/// <summary>
-	/// Gets the current overlay state for sync to renderer.
-	/// Returns null if:
-	/// - The overlay hasn't been sized yet (size is zero)
-	/// - The computed visibility is Disabled (browser should not exist)
+	/// Gets the current content size of the window.
+	/// Returns null if the window hasn't been sized yet.
 	/// </summary>
-	public OverlayState? GetState()
+	public Vector2? GetContentSize()
 	{
-		// Don't sync if not yet sized
 		if (_size == Vector2.Zero) return null;
-
-		// Disabled = browser should not exist in renderer
-		if (_computedVisibility == BaseVisibility.Disabled) return null;
-
-		return new OverlayState
-		{
-			Guid = RenderGuid.ToByteArray(),
-			Id = _overlayConfig.Name,
-			Url = _overlayConfig.Url,
-			Width = (int)_size.X,
-			Height = (int)_size.Y,
-			Framerate = _overlayConfig.Framerate,
-			Zoom = _overlayConfig.Zoom,
-			Muted = _overlayConfig.Muted,
-			CustomCss = _overlayConfig.CustomCss ?? "",
-			CustomJs = _overlayConfig.CustomJs ?? ""
-		};
+		return _size;
 	}
 
 	public void Dispose()

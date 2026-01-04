@@ -20,7 +20,7 @@ public class Plugin : IDalamudPlugin
 	private readonly DependencyManager _dependencyManager;
 	private readonly string _pluginConfigDir;
 	private readonly string _pluginDir;
-	private readonly IServiceContainer _services;
+	private readonly ServiceContainer _services;
 	private readonly ActManager _actManager;
 
 	private RenderProcessManager? _renderProcess;
