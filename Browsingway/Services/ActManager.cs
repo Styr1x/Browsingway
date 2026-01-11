@@ -52,8 +52,8 @@ internal sealed class ActManager
 
 	private void CheckProcesses()
 	{
-		bool found = IsActProcessRunning("Advanced Combat Tracker") 
-		          || IsActProcessRunning("IINACT");
+		bool found = IsActProcessRunning("Advanced Combat Tracker")
+		             || IsActProcessRunning("IINACT");
 		SetRunning(found);
 	}
 
@@ -61,9 +61,9 @@ internal sealed class ActManager
 	{
 		var proc = Process.GetProcessesByName(processName).FirstOrDefault();
 		if (proc is null) return false;
-		
+
 		// Wait for process to initialize (5 seconds) or check window title for ACT
-		return processName == "Advanced Combat Tracker" 
+		return processName == "Advanced Combat Tracker"
 			? proc.MainWindowTitle.Contains("Advanced Combat Tracker") || (DateTime.Now - proc.StartTime).TotalSeconds >= 5
 			: (DateTime.Now - proc.StartTime).TotalSeconds >= 5;
 	}
