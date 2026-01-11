@@ -56,7 +56,6 @@ internal sealed class GameEnvTracker : IDisposable
 
 		_updateTimer.Restart();
 
-		bool changed = false;
 		long now = DateTime.UtcNow.Ticks;
 
 		// Check ACT availability
@@ -65,7 +64,6 @@ internal sealed class GameEnvTracker : IDisposable
 		{
 			_lastActAvailable = actAvailable;
 			_actChangedAt = now;
-			changed = true;
 		}
 
 		// Check combat state
@@ -74,7 +72,6 @@ internal sealed class GameEnvTracker : IDisposable
 		{
 			_lastInCombat = inCombat;
 			_combatChangedAt = now;
-			changed = true;
 		}
 
 		// Check PvP state
@@ -83,7 +80,6 @@ internal sealed class GameEnvTracker : IDisposable
 		{
 			_lastInPvP = inPvP;
 			_pvpChangedAt = now;
-			changed = true;
 		}
 
 		// Update environment
@@ -97,11 +93,10 @@ internal sealed class GameEnvTracker : IDisposable
 			SecondsSincePvPChanged = (int)TimeSpan.FromTicks(now - _pvpChangedAt).TotalSeconds
 		};
 
-		// Fire event if any state changed
-		if (changed)
-		{
-			EnvironmentChanged?.Invoke(this, CurrentEnvironment);
-		}
+		// Always fire event on each update so delay-based visibility rules get re-evaluated.
+		// Without this, rules like "hide 5 seconds after leaving combat" would never trigger
+		// because the event only fired on state change (when delay was 0).
+		EnvironmentChanged?.Invoke(this, CurrentEnvironment);
 	}
 }
 

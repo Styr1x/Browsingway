@@ -148,16 +148,20 @@ internal sealed class OverlayManager : IDisposable
 
 	/// <summary>
 	/// Updates visibility for all active overlays based on current environment.
+	/// Only syncs to renderer if any visibility actually changed.
 	/// </summary>
 	public void UpdateAllVisibility(GameEnvironment environment)
 	{
+		bool anyChanged = false;
 		foreach (var overlay in _overlays.Values)
 		{
-			overlay.UpdateVisibility(environment);
+			if (overlay.UpdateVisibility(environment))
+				anyChanged = true;
 		}
 
-		// Visibility affects which overlays are synced to renderer
-		RequestSync();
+		// Only sync if visibility actually changed to avoid unnecessary renderer updates
+		if (anyChanged)
+			RequestSync();
 	}
 
 

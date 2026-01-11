@@ -155,12 +155,20 @@ internal class OverlayWindow : Window, IDisposable
 	/// Updates the computed visibility based on the current environment.
 	/// Called by OverlayManager when visibility environment changes.
 	/// </summary>
-	public void UpdateVisibility(GameEnvironment environment)
+	/// <returns>True if visibility changed, false otherwise.</returns>
+	public bool UpdateVisibility(GameEnvironment environment)
 	{
-		_computedVisibility = VisibilityEvaluator.ComputeVisibility(
+		var newVisibility = VisibilityEvaluator.ComputeVisibility(
 			_overlayConfig.BaseVisibility,
 			_overlayConfig.VisibilityRules,
 			environment);
+
+		if (newVisibility != _computedVisibility)
+		{
+			_computedVisibility = newVisibility;
+			return true;
+		}
+		return false;
 	}
 
 	public override void PreDraw()
@@ -263,7 +271,6 @@ internal class OverlayWindow : Window, IDisposable
 	{
 		HandleWindowSize();
 
-		// TODO: Browsingway.Renderer can take some time to spin up properly, should add a loading state.
 		if (_textureHandler != null && !_hasRenderError)
 		{
 			HandleMouseEvent();
@@ -272,30 +279,30 @@ internal class OverlayWindow : Window, IDisposable
 			_textureHandler.Render();
 			ImGui.PopStyleVar();
 		}
-		else
+		else if (_hasRenderError && _texErrorIcon is not null)
 		{
-			if (_texErrorIcon is not null)
+			// Only show error state when renderer has actually crashed/errored,
+			// not when texture simply hasn't arrived yet (startup)
+			float lineHeight = ImGui.GetTextLineHeight();
+			float size = float.Min(_size.X - lineHeight * 3, _size.Y - lineHeight * 3);
+			ImGui.NewLine();
+			ImGuiHelpers.CenterCursorFor(size);
+			ImGui.Image(_texErrorIcon.GetWrapOrEmpty().Handle, new Vector2(size, size));
+
+			ImGui.PushStyleColor(ImGuiCol.Text, 0xFF0000FF);
+			if (_textureRenderException is not null)
 			{
-				float lineHeight = ImGui.GetTextLineHeight();
-				float size = float.Min(_size.X - lineHeight * 3, _size.Y - lineHeight * 3);
-				ImGui.NewLine();
-				ImGuiHelpers.CenterCursorFor(size);
-				ImGui.Image(_texErrorIcon.GetWrapOrEmpty().Handle, new Vector2(size, size));
-
-				ImGui.PushStyleColor(ImGuiCol.Text, 0xFF0000FF);
-				if (_textureRenderException is not null)
-				{
-					ImGuiHelpers.CenteredText("An error occured while building the browser overlay texture:");
-					ImGuiHelpers.CenteredText(_textureRenderException.ToString());
-				}
-				else
-				{
-					ImGuiHelpers.CenteredText("An error occured while building the browser overlay texture. Check the log for more details.");
-				}
-
-				ImGui.PopStyleColor();
+				ImGuiHelpers.CenteredText("An error occured while building the browser overlay texture:");
+				ImGuiHelpers.CenteredText(_textureRenderException.ToString());
 			}
+			else
+			{
+				ImGuiHelpers.CenteredText("An error occured while building the browser overlay texture. Check the log for more details.");
+			}
+
+			ImGui.PopStyleColor();
 		}
+		// When texture hasn't arrived yet (startup), draw nothing - window will be transparent
 	}
 	
 	public override void PostDraw()
