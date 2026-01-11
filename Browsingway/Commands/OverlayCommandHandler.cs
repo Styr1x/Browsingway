@@ -71,7 +71,7 @@ internal sealed partial class OverlayCommandHandler
 				handled = TrySetBoolean(args[2], ref targetConfig.TypeThrough);
 				break;
 			case "fullscreen":
-				handled = TrySetBoolean(args[2], ref targetConfig.Fullscreen);
+				handled = TrySetFullscreen(args[2], targetConfig);
 				break;
 			case "clickthrough":
 				handled = TrySetBoolean(args[2], ref targetConfig.ClickThrough);
@@ -111,6 +111,26 @@ internal sealed partial class OverlayCommandHandler
 				return true;
 			case "toggle":
 				target = !target;
+				return true;
+			default:
+				_services.Chat.PrintError($"Unknown boolean value '{value}'. Valid values are: on,off,toggle.");
+				return false;
+		}
+	}
+
+	private bool TrySetFullscreen(string value, OverlayConfiguration config)
+	{
+		bool isFullscreen = config.PositionMode == ScreenPositionMode.Fullscreen;
+		switch (value)
+		{
+			case "on":
+				config.PositionMode = ScreenPositionMode.Fullscreen;
+				return true;
+			case "off":
+				config.PositionMode = ScreenPositionMode.System;
+				return true;
+			case "toggle":
+				config.PositionMode = isFullscreen ? ScreenPositionMode.System : ScreenPositionMode.Fullscreen;
 				return true;
 			default:
 				_services.Chat.PrintError($"Unknown boolean value '{value}'. Valid values are: on,off,toggle.");

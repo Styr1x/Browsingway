@@ -266,7 +266,7 @@ internal partial class OverlaySettingsTab
 		if (useColumns)
 			ImGui.SameLine(columnOffset);
 
-		bool isImplicitlyLocked = state.ClickThrough || state.Fullscreen;
+		bool isImplicitlyLocked = state.ClickThrough || state.PositionMode == ScreenPositionMode.Fullscreen;
 		if (isImplicitlyLocked)
 			ImGui.BeginDisabled();
 		bool lockedValue = isImplicitlyLocked || state.Locked;
@@ -428,10 +428,6 @@ internal partial class OverlaySettingsTab
 				state.PositionMode = clickedPosition.Value;
 			}
 		}
-
-		// Sync legacy fullscreen flag with Position enum
-		// This ensures backward compatibility with old config format
-		state.Fullscreen = state.PositionMode == ScreenPositionMode.Fullscreen;
 
 		ImGuiHelpers.ScaledDummy(5);
 

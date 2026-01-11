@@ -88,8 +88,6 @@ internal sealed class Configuration : IPluginConfiguration
 					Muted = inlay.Muted,
 					TypeThrough = inlay.TypeThrough,
 					ClickThrough = inlay.ClickThrough,
-					Fullscreen = inlay.Fullscreen,
-					// Set Position based on Fullscreen flag
 					PositionMode = inlay.Fullscreen ? ScreenPositionMode.Fullscreen : ScreenPositionMode.System,
 					CustomCss = inlay.CustomCss,
 				};
@@ -124,17 +122,6 @@ internal sealed class Configuration : IPluginConfiguration
 			}
 
 			config.Inlays.Clear();
-		}
-
-		// Migrate existing overlays: set Position based on Fullscreen flag
-		foreach (var overlay in config.Overlays)
-		{
-			if (overlay.Fullscreen)
-			{
-				overlay.PositionMode = ScreenPositionMode.Fullscreen;
-			}
-			// Position defaults to System, and percentage values default to sensible values
-			// No pixel-to-percentage conversion needed since this feature wasn't implemented in v0
 		}
 
 		config.Version = 1;
@@ -252,7 +239,6 @@ internal sealed class OverlayConfiguration
 	public bool Muted;
 	public bool TypeThrough;
 	public bool ClickThrough;
-	public bool Fullscreen;
 
 	// Positioning
 	public ScreenPositionMode PositionMode = ScreenPositionMode.System;

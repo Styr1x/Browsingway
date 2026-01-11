@@ -21,7 +21,6 @@ internal sealed class OverlayEditState
 	public bool Muted;
 	public bool TypeThrough;
 	public bool ClickThrough;
-	public bool Fullscreen;
 
 	// Positioning (percentage-based)
 	public ScreenPositionMode PositionMode;
@@ -56,7 +55,6 @@ internal sealed class OverlayEditState
 		Muted = config.Muted,
 		TypeThrough = config.TypeThrough,
 		ClickThrough = config.ClickThrough,
-		Fullscreen = config.Fullscreen,
 		PositionMode = config.PositionMode,
 		PositionX = config.PositionX,
 		PositionY = config.PositionY,
@@ -82,7 +80,6 @@ internal sealed class OverlayEditState
 		config.Muted = Muted;
 		config.TypeThrough = TypeThrough;
 		config.ClickThrough = ClickThrough;
-		config.Fullscreen = Fullscreen;
 		config.PositionMode = PositionMode;
 		config.PositionX = PositionX;
 		config.PositionY = PositionY;
@@ -108,7 +105,6 @@ internal sealed class OverlayEditState
 			Muted != config.Muted ||
 			TypeThrough != config.TypeThrough ||
 			ClickThrough != config.ClickThrough ||
-			Fullscreen != config.Fullscreen ||
 			PositionMode != config.PositionMode ||
 			Math.Abs(PositionX - config.PositionX) > 0.01f ||
 			Math.Abs(PositionY - config.PositionY) > 0.01f ||
