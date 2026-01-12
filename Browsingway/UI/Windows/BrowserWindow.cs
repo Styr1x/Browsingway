@@ -3,6 +3,8 @@ using Browsingway.Extensions;
 using Browsingway.Interop;
 using Browsingway.Services;
 using Dalamud.Bindings.ImGui;
+using Dalamud.Interface;
+using Dalamud.Interface.Components;
 using Dalamud.Interface.Textures;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
@@ -28,10 +30,12 @@ internal sealed class BrowserWindow : Window, IDisposable
 	private readonly ServiceContainer _services;
 	private readonly OverlayManager _overlayManager;
 	private readonly RenderProcessManager _renderProcessManager;
+	private readonly Configuration _config;
 	private readonly ISharedImmediateTexture? _logoTexture;
 
 	private readonly List<BrowserTab> _tabs = [];
 	private int _activeTabIndex = -1;
+	private bool _forceSelectTab;
 	private bool _windowFocused;
 	private bool _mouseInContent;
 	private Vector2 _contentSize = Vector2.Zero;
@@ -41,12 +45,14 @@ internal sealed class BrowserWindow : Window, IDisposable
 		ServiceContainer services,
 		OverlayManager overlayManager,
 		RenderProcessManager renderProcessManager,
+		Configuration config,
 		string pluginDir)
 		: base("Browser###BrowsingwayBrowser")
 	{
 		_services = services;
 		_overlayManager = overlayManager;
 		_renderProcessManager = renderProcessManager;
+		_config = config;
 
 		_logoTexture = _services.TextureProvider.GetFromFile(Path.Combine(pluginDir, "icon.png"));
 
@@ -107,7 +113,7 @@ internal sealed class BrowserWindow : Window, IDisposable
 
 	private void DrawTabBar()
 	{
-		float iconSize = ImGui.GetFrameHeight();
+		float iconSize = ImGui.GetFrameHeight() * 1.25f * ImGuiHelpers.GlobalScale;
 
 		// Icon button with dropdown
 		if (_logoTexture != null)
@@ -138,82 +144,98 @@ internal sealed class BrowserWindow : Window, IDisposable
 
 		ImGui.SameLine();
 
-		// Tab bar
-		float availableWidth = ImGui.GetContentRegionAvail().X - iconSize - ImGui.GetStyle().ItemSpacing.X;
-		using (ImRaii.PushStyle(ImGuiStyleVar.ItemSpacing, new Vector2(2, 0)))
+		// Calculate extra padding to make tabs match icon height
+		float defaultFrameHeight = ImGui.GetFrameHeight();
+		float extraPadding = (iconSize - defaultFrameHeight) / 2f;
+		Vector2 currentPadding = ImGui.GetStyle().FramePadding;
+
+		// Use native ImGui tab bar with close buttons
+		using (ImRaii.PushStyle(ImGuiStyleVar.FramePadding, new Vector2(currentPadding.X, currentPadding.Y + extraPadding)))
 		{
-			for (int i = 0; i < _tabs.Count; i++)
+			if (ImGui.BeginTabBar("BrowserTabs", ImGuiTabBarFlags.AutoSelectNewTabs | ImGuiTabBarFlags.FittingPolicyScroll))
 			{
-				int index = i;
-				BrowserTab tab = _tabs[i];
-				bool isActive = i == _activeTabIndex;
+				// Track which tabs to close after iteration
+				int? tabToClose = null;
 
-				// Tab button style
-				if (isActive)
+				for (int i = 0; i < _tabs.Count; i++)
 				{
-					ImGui.PushStyleColor(ImGuiCol.Button, ImGui.GetColorU32(ImGuiCol.ButtonActive));
-				}
+					BrowserTab tab = _tabs[i];
+					string tabLabel = tab.Name.Length > 15 ? tab.Name[..12] + "..." : tab.Name;
 
-				// Limit tab width
-				float maxTabWidth = 150 * ImGuiHelpers.GlobalScale;
-				string tabLabel = tab.Name.Length > 15 ? tab.Name[..12] + "..." : tab.Name;
-
-				if (ImGui.Button($"{tabLabel}##Tab{i}", new Vector2(0, iconSize)))
-				{
-					_activeTabIndex = index;
-				}
-
-				if (isActive)
-				{
-					ImGui.PopStyleColor();
-				}
-
-				// Tab tooltip
-				if (ImGui.IsItemHovered())
-				{
-					ImGui.SetTooltip(tab.Url);
-				}
-
-				// Close button on the same line
-				ImGui.SameLine(0, 0);
-				if (ImGui.Button($"x##CloseTab{i}", new Vector2(iconSize * 0.6f, iconSize)))
-				{
-					CloseTab(index);
-					// Adjust index if we're iterating
-					if (index < _tabs.Count)
+					// p_open parameter adds the close button inside the tab
+					bool tabOpen = true;
+					ImGuiTabItemFlags flags = ImGuiTabItemFlags.None;
+					if (i == _activeTabIndex && _forceSelectTab)
 					{
-						i--;
+						flags |= ImGuiTabItemFlags.SetSelected;
+					}
+
+					if (ImGui.BeginTabItem($"{tabLabel}##Tab{i}", ref tabOpen, flags))
+					{
+						_activeTabIndex = i;
+						ImGui.EndTabItem();
+					}
+
+					// Check if tab was clicked (even if not the content tab)
+					if (ImGui.IsItemClicked())
+					{
+						_activeTabIndex = i;
+					}
+
+					// Tab tooltip
+					if (ImGui.IsItemHovered())
+					{
+						ImGui.SetTooltip(tab.Url);
+					}
+
+					// Mark for closing if close button was clicked
+					if (!tabOpen)
+					{
+						tabToClose = i;
 					}
 				}
 
-				ImGui.SameLine();
-			}
-		}
+				// Reset force select flag after processing tabs
+				_forceSelectTab = false;
 
-		// Add tab button
-		if (ImGui.Button("+", new Vector2(iconSize, iconSize)))
-		{
-			AddTab();
-		}
-		if (ImGui.IsItemHovered())
-		{
-			ImGui.SetTooltip("Open new tab");
+				// Add tab button as a special tab item
+				if (ImGui.TabItemButton("+", ImGuiTabItemFlags.Trailing | ImGuiTabItemFlags.NoTooltip))
+				{
+					AddTab();
+				}
+				if (ImGui.IsItemHovered())
+				{
+					ImGui.SetTooltip("Open new tab");
+				}
+
+				ImGui.EndTabBar();
+
+				// Close tab after iteration to avoid index issues
+				if (tabToClose.HasValue)
+				{
+					CloseTab(tabToClose.Value);
+				}
+			}
 		}
 	}
 
 	private void DrawNavigationBar()
 	{
+		// Ensure we have at least one tab
+		if (_tabs.Count == 0)
+		{
+			AddTab();
+		}
+
 		if (_activeTabIndex < 0 || _activeTabIndex >= _tabs.Count)
 		{
-			ImGui.Text("No tab selected");
-			return;
+			_activeTabIndex = 0;
 		}
 
 		BrowserTab activeTab = _tabs[_activeTabIndex];
-		float buttonSize = ImGui.GetFrameHeight();
 
 		// Back button
-		if (ImGui.Button("<", new Vector2(buttonSize, buttonSize)))
+		if (ImGuiComponents.IconButton(FontAwesomeIcon.ArrowLeft))
 		{
 			_overlayManager.GoBack(activeTab.OverlayGuid);
 		}
@@ -225,7 +247,7 @@ internal sealed class BrowserWindow : Window, IDisposable
 		ImGui.SameLine();
 
 		// Forward button
-		if (ImGui.Button(">", new Vector2(buttonSize, buttonSize)))
+		if (ImGuiComponents.IconButton(FontAwesomeIcon.ArrowRight))
 		{
 			_overlayManager.GoForward(activeTab.OverlayGuid);
 		}
@@ -237,7 +259,7 @@ internal sealed class BrowserWindow : Window, IDisposable
 		ImGui.SameLine();
 
 		// Reload button
-		if (ImGui.Button("R", new Vector2(buttonSize, buttonSize)))
+		if (ImGuiComponents.IconButton(FontAwesomeIcon.Redo))
 		{
 			_overlayManager.Reload(activeTab.OverlayGuid);
 		}
@@ -262,42 +284,41 @@ internal sealed class BrowserWindow : Window, IDisposable
 		_contentPos = ImGui.GetCursorScreenPos();
 		_contentSize = contentRegion;
 
-		if (_activeTabIndex < 0 || _activeTabIndex >= _tabs.Count)
-		{
-			ImGui.BeginChild("EmptyContent", contentRegion, true);
-			ImGuiHelpers.CenteredText("Click + to open a new tab");
-			ImGui.EndChild();
-			return;
-		}
-
+		// Tab is guaranteed to exist due to DrawNavigationBar ensuring at least one tab
 		BrowserTab activeTab = _tabs[_activeTabIndex];
 
 		// Update overlay size so it renders at the correct size for this content area
 		_overlayManager.SetOverlaySize(activeTab.OverlayGuid, contentRegion);
 
-		// Content child with border
-		ImGui.BeginChild("BrowserContent", contentRegion, true, ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse);
-
-		if (activeTab.Texture != null)
+		// Content child without padding so texture fills exactly
+		using (ImRaii.PushStyle(ImGuiStyleVar.WindowPadding, Vector2.Zero))
 		{
-			// Render the texture
-			activeTab.Texture.Render();
+			ImGui.BeginChild("BrowserContent", contentRegion, true, ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse);
 
-			// Handle mouse input
-			HandleMouseInput(activeTab);
+			// Update content position after entering child (for mouse input)
+			_contentPos = ImGui.GetCursorScreenPos();
 
-			// Set cursor
-			if (_mouseInContent && activeTab.CaptureCursor)
+			if (activeTab.Texture != null)
 			{
-				ImGui.SetMouseCursor(activeTab.Cursor);
-			}
-		}
-		else
-		{
-			ImGuiHelpers.CenteredText("Loading...");
-		}
+				// Render the texture
+				activeTab.Texture.Render();
 
-		ImGui.EndChild();
+				// Handle mouse input
+				HandleMouseInput(activeTab);
+
+				// Set cursor
+				if (_mouseInContent && activeTab.CaptureCursor)
+				{
+					ImGui.SetMouseCursor(activeTab.Cursor);
+				}
+			}
+			else
+			{
+				ImGuiHelpers.CenteredText("Loading...");
+			}
+
+			ImGui.EndChild();
+		}
 
 		// Handle focus
 		if (ImGui.IsItemClicked())
@@ -412,12 +433,26 @@ internal sealed class BrowserWindow : Window, IDisposable
 
 	private void AddTab()
 	{
+		string startPage = _config.BrowserStartPage;
+		if (string.IsNullOrWhiteSpace(startPage))
+		{
+			startPage = "about:blank";
+		}
+
+		// Check if a "New Tab" already exists - if so, just switch to it
+		int existingNewTabIndex = _tabs.FindIndex(t => t.Url == startPage && t.Name == "New Tab");
+		if (existingNewTabIndex >= 0)
+		{
+			_activeTabIndex = existingNewTabIndex;
+			return;
+		}
+
 		// Create ephemeral overlay with Hidden visibility (renders but doesn't display in its own window)
 		OverlayConfiguration config = new()
 		{
 			Guid = Guid.NewGuid(),
 			Name = "Browser Tab",
-			Url = "about:blank",
+			Url = startPage,
 			Zoom = 100f,
 			Opacity = 100f,
 			Framerate = 60,
@@ -436,12 +471,13 @@ internal sealed class BrowserWindow : Window, IDisposable
 		{
 			OverlayGuid = guid,
 			Name = "New Tab",
-			Url = "about:blank",
-			UrlInput = "about:blank"
+			Url = startPage,
+			UrlInput = startPage
 		};
 
 		_tabs.Add(tab);
 		_activeTabIndex = _tabs.Count - 1;
+		_forceSelectTab = true;
 
 		// Trigger sync to create the overlay in the renderer
 		_overlayManager.SyncNow();
@@ -451,6 +487,24 @@ internal sealed class BrowserWindow : Window, IDisposable
 	{
 		if (index < 0 || index >= _tabs.Count)
 		{
+			return;
+		}
+
+		// Don't close the last tab - instead reset it to "New Tab"
+		if (_tabs.Count == 1)
+		{
+			string startPage = _config.BrowserStartPage;
+			if (string.IsNullOrWhiteSpace(startPage))
+			{
+				startPage = "about:blank";
+			}
+
+			BrowserTab lastTab = _tabs[0];
+			// Navigate to start page and reset name
+			lastTab.Name = "New Tab";
+			lastTab.Url = startPage;
+			lastTab.UrlInput = startPage;
+			_overlayManager.NavigateOverlay(lastTab.OverlayGuid, startPage);
 			return;
 		}
 
@@ -474,11 +528,32 @@ internal sealed class BrowserWindow : Window, IDisposable
 
 	private void CloseAllTabs()
 	{
-		for (int i = _tabs.Count - 1; i >= 0; i--)
+		// Close all tabs except the first one
+		for (int i = _tabs.Count - 1; i > 0; i--)
 		{
-			CloseTab(i);
+			BrowserTab tab = _tabs[i];
+			_overlayManager.RemoveEphemeralOverlay(tab.OverlayGuid);
+			tab.Texture?.Dispose();
+			_tabs.RemoveAt(i);
 		}
-		_activeTabIndex = -1;
+
+		// Reset the first tab to "New Tab"
+		if (_tabs.Count > 0)
+		{
+			string startPage = _config.BrowserStartPage;
+			if (string.IsNullOrWhiteSpace(startPage))
+			{
+				startPage = "about:blank";
+			}
+
+			BrowserTab firstTab = _tabs[0];
+			firstTab.Name = "New Tab";
+			firstTab.Url = startPage;
+			firstTab.UrlInput = startPage;
+			_overlayManager.NavigateOverlay(firstTab.OverlayGuid, startPage);
+		}
+
+		_activeTabIndex = 0;
 	}
 
 	private void NavigateCurrentTab(string url)
@@ -560,6 +635,12 @@ internal sealed class BrowserWindow : Window, IDisposable
 			Guid guid = new(msg.Guid.Span);
 			BrowserTab? tab = _tabs.FirstOrDefault(t => t.OverlayGuid == guid);
 			if (tab == null) return;
+
+			// Ignore empty URLs or about:blank to preserve "New Tab" name
+			if (string.IsNullOrEmpty(msg.Url) || msg.Url == "about:blank")
+			{
+				return;
+			}
 
 			tab.Url = msg.Url;
 			tab.UrlInput = msg.Url;

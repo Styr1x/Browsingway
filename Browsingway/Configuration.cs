@@ -13,6 +13,10 @@ internal sealed class Configuration : IPluginConfiguration
 	// General
 	public RenderingBackend Backend { get; set; } = RenderingBackend.CEF;
 
+	// Browser
+	public bool OpenLinksFromChat { get; set; } = true;
+	public string BrowserStartPage { get; set; } = "about:blank";
+
 	// IPC
 	public bool AllowEphemeralWindows { get; set; } = false;
 	public bool AllowConfigChanges { get; set; } = false;

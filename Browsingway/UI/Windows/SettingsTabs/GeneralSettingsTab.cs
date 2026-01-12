@@ -42,6 +42,41 @@ internal class GeneralSettingsTab
 		ImGuiHelpers.ScaledDummy(10);
 		ImGui.Unindent();
 
+		// Browser Settings
+		ImGui.Separator();
+		ImGui.TextColored(new Vector4(0.4f, 0.8f, 1f, 1f), "Browser");
+		ImGui.Spacing();
+
+		ImGui.Indent();
+		ImGuiHelpers.ScaledDummy(5);
+
+		bool openLinksFromChat = _config.OpenLinksFromChat;
+		if (ImGui.Checkbox("Open links from chat", ref openLinksFromChat))
+		{
+			_config.OpenLinksFromChat = openLinksFromChat;
+		}
+		if (ImGui.IsItemHovered())
+		{
+			ImGui.SetTooltip("If enabled, links posted in chat become clickable and get opened in the Browser.");
+		}
+
+		ImGuiHelpers.ScaledDummy(5);
+
+		ImGui.Text("Start page");
+		ImGui.SetNextItemWidth(300 * ImGuiHelpers.GlobalScale);
+		string startPage = _config.BrowserStartPage;
+		if (ImGui.InputText("##StartPage", ref startPage, 2048))
+		{
+			_config.BrowserStartPage = startPage;
+		}
+		if (ImGui.IsItemHovered())
+		{
+			ImGui.SetTooltip("Default website to open when creating a new tab.");
+		}
+
+		ImGuiHelpers.ScaledDummy(10);
+		ImGui.Unindent();
+
 		// IPC Settings
 		ImGui.Separator();
 		ImGui.TextColored(new Vector4(0.4f, 0.8f, 1f, 1f), "IPC");

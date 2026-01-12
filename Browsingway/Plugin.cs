@@ -127,6 +127,7 @@ public class Plugin : IDalamudPlugin
 			_services,
 			_overlayManager,
 			_renderProcess,
+			_config,
 			_pluginDir);
 
 		_windowSystem.AddWindow(_browserWindow);
