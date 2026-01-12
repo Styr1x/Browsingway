@@ -21,4 +21,6 @@ table SetCursorMessage (fs_serializer) {
 table UrlChangedMessage (fs_serializer) {
     Guid: [ubyte] (required);
     Url: string (required);
+    Title: string;
+    FaviconUrl: string;
 }

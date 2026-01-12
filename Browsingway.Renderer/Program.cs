@@ -161,9 +161,30 @@ internal static class Program
 			_ = _rpc.SetCursor(new SetCursorMessage() {Guid = guid.ToByteArray(), Cursor = cursor});
 		};
 
+		// Track current URL, title and favicon for sending updates
+		string currentUrl = state.Url;
+		string? currentTitle = null;
+		string? currentFaviconUrl = null;
+
 		overlay.AddressChanged += (_, url) =>
 		{
+			// Reset title/favicon on address change as new page is loading
+			currentUrl = url;
+			currentTitle = null;
+			currentFaviconUrl = null;
 			_ = _rpc.UrlChanged(guid, url);
+		};
+
+		overlay.TitleChanged += (_, title) =>
+		{
+			currentTitle = title;
+			_ = _rpc.UrlChanged(guid, currentUrl, currentTitle, currentFaviconUrl);
+		};
+
+		overlay.FaviconUrlChanged += (_, faviconUrl) =>
+		{
+			currentFaviconUrl = faviconUrl;
+			_ = _rpc.UrlChanged(guid, currentUrl, currentTitle, currentFaviconUrl);
 		};
 
 		_ = _rpc.UpdateTexture(guid, renderHandler.SharedTextureHandle);

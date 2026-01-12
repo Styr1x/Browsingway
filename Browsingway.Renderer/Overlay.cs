@@ -1,5 +1,6 @@
 using Browsingway.Common.Ipc;
 using CefSharp;
+using CefSharp.Handler;
 using CefSharp.OffScreen;
 using CefSharp.Structs;
 using BrowserSettings = CefSharp.BrowserSettings;
@@ -23,6 +24,8 @@ internal class Overlay : IDisposable
 	private string _customJs;
 
 	public event EventHandler<string>? AddressChanged;
+	public event EventHandler<string>? TitleChanged;
+	public event EventHandler<string>? FaviconUrlChanged;
 
 	public Overlay(string id, string url, float zoom, bool muted, int framerate, string customCss, string customJs,
 		TextureRenderHandler renderHandler)
@@ -106,6 +109,19 @@ internal class Overlay : IDisposable
 		_browser = new ChromiumWebBrowser(_url, automaticallyCreateBrowser: false, requestContext: rc);
 		_browser.RenderHandler = RenderHandler;
 		_browser.MenuHandler = new CefMenuHandler();
+
+		var displayHandler = new DisplayHandler();
+		displayHandler.TitleChanged += (_, title) => TitleChanged?.Invoke(this, title);
+		displayHandler.FaviconUrlChanged += (_, urls) =>
+		{
+			// Use the first favicon URL if available
+			if (urls.Count > 0)
+			{
+				FaviconUrlChanged?.Invoke(this, urls[0]);
+			}
+		};
+		_browser.DisplayHandler = displayHandler;
+
 		Rect size = RenderHandler.GetViewRect();
 
 		// General _browser config

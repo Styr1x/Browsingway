@@ -6,9 +6,11 @@ using Dalamud.Bindings.ImGui;
 using Dalamud.Interface;
 using Dalamud.Interface.Components;
 using Dalamud.Interface.Textures;
+using Dalamud.Interface.Textures.TextureWraps;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
 using Dalamud.Interface.Windowing;
+using System.Net.Http;
 using System.Numerics;
 using TerraFX.Interop.Windows;
 
@@ -23,10 +25,14 @@ internal sealed class BrowserTab
 	public ImGuiSharedTexture? Texture;
 	public ImGuiMouseCursor Cursor = ImGuiMouseCursor.Arrow;
 	public bool CaptureCursor;
+	public string? FaviconUrl;
+	public IDalamudTextureWrap? FaviconTexture;
 }
 
 internal sealed class BrowserWindow : Window, IDisposable
 {
+	private static readonly HttpClient HttpClient = new() { Timeout = TimeSpan.FromSeconds(5) };
+
 	private readonly ServiceContainer _services;
 	private readonly OverlayManager _overlayManager;
 	private readonly RenderProcessManager _renderProcessManager;
@@ -38,6 +44,8 @@ internal sealed class BrowserWindow : Window, IDisposable
 	private bool _forceSelectTab;
 	private bool _windowFocused;
 	private bool _mouseInContent;
+	private bool _urlBarFocused;
+	private int _urlBarFocusFrames;
 	private Vector2 _contentSize = Vector2.Zero;
 	private Vector2 _contentPos = Vector2.Zero;
 
@@ -157,10 +165,18 @@ internal sealed class BrowserWindow : Window, IDisposable
 				// Track which tabs to close after iteration
 				int? tabToClose = null;
 
+				float faviconSize = ImGui.GetFrameHeight() * 0.8f;
+
 				for (int i = 0; i < _tabs.Count; i++)
 				{
 					BrowserTab tab = _tabs[i];
-					string tabLabel = tab.Name.Length > 15 ? tab.Name[..12] + "..." : tab.Name;
+					string tabLabel = tab.Name.Length > 20 ? tab.Name[..17] + "..." : tab.Name;
+
+					// Add space for favicon - calculate actual width needed
+					string faviconPadding = tab.FaviconTexture != null
+						? new string(' ', (int)Math.Ceiling(faviconSize / ImGui.CalcTextSize(" ").X) + 1)
+						: "";
+					string displayLabel = faviconPadding + tabLabel;
 
 					// p_open parameter adds the close button inside the tab
 					bool tabOpen = true;
@@ -170,10 +186,25 @@ internal sealed class BrowserWindow : Window, IDisposable
 						flags |= ImGuiTabItemFlags.SetSelected;
 					}
 
-					if (ImGui.BeginTabItem($"{tabLabel}##Tab{i}", ref tabOpen, flags))
+					if (ImGui.BeginTabItem($"{displayLabel}##Tab{i}", ref tabOpen, flags))
 					{
 						_activeTabIndex = i;
 						ImGui.EndTabItem();
+					}
+
+					// Draw favicon inside the tab
+					if (tab.FaviconTexture != null)
+					{
+						Vector2 tabMin = ImGui.GetItemRectMin();
+						Vector2 tabMax = ImGui.GetItemRectMax();
+						float tabHeight = tabMax.Y - tabMin.Y;
+						float faviconY = tabMin.Y + (tabHeight - faviconSize) / 2f;
+						float faviconX = tabMin.X + ImGui.GetStyle().FramePadding.X;
+
+						ImGui.GetWindowDrawList().AddImage(
+							tab.FaviconTexture.Handle,
+							new Vector2(faviconX, faviconY),
+							new Vector2(faviconX + faviconSize, faviconY + faviconSize));
 					}
 
 					// Check if tab was clicked (even if not the content tab)
@@ -270,11 +301,165 @@ internal sealed class BrowserWindow : Window, IDisposable
 
 		ImGui.SameLine();
 
-		// URL input
-		ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X);
-		if (ImGui.InputText("##UrlInput", ref activeTab.UrlInput, 2048, ImGuiInputTextFlags.EnterReturnsTrue))
+		// URL input with styled domain display
+		float urlWidth = ImGui.GetContentRegionAvail().X;
+		ImGui.SetNextItemWidth(urlWidth);
+
+		if (_urlBarFocused)
 		{
-			NavigateCurrentTab(activeTab.UrlInput);
+			// Set focus on the input for first few frames
+			if (_urlBarFocusFrames > 0)
+			{
+				ImGui.SetKeyboardFocusHere();
+				_urlBarFocusFrames--;
+			}
+
+			// Editing mode - regular input
+			if (ImGui.InputText("##UrlInput", ref activeTab.UrlInput, 2048, ImGuiInputTextFlags.EnterReturnsTrue))
+			{
+				NavigateCurrentTab(activeTab.UrlInput);
+				_urlBarFocused = false;
+			}
+
+			// Check if we lost focus (but not during initial focus frames)
+			if (_urlBarFocusFrames == 0 && !ImGui.IsItemActive())
+			{
+				_urlBarFocused = false;
+				activeTab.UrlInput = activeTab.Url; // Reset to actual URL
+			}
+		}
+		else
+		{
+			// Display mode - styled URL
+			DrawStyledUrlBar(activeTab, urlWidth);
+		}
+	}
+
+	private void DrawStyledUrlBar(BrowserTab tab, float width)
+	{
+		Vector2 pos = ImGui.GetCursorScreenPos();
+		float height = ImGui.GetFrameHeight();
+		Vector2 padding = ImGui.GetStyle().FramePadding;
+
+		// Draw frame background
+		uint bgColor = ImGui.GetColorU32(ImGuiCol.FrameBg);
+		uint bgHoverColor = ImGui.GetColorU32(ImGuiCol.FrameBgHovered);
+
+		ImDrawListPtr drawList = ImGui.GetWindowDrawList();
+		bool hovered = ImGui.IsMouseHoveringRect(pos, new Vector2(pos.X + width, pos.Y + height));
+
+		drawList.AddRectFilled(pos, new Vector2(pos.X + width, pos.Y + height),
+			hovered ? bgHoverColor : bgColor, ImGui.GetStyle().FrameRounding);
+
+		// Parse URL to find domain parts
+		string url = tab.Url;
+		string scheme = "";
+		string subdomain = "";
+		string mainDomain = "";
+		string path = "";
+
+		try
+		{
+			Uri uri = new(url);
+
+			// Handle special schemes that don't use "://" (about:, javascript:, data:, etc.)
+			if (uri.Scheme is "about" or "javascript" or "data" or "blob")
+			{
+				scheme = uri.Scheme + ":";
+				mainDomain = uri.AbsoluteUri[(uri.Scheme.Length + 1)..];
+			}
+			else
+			{
+				scheme = uri.Scheme + "://";
+				string host = uri.Host;
+
+				// Extract subdomain (www, www2, m, mobile, etc.)
+				string[] parts = host.Split('.');
+				if (parts.Length > 2)
+				{
+					// Check for common subdomains
+					string firstPart = parts[0].ToLowerInvariant();
+					if (firstPart is "www" or "www2" or "www3" or "m" or "mobile" or "app" or "api")
+					{
+						subdomain = parts[0] + ".";
+						mainDomain = string.Join(".", parts[1..]);
+					}
+					else
+					{
+						mainDomain = host;
+					}
+				}
+				else
+				{
+					mainDomain = host;
+				}
+
+				path = uri.PathAndQuery;
+				if (path == "/") path = "";
+			}
+		}
+		catch
+		{
+			mainDomain = url;
+		}
+
+		// Calculate text positions
+		float textY = pos.Y + padding.Y;
+		float textX = pos.X + padding.X;
+
+		// Colors
+		uint greyColor = ImGui.GetColorU32(new Vector4(0.5f, 0.5f, 0.5f, 1.0f));
+		uint domainColor = ImGui.GetColorU32(ImGuiCol.Text);
+
+		// Draw scheme (grey)
+		if (!string.IsNullOrEmpty(scheme))
+		{
+			drawList.AddText(new Vector2(textX, textY), greyColor, scheme);
+			textX += ImGui.CalcTextSize(scheme).X;
+		}
+
+		// Draw subdomain (grey)
+		if (!string.IsNullOrEmpty(subdomain))
+		{
+			drawList.AddText(new Vector2(textX, textY), greyColor, subdomain);
+			textX += ImGui.CalcTextSize(subdomain).X;
+		}
+
+		// Draw main domain (normal color)
+		if (!string.IsNullOrEmpty(mainDomain))
+		{
+			drawList.AddText(new Vector2(textX, textY), domainColor, mainDomain);
+			textX += ImGui.CalcTextSize(mainDomain).X;
+		}
+
+		// Draw path (grey) - clip if too long
+		if (!string.IsNullOrEmpty(path))
+		{
+			float availableWidth = pos.X + width - padding.X - textX;
+			if (availableWidth > 20)
+			{
+				string displayPath = path;
+				Vector2 pathSize = ImGui.CalcTextSize(path);
+				if (pathSize.X > availableWidth)
+				{
+					// Truncate with ellipsis
+					while (displayPath.Length > 3 && ImGui.CalcTextSize(displayPath + "...").X > availableWidth)
+					{
+						displayPath = displayPath[..^1];
+					}
+					displayPath += "...";
+				}
+				drawList.AddText(new Vector2(textX, textY), greyColor, displayPath);
+			}
+		}
+
+		// Invisible button for click detection
+		ImGui.SetCursorScreenPos(pos);
+		if (ImGui.InvisibleButton("##UrlDisplay", new Vector2(width, height)))
+		{
+			_urlBarFocused = true;
+			_urlBarFocusFrames = 3; // Give a few frames for focus to settle
+			tab.UrlInput = tab.Url;
 		}
 	}
 
@@ -513,8 +698,9 @@ internal sealed class BrowserWindow : Window, IDisposable
 		// Remove ephemeral overlay
 		_overlayManager.RemoveEphemeralOverlay(tab.OverlayGuid);
 
-		// Dispose texture
+		// Dispose textures
 		tab.Texture?.Dispose();
+		tab.FaviconTexture?.Dispose();
 
 		// Remove from list
 		_tabs.RemoveAt(index);
@@ -534,6 +720,7 @@ internal sealed class BrowserWindow : Window, IDisposable
 			BrowserTab tab = _tabs[i];
 			_overlayManager.RemoveEphemeralOverlay(tab.OverlayGuid);
 			tab.Texture?.Dispose();
+			tab.FaviconTexture?.Dispose();
 			_tabs.RemoveAt(i);
 		}
 
@@ -642,10 +829,85 @@ internal sealed class BrowserWindow : Window, IDisposable
 				return;
 			}
 
+			bool isNewUrl = tab.Url != msg.Url;
 			tab.Url = msg.Url;
 			tab.UrlInput = msg.Url;
-			tab.Name = GetDomainFromUrl(msg.Url);
+
+			// Clear favicon when navigating to a new URL
+			if (isNewUrl)
+			{
+				tab.FaviconTexture?.Dispose();
+				tab.FaviconTexture = null;
+				tab.FaviconUrl = null;
+			}
+
+			// Use page title if available, otherwise fall back to domain only if URL changed
+			if (!string.IsNullOrEmpty(msg.Title))
+			{
+				tab.Name = msg.Title;
+			}
+			else if (isNewUrl || tab.Name == "New Tab")
+			{
+				// Only reset to domain if navigating to a new URL or we don't have a name yet
+				tab.Name = GetDomainFromUrl(msg.Url);
+			}
+
+			// Load favicon if provided
+			if (!string.IsNullOrEmpty(msg.FaviconUrl) && msg.FaviconUrl != tab.FaviconUrl)
+			{
+				tab.FaviconUrl = msg.FaviconUrl;
+				LoadFaviconAsync(tab, msg.FaviconUrl);
+			}
 		});
+	}
+
+	private async void LoadFaviconAsync(BrowserTab tab, string faviconUrl)
+	{
+		try
+		{
+			string urlToFetch = faviconUrl;
+
+			// SVG favicons aren't supported - try /favicon.ico fallback
+			if (faviconUrl.EndsWith(".svg", StringComparison.OrdinalIgnoreCase))
+			{
+				try
+				{
+					Uri uri = new(faviconUrl);
+					urlToFetch = $"{uri.Scheme}://{uri.Host}/favicon.ico";
+				}
+				catch
+				{
+					return; // Invalid URL, skip favicon
+				}
+			}
+
+			// Download favicon into memory
+			byte[] data = await HttpClient.GetByteArrayAsync(urlToFetch);
+
+			// Create texture from image data
+			IDalamudTextureWrap newTexture = await _services.TextureProvider.CreateFromImageAsync(data);
+
+			// Update on framework thread
+			_ = _services.Framework.RunOnFrameworkThread(() =>
+			{
+				// Verify the tab still wants this favicon
+				if (tab.FaviconUrl == faviconUrl)
+				{
+					// Dispose old texture
+					tab.FaviconTexture?.Dispose();
+					tab.FaviconTexture = newTexture;
+				}
+				else
+				{
+					// Tab no longer needs this favicon, dispose it
+					newTexture.Dispose();
+				}
+			});
+		}
+		catch (Exception ex)
+		{
+			_services.PluginLog.Warning(ex, "Failed to load favicon from {Url}", faviconUrl);
+		}
 	}
 
 }

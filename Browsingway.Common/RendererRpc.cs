@@ -34,9 +34,9 @@ public class RendererRpc(string name) : IpcBase(name)
 		await SendCall(new RpcCall() { SetCursor = msg });
 	}
 
-	public async Task UrlChanged(Guid id, string url)
+	public async Task UrlChanged(Guid id, string url, string? title = null, string? faviconUrl = null)
 	{
-		await SendCall(new RpcCall() { UrlChanged = new UrlChangedMessage() { Guid = id.ToByteArray(), Url = url } });
+		await SendCall(new RpcCall() { UrlChanged = new UrlChangedMessage() { Guid = id.ToByteArray(), Url = url, Title = title, FaviconUrl = faviconUrl } });
 	}
 
 	protected override void HandleCall(RpcCall call)
