@@ -17,3 +17,8 @@ table SetCursorMessage (fs_serializer) {
     Cursor: Cursor;
     Guid: [ubyte] (required);
 }
+
+table UrlChangedMessage (fs_serializer) {
+    Guid: [ubyte] (required);
+    Url: string (required);
+}

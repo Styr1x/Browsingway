@@ -52,6 +52,7 @@ internal sealed class OverlayManager : IDisposable
 		{
 			_renderProcessManager.Rpc.SetCursor += OnSetCursor;
 			_renderProcessManager.Rpc.UpdateTexture += OnUpdateTexture;
+			_renderProcessManager.Rpc.UrlChanged += OnUrlChanged;
 		}
 	}
 
@@ -229,6 +230,12 @@ internal sealed class OverlayManager : IDisposable
 		if (_overlays.TryGetValue(guid, out var overlay))
 		{
 			overlay.Navigate(url);
+
+			// Update active config so sync doesn't revert to old URL
+			if (_activeConfigs.TryGetValue(guid, out var config))
+			{
+				config.Url = url;
+			}
 		}
 	}
 
@@ -240,6 +247,51 @@ internal sealed class OverlayManager : IDisposable
 		if (_overlays.TryGetValue(guid, out var overlay))
 		{
 			overlay.Debug();
+		}
+	}
+
+	/// <summary>
+	/// Imperatively go back in browser history for an overlay (user action).
+	/// </summary>
+	public void GoBack(Guid guid)
+	{
+		if (_overlays.TryGetValue(guid, out var overlay))
+		{
+			overlay.GoBack();
+		}
+	}
+
+	/// <summary>
+	/// Imperatively go forward in browser history for an overlay (user action).
+	/// </summary>
+	public void GoForward(Guid guid)
+	{
+		if (_overlays.TryGetValue(guid, out var overlay))
+		{
+			overlay.GoForward();
+		}
+	}
+
+	/// <summary>
+	/// Imperatively reload an overlay (user action).
+	/// </summary>
+	public void Reload(Guid guid, bool ignoreCache = false)
+	{
+		if (_overlays.TryGetValue(guid, out var overlay))
+		{
+			overlay.Reload(ignoreCache);
+		}
+	}
+
+	/// <summary>
+	/// Sets the size for a headless/hidden overlay externally.
+	/// Used by BrowserWindow to set the size of tab overlays that don't draw their own window.
+	/// </summary>
+	public void SetOverlaySize(Guid guid, System.Numerics.Vector2 size)
+	{
+		if (_overlays.TryGetValue(guid, out var overlay))
+		{
+			overlay.SetSize(size);
 		}
 	}
 
@@ -342,6 +394,18 @@ internal sealed class OverlayManager : IDisposable
 			else
 			{
 				_services.PluginLog.Error("Overlay Id not found");
+			}
+		});
+	}
+
+	private void OnUrlChanged(Common.Ipc.UrlChangedMessage msg)
+	{
+		_services.Framework.RunOnFrameworkThread(() =>
+		{
+			Guid guid = new(msg.Guid.Span);
+			if (_activeConfigs.TryGetValue(guid, out var config))
+			{
+				config.Url = msg.Url;
 			}
 		});
 	}

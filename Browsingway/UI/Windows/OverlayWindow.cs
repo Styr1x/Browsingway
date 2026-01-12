@@ -3,6 +3,7 @@ using Browsingway.Common.Ipc;
 using Browsingway.Extensions;
 using Browsingway.Interop;
 using Browsingway.Services;
+using Browsingway.UI;
 using Dalamud.Bindings.ImGui;
 using Dalamud.Game.ClientState.Objects.Enums;
 using Dalamud.Interface.Textures;
@@ -76,6 +77,17 @@ internal class OverlayWindow : Window, IDisposable
 		return _size;
 	}
 
+	/// <summary>
+	/// Sets the size externally for headless/hidden overlays that don't draw their own window.
+	/// Used by BrowserWindow to set the size of tab overlays.
+	/// </summary>
+	public void SetSize(Vector2 size)
+	{
+		if (size == _size) return;
+		_size = size;
+		_onSizeChanged?.Invoke();
+	}
+
 	public void Dispose()
 	{
 		_textureHandler?.Dispose();
@@ -99,10 +111,34 @@ internal class OverlayWindow : Window, IDisposable
 		_renderProcessManager.Rpc?.Debug(RenderGuid).FireAndForget(_services.PluginLog);
 	}
 
+	/// <summary>
+	/// Imperatively go back in browser history (user action).
+	/// </summary>
+	public void GoBack()
+	{
+		_renderProcessManager.Rpc?.GoBack(RenderGuid).FireAndForget(_services.PluginLog);
+	}
+
+	/// <summary>
+	/// Imperatively go forward in browser history (user action).
+	/// </summary>
+	public void GoForward()
+	{
+		_renderProcessManager.Rpc?.GoForward(RenderGuid).FireAndForget(_services.PluginLog);
+	}
+
+	/// <summary>
+	/// Imperatively reload the page (user action).
+	/// </summary>
+	public void Reload(bool ignoreCache = false)
+	{
+		_renderProcessManager.Rpc?.Reload(RenderGuid, ignoreCache).FireAndForget(_services.PluginLog);
+	}
+
 	public void SetCursor(Cursor cursor)
 	{
 		_captureCursor = cursor != Cursor.BrowsingwayNoCapture;
-		_cursor = DecodeCursor(cursor);
+		_cursor = BrowserInputHelper.DecodeCursor(cursor);
 	}
 
 	public WndProcResult WndProcMessage(WindowsMessage msg, ulong wParam, long lParam)
@@ -352,10 +388,13 @@ internal class OverlayWindow : Window, IDisposable
 		try
 		{
 			_textureHandler = new ImGuiSharedTexture(handle);
+			oldTextureHandler?.Dispose();
 		}
-		catch (Exception e) { _textureRenderException = e; }
-
-		if (oldTextureHandler != null) { oldTextureHandler.Dispose(); }
+		catch (Exception e)
+		{
+			_textureRenderException = e;
+			// Keep using old texture if new one failed
+		}
 	}
 
 	private void HandleMouseEvent()
@@ -378,9 +417,9 @@ internal class OverlayWindow : Window, IDisposable
 			: ImGui.IsMouseHoveringRect(windowPos, windowPos + ImGui.GetWindowSize());
 
 		// manage focus
-		MouseButton down = EncodeMouseButtons(io.MouseClicked);
-		MouseButton double_ = EncodeMouseButtons(io.MouseDoubleClicked);
-		MouseButton up = EncodeMouseButtons(io.MouseReleased);
+		MouseButton down = BrowserInputHelper.EncodeMouseButtons(io.MouseClicked);
+		MouseButton double_ = BrowserInputHelper.EncodeMouseButtons(io.MouseDoubleClicked);
+		MouseButton up = BrowserInputHelper.EncodeMouseButtons(io.MouseReleased);
 		float wheelX = io.MouseWheelH;
 		float wheelY = io.MouseWheel;
 		if (down.HasFlag(MouseButton.Primary) || down.HasFlag(MouseButton.Secondary) || down.HasFlag(MouseButton.Tertiary))
@@ -443,33 +482,4 @@ internal class OverlayWindow : Window, IDisposable
 		_onSizeChanged?.Invoke();
 	}
 
-	#region serde
-
-	private static MouseButton EncodeMouseButtons(Span<bool> buttons)
-	{
-		MouseButton result = MouseButton.None;
-		if (buttons[0]) result |= MouseButton.Primary;
-		if (buttons[1]) result |= MouseButton.Secondary;
-		if (buttons[2]) result |= MouseButton.Tertiary;
-		if (buttons[3]) result |= MouseButton.Fourth;
-		if (buttons[4]) result |= MouseButton.Fifth;
-		return result;
-	}
-
-	private static ImGuiMouseCursor DecodeCursor(Cursor cursor) => cursor switch
-	{
-		Cursor.Default => ImGuiMouseCursor.Arrow,
-		Cursor.None => ImGuiMouseCursor.None,
-		Cursor.Pointer => ImGuiMouseCursor.Hand,
-		Cursor.Text or Cursor.VerticalText => ImGuiMouseCursor.TextInput,
-		Cursor.NResize or Cursor.SResize or Cursor.NsResize => ImGuiMouseCursor.ResizeNs,
-		Cursor.EResize or Cursor.WResize or Cursor.EwResize => ImGuiMouseCursor.ResizeEw,
-		Cursor.NeResize or Cursor.SwResize or Cursor.NeswResize => ImGuiMouseCursor.ResizeNesw,
-		Cursor.NwResize or Cursor.SeResize or Cursor.NwseResize => ImGuiMouseCursor.ResizeNwse,
-		_ => ImGuiMouseCursor.Arrow
-	};
-
-
-
-	#endregion
 }

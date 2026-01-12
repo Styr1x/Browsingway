@@ -12,6 +12,7 @@ public class BrowsingwayRpc(string name) : IpcBase(name)
 	public event Action<SetCursorMessage>? SetCursor;
 	public event Action<RendererReadyMessage>? RendererReady;
 	public event Action<UpdateTextureMessage>? UpdateTexture;
+	public event Action<UrlChangedMessage>? UrlChanged;
 
 	// Declarative state sync - sends all overlay states to renderer
 	public async Task SyncOverlays(IReadOnlyList<OverlayState> overlays)
@@ -40,6 +41,21 @@ public class BrowsingwayRpc(string name) : IpcBase(name)
 		await SendCall(new RpcCall() { KeyEvent = new KeyEventMessage() { Guid = id.ToByteArray(), Msg = msg, WParam = wParam, LParam = lParam } });
 	}
 
+	public async Task GoBack(Guid id)
+	{
+		await SendCall(new RpcCall() { GoBack = new GoBackMessage() { Guid = id.ToByteArray() } });
+	}
+
+	public async Task GoForward(Guid id)
+	{
+		await SendCall(new RpcCall() { GoForward = new GoForwardMessage() { Guid = id.ToByteArray() } });
+	}
+
+	public async Task Reload(Guid id, bool ignoreCache = false)
+	{
+		await SendCall(new RpcCall() { Reload = new ReloadMessage() { Guid = id.ToByteArray(), IgnoreCache = ignoreCache } });
+	}
+
 	protected override void HandleCall(RpcCall call)
 	{
 		switch (call)
@@ -52,6 +68,9 @@ public class BrowsingwayRpc(string name) : IpcBase(name)
 				break;
 			case { UpdateTexture: not null }:
 				UpdateTexture?.Invoke(call.UpdateTexture);
+				break;
+			case { UrlChanged: not null }:
+				UrlChanged?.Invoke(call.UrlChanged);
 				break;
 		}
 	}

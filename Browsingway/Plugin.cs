@@ -28,6 +28,7 @@ public class Plugin : IDalamudPlugin
 	private GameEnvTracker? _visibilityTracker;
 	private SettingsWindow? _settingsWindow;
 	private DependencyWindow? _dependencyWindow;
+	private BrowserWindow? _browserWindow;
 	private OverlayCommandHandler? _commandHandler;
 	private Configuration? _config;
 	private readonly WindowSystem _windowSystem = new("Browsingway");
@@ -69,6 +70,7 @@ public class Plugin : IDalamudPlugin
 		_overlayManager?.Dispose();
 		_renderProcess?.Dispose();
 		_settingsWindow?.Dispose();
+		_browserWindow?.Dispose();
 		_dependencyWindow?.Dispose();
 
 		_windowSystem.RemoveAllWindows();
@@ -120,6 +122,15 @@ public class Plugin : IDalamudPlugin
 
 		_windowSystem.AddWindow(_settingsWindow);
 
+		// Create browser control window
+		_browserWindow = new BrowserWindow(
+			_services,
+			_overlayManager,
+			_renderProcess,
+			_pluginDir);
+
+		_windowSystem.AddWindow(_browserWindow);
+
 		// Create command handler
 		_commandHandler = new OverlayCommandHandler(
 			_services,
@@ -165,6 +176,11 @@ public class Plugin : IDalamudPlugin
 
 	private WndProcResult OnWndProc(WindowsMessage msg, ulong wParam, long lParam)
 	{
+		// First check browser window for keyboard events
+		var browserResult = _browserWindow?.WndProcMessage(msg, wParam, lParam) ?? WndProcResult.NotHandled;
+		if (browserResult.Handled)
+			return browserResult;
+
 		return _overlayManager?.HandleWndProc(msg, wParam, lParam) ?? WndProcResult.NotHandled;
 	}
 
@@ -189,7 +205,7 @@ public class Plugin : IDalamudPlugin
 
 		if (args.Length == 0)
 		{
-			_services.Chat.PrintError("No subcommand specified. Valid subcommands are: config,overlay.");
+			_services.Chat.PrintError("No subcommand specified. Valid subcommands are: config,browser,overlay.");
 			return;
 		}
 
@@ -200,12 +216,15 @@ public class Plugin : IDalamudPlugin
 			case "config":
 				_settingsWindow?.Open();
 				break;
+			case "browser":
+				_browserWindow?.Open();
+				break;
 			case "inlay":
 			case "overlay":
 				_commandHandler?.Handle(subcommandArgs);
 				break;
 			default:
-				_services.Chat.PrintError($"Unknown subcommand '{args[0]}'. Valid subcommands are: config,overlay,inlay.");
+				_services.Chat.PrintError($"Unknown subcommand '{args[0]}'. Valid subcommands are: config,browser,overlay,inlay.");
 				break;
 		}
 	}

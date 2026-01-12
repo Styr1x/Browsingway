@@ -86,6 +86,9 @@ internal static class Program
 		_rpc.Debug += RpcOnDebug;
 		_rpc.MouseButton += RpcOnMouseButton;
 		_rpc.KeyEvent += RpcOnKeyEvent;
+		_rpc.GoBack += RpcOnGoBack;
+		_rpc.GoForward += RpcOnGoForward;
+		_rpc.Reload += RpcOnReload;
 	}
 
 	#region Declarative State Sync
@@ -153,9 +156,14 @@ internal static class Program
 		overlay.Initialise();
 		_overlays.Add(guid, overlay);
 
-		renderHandler.CursorChanged += (o, cursor) =>
+		renderHandler.CursorChanged += (_, cursor) =>
 		{
 			_ = _rpc.SetCursor(new SetCursorMessage() {Guid = guid.ToByteArray(), Cursor = cursor});
+		};
+
+		overlay.AddressChanged += (_, url) =>
+		{
+			_ = _rpc.UrlChanged(guid, url);
 		};
 
 		_ = _rpc.UpdateTexture(guid, renderHandler.SharedTextureHandle);
@@ -214,6 +222,45 @@ internal static class Program
 			var guid = new Guid(msg.Guid.Span);
 			if (_overlays.TryGetValue(guid, out var overlay))
 				overlay.HandleKeyEvent(msg);
+		}
+	}
+
+	private static void RpcOnGoBack(GoBackMessage msg)
+	{
+		lock (_lockIpc)
+		{
+			if (_isShuttingDown)
+				return;
+
+			var guid = new Guid(msg.Guid.Span);
+			if (_overlays.TryGetValue(guid, out var overlay))
+				overlay.GoBack();
+		}
+	}
+
+	private static void RpcOnGoForward(GoForwardMessage msg)
+	{
+		lock (_lockIpc)
+		{
+			if (_isShuttingDown)
+				return;
+
+			var guid = new Guid(msg.Guid.Span);
+			if (_overlays.TryGetValue(guid, out var overlay))
+				overlay.GoForward();
+		}
+	}
+
+	private static void RpcOnReload(ReloadMessage msg)
+	{
+		lock (_lockIpc)
+		{
+			if (_isShuttingDown)
+				return;
+
+			var guid = new Guid(msg.Guid.Span);
+			if (_overlays.TryGetValue(guid, out var overlay))
+				overlay.Reload(msg.IgnoreCache);
 		}
 	}
 

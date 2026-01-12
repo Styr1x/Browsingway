@@ -22,6 +22,8 @@ internal class Overlay : IDisposable
 	private string _customCss;
 	private string _customJs;
 
+	public event EventHandler<string>? AddressChanged;
+
 	public Overlay(string id, string url, float zoom, bool muted, int framerate, string customCss, string customJs,
 		TextureRenderHandler renderHandler)
 	{
@@ -127,6 +129,12 @@ internal class Overlay : IDisposable
 			}
 		};
 
+		_browser.AddressChanged += (_, args) =>
+		{
+			_url = args.Address;
+			AddressChanged?.Invoke(this, args.Address);
+		};
+
 		BrowserSettings browserSettings = new() {WindowlessFrameRate = _framerate};
 
 		// Ready, boot up the _browser
@@ -195,6 +203,21 @@ internal class Overlay : IDisposable
 	public void Debug()
 	{
 		_browser?.ShowDevTools();
+	}
+
+	public void GoBack()
+	{
+		_browser?.Back();
+	}
+
+	public void GoForward()
+	{
+		_browser?.Forward();
+	}
+
+	public void Reload(bool ignoreCache)
+	{
+		_browser?.Reload(ignoreCache);
 	}
 
 	public void HandleMouseEvent(MouseButtonMessage msg)

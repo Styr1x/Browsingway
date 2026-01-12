@@ -52,3 +52,16 @@ table KeyEventMessage (fs_serializer) {
     WParam : int;
     LParam : int;
 }
+
+table GoBackMessage (fs_serializer) {
+    Guid : [ubyte] (required);
+}
+
+table GoForwardMessage (fs_serializer) {
+    Guid : [ubyte] (required);
+}
+
+table ReloadMessage (fs_serializer) {
+    Guid : [ubyte] (required);
+    IgnoreCache : bool;
+}

@@ -14,9 +14,13 @@ table RpcCall(fs_serializer) {
     Debug: DebugMessage;
     MouseButton: MouseButtonMessage;
     KeyEvent: KeyEventMessage;
+    GoBack: GoBackMessage;
+    GoForward: GoForwardMessage;
+    Reload: ReloadMessage;
 
     // Renderer -> Plugin
     RendererReady: RendererReadyMessage;
     UpdateTexture: UpdateTextureMessage;
     SetCursor: SetCursorMessage;
+    UrlChanged: UrlChangedMessage;
 }

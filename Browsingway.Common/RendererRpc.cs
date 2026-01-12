@@ -14,6 +14,9 @@ public class RendererRpc(string name) : IpcBase(name)
 	public event Action<DebugMessage>? Debug;
 	public event Action<MouseButtonMessage>? MouseButton;
 	public event Action<KeyEventMessage>? KeyEvent;
+	public event Action<GoBackMessage>? GoBack;
+	public event Action<GoForwardMessage>? GoForward;
+	public event Action<ReloadMessage>? Reload;
 
 	// Calls to plugin
 	public async Task RendererReady(bool bHasDxSharedTexturesSupport)
@@ -29,6 +32,11 @@ public class RendererRpc(string name) : IpcBase(name)
 	public async Task SetCursor(SetCursorMessage msg)
 	{
 		await SendCall(new RpcCall() { SetCursor = msg });
+	}
+
+	public async Task UrlChanged(Guid id, string url)
+	{
+		await SendCall(new RpcCall() { UrlChanged = new UrlChangedMessage() { Guid = id.ToByteArray(), Url = url } });
 	}
 
 	protected override void HandleCall(RpcCall call)
@@ -49,6 +57,15 @@ public class RendererRpc(string name) : IpcBase(name)
 				break;
 			case { KeyEvent: not null }:
 				KeyEvent?.Invoke(call.KeyEvent);
+				break;
+			case { GoBack: not null }:
+				GoBack?.Invoke(call.GoBack);
+				break;
+			case { GoForward: not null }:
+				GoForward?.Invoke(call.GoForward);
+				break;
+			case { Reload: not null }:
+				Reload?.Invoke(call.Reload);
 				break;
 		}
 	}
