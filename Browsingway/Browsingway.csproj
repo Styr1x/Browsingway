@@ -23,7 +23,6 @@
 	
 	<ItemGroup>
 		<PackageReference Include="SharedMemory" Version="2.3.2" />
-		<PackageReference Update="DalamudPackager" Version="15.0.0" />
 	</ItemGroup>
 
 	<ItemGroup>
