@@ -10,7 +10,6 @@ internal class RenderProcess : IDisposable
 	public event EventHandler? Crashed;
 	public BrowsingwayRpc? Rpc { get; private set; }
 
-	private readonly string _configDir;
 	private readonly DependencyManager _dependencyManager;
 
 	private readonly string _ipcChannelName;
@@ -18,6 +17,12 @@ internal class RenderProcess : IDisposable
 	private readonly string _keepAliveHandleName;
 	private readonly int _parentPid;
 	private readonly string _pluginDir;
+
+	private readonly string _cefCacheDir;
+	private readonly FileStream? _cacheSlotLock;
+
+	private const string _cefCacheDirName = "cef-cache";
+	private const int _maxCacheSlots = 16;
 
 	private DateTime _lastRenderCheck = DateTime.MinValue;
 	private uint _restartCount = 0;
@@ -40,20 +45,74 @@ internal class RenderProcess : IDisposable
 		_ipcChannelName = $"BrowsingwayRendererIpcChannel{pid}";
 		_dependencyManager = dependencyManager;
 		_pluginDir = pluginDir;
-		_configDir = configDir;
 		_parentPid = pid;
 
-		Rpc = new BrowsingwayRpc(_ipcChannelName);
+		(_cefCacheDir, _cacheSlotLock) = ClaimCacheSlot(configDir);
 
-		_process = SetupProcess();
+		try
+		{
+			Rpc = new BrowsingwayRpc(_ipcChannelName);
+			_process = SetupProcess();
+		}
+		catch
+		{
+			_cacheSlotLock?.Dispose();
+			throw;
+		}
+	}
+
+	private static (string dir, FileStream? slotLock) ClaimCacheSlot(string configDir)
+	{
+		// Claimed once here, not in SetupProcess, so the profile dir stays stable across renderer restarts.
+		// Slot 1 keeps the original name; the OS releases the lock however the process ends.
+		string firstDir = Path.Combine(configDir, _cefCacheDirName);
+		IOException? lastInUse = null;
+
+		for (int slot = 1; slot <= _maxCacheSlots; slot++)
+		{
+			string name = slot == 1 ? _cefCacheDirName : $"{_cefCacheDirName}-{slot}";
+			string dir = Path.Combine(configDir, name);
+
+			try
+			{
+				FileStream slotLock = new(Path.Combine(configDir, $"{name}.lock"), FileMode.OpenOrCreate, FileAccess.Read, FileShare.None);
+				if (slot > 1)
+				{
+					Services.PluginLog.Info($"Using CEF cache slot {slot} ({dir}); earlier slots are held by other instances");
+				}
+
+				return (dir, slotLock);
+			}
+			catch (IOException e)
+			{
+				lastInUse = e;
+				Services.PluginLog.Debug($"CEF cache slot {slot} could not be claimed: {e.Message}");
+			}
+			catch (Exception e)
+			{
+				// not another instance; the lock only arbitrates multiboxing, so run unlocked rather than fail
+				Services.PluginLog.Error(e, $"Could not open the CEF cache lock in {configDir}; running unlocked on {firstDir}");
+				return (firstDir, null);
+			}
+		}
+
+		Services.PluginLog.Error(lastInUse, $"All {_maxCacheSlots} CEF cache slots are in use; running unlocked on {firstDir}");
+		return (firstDir, null);
 	}
 
 	public void Dispose()
 	{
-		Stop();
+		try
+		{
+			Stop();
 
-		_process.Dispose();
-		Rpc?.Dispose();
+			_process.Dispose();
+			Rpc?.Dispose();
+		}
+		finally
+		{
+			_cacheSlotLock?.Dispose();
+		}
 	}
 
 	public void Start()
@@ -152,7 +211,8 @@ internal class RenderProcess : IDisposable
 		handle.Dispose();
 
 		// Give the process a sec to gracefully shut down, then kill it
-		_process.WaitForExit(1000);
+		try { _process.WaitForExit(1000); }
+		catch (InvalidOperationException) { }
 		try { _process.Kill(); }
 		catch (InvalidOperationException) { }
 	}
@@ -197,7 +257,7 @@ internal class RenderProcess : IDisposable
 			ParentPid = _parentPid,
 			DalamudAssemblyDir = Path.GetDirectoryName(typeof(IPluginLog).Assembly.Location)!,
 			CefAssemblyDir = cefAssemblyDir,
-			CefCacheDir = Path.Combine(_configDir, "cef-cache"),
+			CefCacheDir = _cefCacheDir,
 			DxgiAdapterLuidLow = DxHandler.AdapterLuid.LowPart,
 			DxgiAdapterLuidHigh = DxHandler.AdapterLuid.HighPart,
 			KeepAliveHandleName = _keepAliveHandleName,
