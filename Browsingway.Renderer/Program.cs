@@ -70,8 +70,11 @@ internal static class Program
 			_isShuttingDown = true;
 		}
 
-		DxHandler.Shutdown();
+		// Drain CEF first: browser disposal releases the shared D3D textures, which
+		// must happen while the device from DxHandler is still alive. Releasing the
+		// device first AVs in ID3D11Texture2D.Release during Cef.Shutdown (#94).
 		CefHandler.Shutdown();
+		DxHandler.Shutdown();
 	}
 
 	// TODO: move RPC stuff away
